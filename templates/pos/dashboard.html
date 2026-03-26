@@ -1,0 +1,180 @@
+{% extends 'pos/base.html' %}
+{% block title %}لوحة التحكم{% endblock %}
+{% block page_icon %}<i class="fas fa-chart-pie"></i>{% endblock %}
+{% block page_title %}لوحة التحكم{% endblock %}
+
+{% block extra_css %}<style>
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+
+.kpi{
+  background:#fff;border-radius:16px;padding:22px 22px 18px;
+  border:1px solid var(--border);position:relative;overflow:hidden;
+  transition:transform .2s,box-shadow .2s;cursor:default;
+}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.09)}
+
+.kpi-glow{
+  position:absolute;top:-20px;left:-20px;width:100px;height:100px;
+  border-radius:50%;opacity:.08;
+}
+.kpi.green .kpi-glow{background:#10b981}
+.kpi.indigo .kpi-glow{background:#4f46e5}
+.kpi.amber .kpi-glow{background:#f59e0b}
+
+.kpi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.kpi-icon{
+  width:46px;height:46px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem;
+}
+.kpi.green  .kpi-icon{background:var(--success-l);color:#059669}
+.kpi.indigo .kpi-icon{background:var(--primary-l);color:#4f46e5}
+.kpi.amber  .kpi-icon{background:var(--warning-l);color:#d97706}
+
+.kpi-tag{
+  font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:6px;
+}
+.kpi.green  .kpi-tag{background:var(--success-l);color:#065f46}
+.kpi.indigo .kpi-tag{background:var(--primary-l);color:#3730a3}
+.kpi.amber  .kpi-tag{background:var(--warning-l);color:#92400e}
+
+.kpi-val{font-size:2rem;font-weight:900;color:var(--text);line-height:1;letter-spacing:-.03em}
+.kpi-val small{font-size:1rem;font-weight:500;color:var(--muted);margin-right:3px}
+.kpi-label{font-size:.8rem;color:var(--muted);margin-top:5px;font-weight:500}
+
+/* Quick actions */
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+.qa{
+  background:#fff;border:1.5px solid var(--border);border-radius:14px;
+  padding:16px 20px;text-decoration:none;color:var(--text);
+  display:flex;align-items:center;gap:14px;transition:all .2s;
+}
+.qa:hover{border-color:var(--primary);box-shadow:0 4px 18px rgba(79,70,229,.13)}
+.qa-icon{
+  width:50px;height:50px;border-radius:13px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+  transition:transform .2s;
+}
+.qa:hover .qa-icon{transform:scale(1.1)}
+.qa-icon.pu{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;box-shadow:0 4px 14px rgba(79,70,229,.3)}
+.qa-icon.tl{background:linear-gradient(135deg,#10b981,#0891b2);color:#fff;box-shadow:0 4px 14px rgba(16,185,129,.3)}
+.qa-text strong{display:block;font-size:.95rem;font-weight:800}
+.qa-text span{font-size:.77rem;color:var(--muted)}
+.qa-arr{color:var(--muted);margin-right:auto;font-size:.8rem}
+
+/* Orders table */
+.otable{width:100%;border-collapse:collapse}
+.otable th{
+  text-align:right;padding:10px 16px;font-size:.72rem;
+  color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:1.5px solid var(--border);background:#fafbff;
+}
+.otable td{
+  padding:12px 16px;border-bottom:1px solid #f4f6fb;font-size:.86rem;vertical-align:middle;
+}
+.otable tr:last-child td{border-bottom:none}
+.otable tbody tr{transition:background .15s;cursor:pointer}
+.otable tbody tr:hover td{background:#fafbff}
+
+.order-num{font-weight:900;color:var(--primary)}
+.tbl-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--bg);border-radius:7px;padding:3px 9px;
+  font-size:.78rem;font-weight:600;
+}
+.empty-box{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty-box i{font-size:2.5rem;display:block;margin-bottom:10px;opacity:.4}
+</style>{% endblock %}
+
+{% block content %}
+
+<div class="kpi-grid">
+  <div class="kpi green">
+    <div class="kpi-glow"></div>
+    <div class="kpi-top">
+      <div class="kpi-icon"><i class="fas fa-coins"></i></div>
+      <span class="kpi-tag">اليوم</span>
+    </div>
+    <div class="kpi-val">{{ revenue_today|floatformat:0 }}<small>ج</small></div>
+    <div class="kpi-label">إيراد اليوم</div>
+  </div>
+
+  <div class="kpi indigo">
+    <div class="kpi-glow"></div>
+    <div class="kpi-top">
+      <div class="kpi-icon"><i class="fas fa-print"></i></div>
+      <span class="kpi-tag">{{ total_today }} طلب</span>
+    </div>
+    <div class="kpi-val">{{ printed_orders }}</div>
+    <div class="kpi-label">طلبات مطبوعة جارية</div>
+  </div>
+
+  <div class="kpi amber">
+    <div class="kpi-glow"></div>
+    <div class="kpi-top">
+      <div class="kpi-icon"><i class="fas fa-hourglass-half"></i></div>
+      <span class="kpi-tag">لم تُطبع</span>
+    </div>
+    <div class="kpi-val">{{ open_orders }}</div>
+    <div class="kpi-label">طلبات مفتوحة</div>
+  </div>
+</div>
+
+<div class="qa-grid">
+  <a href="{% url 'new_order' %}" class="qa">
+    <div class="qa-icon pu"><i class="fas fa-plus"></i></div>
+    <div class="qa-text">
+      <strong>طلب جديد</strong>
+      <span>فتح شاشة الكاشير</span>
+    </div>
+    <i class="fas fa-chevron-left qa-arr"></i>
+  </a>
+  <a href="{% url 'orders_list' %}" class="qa">
+    <div class="qa-icon tl"><i class="fas fa-list-ul"></i></div>
+    <div class="qa-text">
+      <strong>إدارة الطلبات</strong>
+      <span>كل طلبات اليوم</span>
+    </div>
+    <i class="fas fa-chevron-left qa-arr"></i>
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-hdr">
+    <span><i class="fas fa-fire"></i>الطلبات النشطة</span>
+    <a href="{% url 'orders_list' %}" class="btn btn-ghost btn-sm">الكل <i class="fas fa-arrow-left"></i></a>
+  </div>
+
+  {% if recent_orders %}
+  <table class="otable">
+    <thead>
+      <tr>
+        <th>#</th><th>الطاولة</th><th>أصناف</th>
+        <th>الإجمالي</th><th>الوقت</th><th>حالة</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for o in recent_orders %}
+      <tr onclick="location.href='{% url 'order_detail' o.id %}'">
+        <td><span class="order-num">#{{ o.id }}</span></td>
+        <td><span class="tbl-chip"><i class="fas fa-chair"></i>{{ o.table|default:"بدون" }}</span></td>
+        <td>{{ o.total_items }}</td>
+        <td><strong>{{ o.total|floatformat:2 }} ج</strong></td>
+        <td style="color:var(--muted)">{{ o.created_at|time:"H:i" }}</td>
+        <td>
+          <span class="badge {% if o.status == 'printed' %}badge-purple{% else %}badge-warning{% endif %}">
+            {{ o.get_status_display }}
+          </span>
+        </td>
+        <td><a href="{% url 'order_detail' o.id %}" class="btn btn-outline btn-sm" onclick="event.stopPropagation()"><i class="fas fa-eye"></i></a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-box">
+    <i class="fas fa-coffee"></i>
+    <p>مفيش طلبات نشطة دلوقتي</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

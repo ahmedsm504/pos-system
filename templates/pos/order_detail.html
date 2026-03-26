@@ -1,0 +1,248 @@
+{% extends 'pos/base.html' %}
+{% block title %}طلب #{{ order.id }}{% endblock %}
+{% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
+{% block page_title %}تفاصيل طلب #{{ order.id }}{% endblock %}
+
+{% block extra_css %}<style>
+.back{margin-bottom:18px}
+
+.detail-grid{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
+
+/* Items */
+.items-card{background:#fff;border-radius:16px;border:1.5px solid var(--border);overflow:hidden}
+.ic-header{
+  padding:16px 22px;display:flex;justify-content:space-between;align-items:center;
+  background:#fafbff;border-bottom:1px solid var(--border);
+}
+.ic-header h3{font-size:.95rem;font-weight:800;display:flex;align-items:center;gap:8px}
+.ic-header h3 i{color:var(--primary)}
+
+.it-table{width:100%;border-collapse:collapse}
+.it-table th{
+  text-align:right;padding:10px 20px;font-size:.72rem;
+  color:var(--muted);font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  border-bottom:1px solid var(--border);background:#fafbff;
+}
+.it-table td{padding:13px 20px;border-bottom:1px solid #f4f6fb;font-size:.88rem;vertical-align:middle}
+.it-table tr:last-child td{border-bottom:none}
+.it-table tbody tr:hover td{background:#fafbff}
+
+.ct-chip{
+  font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:6px;margin-left:6px;
+}
+.ct-food {background:var(--warning-l);color:#92400e}
+.ct-drink{background:#dbeafe;color:#1e40af}
+
+.it-foot{
+  padding:15px 20px;border-top:2px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  background:#fafbff;
+}
+.it-total-val{font-size:1.35rem;font-weight:900;color:var(--text)}
+
+.note-box{
+  margin:0 20px 14px;padding:11px 14px;
+  background:var(--warning-l);border:1px solid #fde68a;
+  border-radius:9px;font-size:.83rem;color:#92400e;
+  display:flex;align-items:flex-start;gap:8px;
+}
+
+/* Sidebar */
+.detail-sidebar{display:flex;flex-direction:column;gap:14px}
+
+.info-card{background:#fff;border-radius:16px;border:1.5px solid var(--border);overflow:hidden}
+.info-card-hdr{
+  padding:12px 18px;font-size:.72rem;font-weight:700;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+  background:#fafbff;border-bottom:1px solid var(--border);
+}
+.info-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:11px 18px;border-bottom:1px solid #f4f6fb;font-size:.86rem;
+}
+.info-row:last-child{border-bottom:none}
+.info-label{color:var(--muted);display:flex;align-items:center;gap:7px}
+.info-label i{font-size:.78rem;width:15px;text-align:center}
+.info-val{font-weight:700}
+
+/* Status */
+.status-box{padding:14px 18px;display:flex;justify-content:center}
+.status-pill{
+  padding:10px 26px;border-radius:999px;font-weight:800;font-size:.95rem;
+  display:flex;align-items:center;gap:9px;
+}
+.sp-open     {background:var(--warning-l);color:#92400e}
+.sp-printed  {background:var(--primary-l);color:#3730a3}
+.sp-cancelled{background:var(--danger-l);color:#991b1b}
+
+/* Actions */
+.actions-card{background:#fff;border-radius:16px;border:1.5px solid var(--border);padding:14px}
+.act-btn{
+  width:100%;padding:12px 16px;border-radius:11px;border:none;
+  cursor:pointer;font-size:.88rem;font-weight:700;
+  display:flex;align-items:center;gap:10px;justify-content:center;
+  transition:all .18s;font-family:inherit;margin-bottom:8px;
+}
+.act-btn:last-child{margin-bottom:0}
+.ab-reprint{background:#f1f5f9;color:var(--text)}
+.ab-reprint:hover{background:#e2e8f0}
+.ab-drawer{background:#fef3c7;color:#92400e}
+.ab-drawer:hover{background:#fde68a}
+.ab-cancel{background:var(--danger-l);color:#991b1b}
+.ab-cancel:hover{background:#fecaca}
+
+.drawer-opt{
+  display:flex;align-items:center;gap:7px;
+  padding:8px 0;font-size:.8rem;color:var(--text2);margin-bottom:8px;
+}
+.drawer-opt input{accent-color:var(--primary);cursor:pointer}
+</style>{% endblock %}
+
+{% block content %}
+<div class="back">
+  <a href="{% url 'orders_list' %}" class="btn btn-outline btn-sm">
+    <i class="fas fa-arrow-right"></i> رجوع
+  </a>
+</div>
+
+<div class="detail-grid">
+
+  <!-- Items -->
+  <div class="items-card">
+    <div class="ic-header">
+      <h3><i class="fas fa-utensils"></i> أصناف الطلب</h3>
+      <span style="font-size:.8rem;color:var(--muted)">{{ order.total_items }} صنف</span>
+    </div>
+
+    <table class="it-table">
+      <thead>
+        <tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>
+      </thead>
+      <tbody>
+        {% for item in order.items.all %}
+        <tr>
+          <td>
+            <span class="ct-chip {% if item.menu_item.category.category_type == 'food' %}ct-food{% elif item.menu_item.category.category_type == 'drink' %}ct-drink{% endif %}">
+              {% if item.menu_item.category.category_type == 'food' %}مطبخ
+              {% elif item.menu_item.category.category_type == 'drink' %}بار
+              {% else %}أخرى{% endif %}
+            </span>
+            <strong>{{ item.menu_item.name }}</strong>
+            {% if item.notes %}<div style="font-size:.75rem;color:var(--muted);margin-top:2px">{{ item.notes }}</div>{% endif %}
+          </td>
+          <td>
+            <span style="background:#f1f5f9;padding:3px 11px;border-radius:6px;font-weight:800">{{ item.quantity }}</span>
+          </td>
+          <td style="color:var(--muted)">{{ item.price }} ج</td>
+          <td><strong>{{ item.subtotal }} ج</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if order.notes %}
+    <div class="note-box"><i class="fas fa-sticky-note"></i> {{ order.notes }}</div>
+    {% endif %}
+
+    <div class="it-foot">
+      <span style="font-size:.85rem;color:var(--muted);font-weight:600">الإجمالي الكلي</span>
+      <span class="it-total-val">{{ order.total|floatformat:2 }} ج</span>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="detail-sidebar">
+
+    <!-- Status -->
+    <div class="info-card">
+      <div class="info-card-hdr">حالة الطلب</div>
+      <div class="status-box">
+        <div class="status-pill sp-{{ order.status }}">
+          {% if order.status == 'open' %}<i class="fas fa-hourglass-half"></i> مفتوح
+          {% elif order.status == 'printed' %}<i class="fas fa-print"></i> مطبوع
+          {% elif order.status == 'cancelled' %}<i class="fas fa-times-circle"></i> ملغي
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="info-card">
+      <div class="info-card-hdr">معلومات الطلب</div>
+      <div class="info-row">
+        <span class="info-label"><i class="fas fa-chair"></i> الطاولة</span>
+        <span class="info-val">{{ order.table|default:"بدون" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label"><i class="fas fa-user"></i> الكاشير</span>
+        <span class="info-val">{{ order.cashier.username }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label"><i class="fas fa-calendar"></i> التاريخ</span>
+        <span class="info-val">{{ order.created_at|date:"Y/m/d" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label"><i class="fas fa-clock"></i> الوقت</span>
+        <span class="info-val">{{ order.created_at|time:"H:i" }}</span>
+      </div>
+      {% if order.printed_at %}
+      <div class="info-row">
+        <span class="info-label"><i class="fas fa-print"></i> طُبع الساعة</span>
+        <span class="info-val">{{ order.printed_at|time:"H:i" }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-card">
+      <label class="drawer-opt">
+        <input type="checkbox" id="drawerOpt" checked>
+        <i class="fas fa-archive"></i> فتح الدرج مع الطباعة
+      </label>
+
+      <button class="act-btn ab-reprint" onclick="reprintOrder()">
+        <i class="fas fa-print"></i> إعادة الطباعة
+      </button>
+      <button class="act-btn ab-drawer" onclick="openDrawerBtn()">
+        <i class="fas fa-archive"></i> فتح الدرج فقط
+      </button>
+      {% if order.status in 'open,printed' %}
+      <button class="act-btn ab-cancel" onclick="cancelOrder()">
+        <i class="fas fa-times-circle"></i> إلغاء الطلب
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}<script>
+function csrf(){const v=document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');return v?v.pop():'';}
+
+async function reprintOrder(){
+  const openDrawer=document.getElementById('drawerOpt').checked;
+  const res=await fetch("{% url 'reprint_order' order.id %}",{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+    body:JSON.stringify({open_drawer:openDrawer}),
+  });
+  const d=await res.json();
+  showToast(d.success?'تم إرسال الطباعة ✓':'الطابعة مش متصلة',d.success?'success':'warning');
+}
+
+async function openDrawerBtn(){
+  const res=await fetch("{% url 'open_drawer' %}",{method:'POST',headers:{'X-CSRFToken':csrf()}});
+  const d=await res.json();
+  showToast(d.success?'تم فتح الدرج ✓':'الدرج مش متصل',d.success?'success':'warning');
+}
+
+async function cancelOrder(){
+  if(!confirm('هتلغي الطلب ده؟'))return;
+  const res=await fetch("{% url 'cancel_order' order.id %}",{method:'POST',headers:{'X-CSRFToken':csrf()}});
+  const d=await res.json();
+  if(d.success){
+    showToast('تم إلغاء الطلب','error');
+    setTimeout(()=>location.href="{% url 'orders_list' %}",900);
+  }
+}
+</script>{% endblock %}

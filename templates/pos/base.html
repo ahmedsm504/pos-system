@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}كاشير{% endblock %}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --sidebar-w:240px;
+  --topbar-h:58px;
+  --primary:#4f46e5;
+  --primary-l:#ede9fe;
+  --primary-d:#3730a3;
+  --success:#10b981;
+  --success-l:#d1fae5;
+  --danger:#ef4444;
+  --danger-l:#fee2e2;
+  --warning:#f59e0b;
+  --warning-l:#fef3c7;
+  --bg:#f0f2f9;
+  --card:#fff;
+  --text:#1e293b;
+  --text2:#475569;
+  --muted:#94a3b8;
+  --border:#e2e8f0;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+  --radius:14px;
+}
+
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ══ SIDEBAR ══ */
+.sidebar{
+  position:fixed;right:0;top:0;bottom:0;width:var(--sidebar-w);
+  background:linear-gradient(160deg,#0d1117 0%,#161b27 60%,#1e253a 100%);
+  display:flex;flex-direction:column;z-index:300;
+  box-shadow:-4px 0 30px rgba(0,0,0,.3);
+}
+
+.sb-logo{
+  padding:22px 18px 18px;
+  display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.sb-logo-icon{
+  width:42px;height:42px;border-radius:12px;
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;color:#fff;
+  box-shadow:0 4px 16px rgba(79,70,229,.45);
+  flex-shrink:0;
+}
+.sb-logo h2{font-size:.97rem;font-weight:800;color:#f1f5f9;letter-spacing:-.01em}
+.sb-logo p{font-size:.68rem;color:#64748b;margin-top:2px}
+
+.sb-nav{flex:1;padding:14px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+
+.sb-section{font-size:.62rem;font-weight:700;color:#334155;letter-spacing:.1em;
+  text-transform:uppercase;padding:12px 10px 5px}
+
+.sb-item{
+  display:flex;align-items:center;gap:11px;padding:10px 13px;
+  border-radius:10px;color:#94a3b8;text-decoration:none;
+  font-size:.88rem;font-weight:500;transition:all .18s;position:relative;
+}
+.sb-item i{width:18px;text-align:center;font-size:.9rem;flex-shrink:0}
+.sb-item:hover{background:rgba(255,255,255,.06);color:#e2e8f0}
+.sb-item.active{background:rgba(79,70,229,.2);color:#a5b4fc}
+.sb-item.active::after{
+  content:'';position:absolute;right:0;top:25%;bottom:25%;
+  width:3px;background:#6366f1;border-radius:0 3px 3px 0;
+}
+
+.sb-badge{
+  margin-right:auto;background:#4f46e5;color:#fff;
+  font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:999px;
+}
+
+.sb-footer{padding:14px 10px;border-top:1px solid rgba(255,255,255,.06)}
+
+.sb-user{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border-radius:10px;background:rgba(255,255,255,.04);margin-bottom:8px;
+}
+.sb-avatar{
+  width:34px;height:34px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;font-weight:800;color:#fff;
+}
+.sb-user-info strong{display:block;font-size:.84rem;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.sb-user-info span{font-size:.7rem;color:#64748b}
+
+.sb-logout{
+  display:flex;align-items:center;gap:9px;padding:9px 13px;
+  border-radius:10px;color:#f87171;text-decoration:none;font-size:.85rem;
+  transition:background .18s;
+}
+.sb-logout:hover{background:rgba(239,68,68,.1)}
+
+/* ══ MAIN ══ */
+.main{margin-right:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column}
+
+.topbar{
+  height:var(--topbar-h);background:#fff;
+  padding:0 26px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;
+  box-shadow:0 1px 6px rgba(0,0,0,.05);
+}
+
+.topbar-left{display:flex;align-items:center;gap:14px}
+.page-icon{
+  width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;color:#fff;flex-shrink:0;
+}
+.page-title{font-size:1.05rem;font-weight:800;color:var(--text)}
+
+.topbar-right{display:flex;align-items:center;gap:12px}
+
+.clock-chip{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 13px;background:var(--bg);border:1px solid var(--border);
+  border-radius:999px;font-size:.8rem;color:var(--text2);font-weight:600;
+}
+.clock-dot{width:7px;height:7px;border-radius:50%;background:#10b981;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.drawer-btn{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 15px;background:#fff;border:1.5px solid var(--border);
+  border-radius:999px;font-size:.8rem;font-weight:700;color:var(--text2);
+  cursor:pointer;transition:all .18s;font-family:inherit;
+}
+.drawer-btn:hover{background:var(--warning-l);border-color:var(--warning);color:var(--warning)}
+
+.content{padding:22px 26px;flex:1}
+
+/* ══ CARDS ══ */
+.card{
+  background:#fff;border-radius:var(--radius);padding:20px 22px;
+  box-shadow:var(--shadow);border:1px solid var(--border);
+}
+.card-hdr{
+  font-size:.93rem;font-weight:700;color:var(--text);
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:18px;
+}
+.card-hdr i{color:var(--primary);margin-left:7px}
+
+/* ══ BUTTONS ══ */
+.btn{
+  padding:9px 18px;border-radius:9px;border:none;cursor:pointer;
+  font-size:.86rem;font-weight:700;text-decoration:none;font-family:inherit;
+  display:inline-flex;align-items:center;gap:7px;transition:all .18s;
+}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-d);box-shadow:0 4px 14px rgba(79,70,229,.35)}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{filter:brightness(1.08)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{filter:brightness(1.08)}
+.btn-warning{background:var(--warning);color:#fff}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text2)}
+.btn-outline:hover{background:var(--bg);border-color:#94a3b8}
+.btn-ghost{background:transparent;color:var(--muted);border:none}
+.btn-ghost:hover{background:var(--bg);color:var(--text)}
+.btn-sm{padding:6px 13px;font-size:.78rem;border-radius:7px}
+.btn-lg{padding:13px 26px;font-size:.97rem}
+.btn:disabled{opacity:.5;cursor:not-allowed!important;transform:none!important}
+
+/* ══ BADGES ══ */
+.badge{padding:3px 11px;border-radius:999px;font-size:.72rem;font-weight:700}
+.badge-success{background:var(--success-l);color:#065f46}
+.badge-warning{background:var(--warning-l);color:#92400e}
+.badge-danger {background:var(--danger-l); color:#991b1b}
+.badge-purple {background:#ede9fe;color:#5b21b6}
+.badge-blue   {background:#dbeafe;color:#1e40af}
+
+/* ══ TOAST ══ */
+#toast{
+  position:fixed;bottom:22px;left:22px;z-index:9999;
+  padding:13px 20px;border-radius:12px;background:#1e293b;color:#fff;
+  font-size:.88rem;font-weight:600;display:flex;align-items:center;gap:10px;
+  box-shadow:0 8px 28px rgba(0,0,0,.22);min-width:220px;max-width:340px;
+  opacity:0;transform:translateY(8px);
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;
+}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.success{background:#065f46}
+#toast.error  {background:#991b1b}
+#toast.warning{background:#92400e}
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-icon"><i class="fas fa-cash-register"></i></div>
+    <div>
+      <h2>نظام الكاشير</h2>
+      <p>POS v2.0</p>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="sb-section">رئيسي</div>
+
+    <a href="{% url 'dashboard' %}" class="sb-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <i class="fas fa-chart-pie"></i> لوحة التحكم
+    </a>
+    <a href="{% url 'new_order' %}" class="sb-item {% if request.resolver_match.url_name == 'new_order' %}active{% endif %}">
+      <i class="fas fa-plus-circle"></i> طلب جديد
+    </a>
+    <a href="{% url 'orders_list' %}" class="sb-item {% if request.resolver_match.url_name == 'orders_list' %}active{% endif %}">
+      <i class="fas fa-receipt"></i> الطلبات
+    </a>
+    <a href="{% url 'reports' %}" class="sb-item {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
+      <i class="fas fa-chart-bar"></i> التقارير
+    </a>
+
+    <div class="sb-section">نظام</div>
+    <a href="/admin/" class="sb-item">
+      <i class="fas fa-sliders-h"></i> الإعدادات
+    </a>
+  </nav>
+
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="sb-avatar">{{ request.user.username|first|upper }}</div>
+      <div class="sb-user-info">
+        <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+        <span>كاشير</span>
+      </div>
+    </div>
+    <a href="{% url 'logout' %}" class="sb-logout">
+      <i class="fas fa-sign-out-alt"></i> تسجيل خروج
+    </a>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="page-icon">{% block page_icon %}<i class="fas fa-home"></i>{% endblock %}</div>
+      <span class="page-title">{% block page_title %}{% endblock %}</span>
+    </div>
+    <div class="topbar-right">
+      <button class="drawer-btn" onclick="openDrawer()" title="فتح الدرج">
+        <i class="fas fa-archive"></i> فتح الدرج
+      </button>
+      <div class="clock-chip">
+        <span class="clock-dot"></span>
+        <span id="clock">--:--</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+// Clock
+(function(){
+  const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  function tick(){
+    const n=new Date();
+    document.getElementById('clock').textContent=
+      days[n.getDay()]+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  }
+  tick(); setInterval(tick,15000);
+})();
+
+// Toast
+function showToast(msg,type='success',duration=3000){
+  const t=document.getElementById('toast');
+  const icons={success:'✓',error:'✕',warning:'⚠'};
+  t.innerHTML=`<span>${icons[type]||'•'}</span><span>${msg}</span>`;
+  t.className='show '+type;
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.className='',duration);
+}
+
+// CSRF
+function csrf(){
+  const v=document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');
+  return v?v.pop():'';
+}
+
+// Open Drawer
+async function openDrawer(){
+  try{
+    const r=await fetch("{% url 'open_drawer' %}",{method:'POST',headers:{'X-CSRFToken':csrf()}});
+    const d=await r.json();
+    showToast(d.success?'تم فتح الدرج ✓':'الدرج مش متصل',d.success?'success':'warning');
+  }catch(e){showToast('خطأ في الاتصال','error')}
+}
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

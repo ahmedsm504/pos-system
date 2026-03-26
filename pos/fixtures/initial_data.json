@@ -1,0 +1,169 @@
+[
+  {
+    "model": "pos.category",
+    "pk": 1,
+    "fields": {
+      "name": "مشروبات ساخنة",
+      "category_type": "drink",
+      "order": 1
+    }
+  },
+  {
+    "model": "pos.category",
+    "pk": 2,
+    "fields": {
+      "name": "مشروبات باردة",
+      "category_type": "drink",
+      "order": 2
+    }
+  },
+  {
+    "model": "pos.category",
+    "pk": 3,
+    "fields": {
+      "name": "أكل",
+      "category_type": "food",
+      "order": 3
+    }
+  },
+  {
+    "model": "pos.menuitem",
+    "pk": 1,
+    "fields": {
+      "category": 1,
+      "name": "قهوة عربي",
+      "price": "15.00",
+      "is_available": true,
+      "order": 1
+    }
+  },
+  {
+    "model": "pos.menuitem",
+    "pk": 2,
+    "fields": {
+      "category": 1,
+      "name": "كابتشينو",
+      "price": "35.00",
+      "is_available": true,
+      "order": 2
+    }
+  },
+  {
+    "model": "pos.menuitem",
+    "pk": 3,
+    "fields": {
+      "category": 1,
+      "name": "لاتيه",
+      "price": "35.00",
+      "is_available": true,
+      "order": 3
+    }
+  },
+  {
+    "model": "pos.menuitem",
+    "pk": 4,
+    "fields": {
+      "category": 1,
+      "name": "شاي",
+      "price": "15.00",
+      "is_available": true,
+      "order": 4
+    }
+  },
+  {
+    "model": "pos.menuitem",
+    "pk": 5,
+    "fields": {
+      "category": 2,
+      "name": "عصير برتقال",
+      "price": "30.00",
+      "is_available": true,
+      "order": 1
+    }
+  },
+  {
+    "model": "pos.menuitem",
+    "pk": 6,
+    "fields": {
+      "category": 2,
+      "name": "سموزي",
+      "price": "45.00",
+      "is_available": true,
+      "order": 2
+    }
+  },
+  {
+    "model": "pos.menuitem",
+    "pk": 7,
+    "fields": {
+      "category": 2,
+      "name": "مياه معدنية",
+      "price": "10.00",
+      "is_available": true,
+      "order": 3
+    }
+  },
+  {
+    "model": "pos.menuitem",
+    "pk": 8,
+    "fields": {
+      "category": 3,
+      "name": "كرواسان",
+      "price": "25.00",
+      "is_available": true,
+      "order": 1
+    }
+  },
+  {
+    "model": "pos.menuitem",
+    "pk": 9,
+    "fields": {
+      "category": 3,
+      "name": "سندوتش دجاج",
+      "price": "55.00",
+      "is_available": true,
+      "order": 2
+    }
+  },
+  {
+    "model": "pos.menuitem",
+    "pk": 10,
+    "fields": {
+      "category": 3,
+      "name": "كيكة شوكولاتة",
+      "price": "40.00",
+      "is_available": true,
+      "order": 3
+    }
+  },
+  {
+    "model": "pos.table",
+    "pk": 1,
+    "fields": { "number": 1, "name": "", "is_active": true }
+  },
+  {
+    "model": "pos.table",
+    "pk": 2,
+    "fields": { "number": 2, "name": "", "is_active": true }
+  },
+  {
+    "model": "pos.table",
+    "pk": 3,
+    "fields": { "number": 3, "name": "", "is_active": true }
+  },
+  {
+    "model": "pos.table",
+    "pk": 4,
+    "fields": { "number": 4, "name": "", "is_active": true }
+  },
+  {
+    "model": "pos.table",
+    "pk": 5,
+    "fields": { "number": 5, "name": "VIP", "is_active": true }
+  },
+  {
+    "model": "pos.table",
+    "pk": 6,
+    "fields": { "number": 6, "name": "تيراس", "is_active": true }
+  }
+]

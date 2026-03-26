@@ -1,0 +1,272 @@
+{% extends 'pos/base.html' %}
+{% block title %}الطلبات{% endblock %}
+{% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
+{% block page_title %}الطلبات{% endblock %}
+
+{% block extra_css %}<style>
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.ms{
+  background:#fff;border-radius:13px;padding:14px 16px;border:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;transition:transform .18s,box-shadow .18s;
+}
+.ms:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.ms-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}
+.ms.blue   .ms-icon{background:var(--primary-l);color:var(--primary)}
+.ms.purple .ms-icon{background:#ede9fe;color:#7c3aed}
+.ms.red    .ms-icon{background:var(--danger-l);color:var(--danger)}
+.ms.green  .ms-icon{background:var(--success-l);color:var(--success)}
+.ms-num{font-size:1.5rem;font-weight:900;line-height:1;color:var(--text)}
+.ms-lbl{font-size:.7rem;color:var(--muted);font-weight:600;margin-top:2px}
+
+/* Toolbar */
+.toolbar{
+  background:#fff;border-radius:14px;border:1px solid var(--border);
+  padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;
+}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{
+  padding:7px 15px;border-radius:999px;border:1.5px solid var(--border);
+  background:#fff;cursor:pointer;font-size:.78rem;font-weight:700;
+  text-decoration:none;color:var(--text2);transition:all .18s;
+  display:inline-flex;align-items:center;gap:5px;font-family:inherit;
+}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.7}
+.pill:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-l)}
+.pill.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.search-wrap{position:relative;flex:1;min-width:170px}
+.search-wrap input{
+  width:100%;padding:8px 12px 8px 34px;
+  border:1.5px solid var(--border);border-radius:999px;
+  font-size:.8rem;font-family:inherit;background:var(--bg);color:var(--text);transition:all .18s;
+}
+.search-wrap input:focus{outline:none;border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px var(--primary-l)}
+.search-wrap .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.78rem;pointer-events:none}
+
+.date-pick{
+  padding:8px 13px;border:1.5px solid var(--border);border-radius:999px;
+  font-size:.8rem;font-family:inherit;background:var(--bg);color:var(--text);cursor:pointer;transition:all .18s;
+}
+.date-pick:focus{outline:none;border-color:var(--primary);background:#fff}
+
+.apply-btn{
+  padding:8px 18px;background:var(--primary);color:#fff;border:none;
+  border-radius:999px;font-size:.8rem;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:all .18s;display:flex;align-items:center;gap:6px;
+}
+.apply-btn:hover{background:var(--primary-d)}
+
+/* Order rows */
+.olist{display:flex;flex-direction:column;gap:8px}
+
+.orow{
+  background:#fff;border-radius:13px;border:1.5px solid var(--border);
+  display:grid;grid-template-columns:60px 1fr auto auto auto;
+  align-items:center;transition:all .18s;cursor:pointer;overflow:hidden;
+}
+.orow:hover{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-l);transform:translateX(-2px)}
+
+.orow-id{
+  width:60px;align-self:stretch;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:#fafbff;border-left:1.5px solid var(--border);
+  font-weight:900;font-size:.95rem;color:var(--primary);padding:0 6px;gap:1px;
+}
+.orow-id .hash{font-size:.62rem;color:var(--muted);font-weight:600}
+
+.orow-body{padding:12px 14px}
+.orow-main{font-weight:800;font-size:.9rem;display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.orow-meta{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.orow-meta span{display:flex;align-items:center;gap:4px}
+.meta-sep{width:3px;height:3px;border-radius:50%;background:#cbd5e1;flex-shrink:0}
+
+.orow-status{padding:0 10px}
+.orow-total{padding:0 10px;font-weight:900;font-size:.92rem;white-space:nowrap}
+.orow-actions{padding:0 14px 0 10px;display:flex;gap:6px}
+
+.ab{
+  width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;cursor:pointer;border:none;transition:all .15s;text-decoration:none;
+}
+.ab-v{background:var(--bg);color:var(--text2);border:1.5px solid var(--border)}
+.ab-v:hover{background:var(--primary-l);color:var(--primary);border-color:var(--primary)}
+.ab-p{background:var(--bg);color:var(--text2);border:1.5px solid var(--border)}
+.ab-p:hover{background:var(--warning-l);color:var(--warning);border-color:var(--warning)}
+.ab-c{background:var(--danger-l);color:var(--danger);border:1.5px solid var(--danger-l)}
+.ab-c:hover{background:#fecaca}
+
+/* Empty */
+.empty{
+  text-align:center;padding:60px 20px;color:var(--muted);
+  background:#fff;border-radius:14px;border:1px solid var(--border);
+}
+.empty .ei{font-size:3rem;display:block;margin-bottom:12px;opacity:.35}
+.empty h3{font-size:1rem;font-weight:800;margin-bottom:5px;color:var(--text)}
+
+/* Pagination */
+.pag{margin-top:18px;display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+.pag a,.pag span{
+  padding:7px 13px;border-radius:9px;background:#fff;border:1.5px solid var(--border);
+  font-size:.8rem;font-weight:700;text-decoration:none;color:var(--text2);transition:all .15s;
+}
+.pag a:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+.pag .cur{background:var(--primary);color:#fff;border-color:var(--primary)}
+</style>{% endblock %}
+
+{% block content %}
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="ms blue">
+    <div class="ms-icon"><i class="fas fa-fire"></i></div>
+    <div><div class="ms-num">{{ day_stats.active }}</div><div class="ms-lbl">نشطة</div></div>
+  </div>
+  <div class="ms purple">
+    <div class="ms-icon"><i class="fas fa-print"></i></div>
+    <div><div class="ms-num">{{ day_stats.printed }}</div><div class="ms-lbl">مطبوعة</div></div>
+  </div>
+  <div class="ms red">
+    <div class="ms-icon"><i class="fas fa-times-circle"></i></div>
+    <div><div class="ms-num">{{ day_stats.cancelled }}</div><div class="ms-lbl">ملغية</div></div>
+  </div>
+  <div class="ms green">
+    <div class="ms-icon"><i class="fas fa-check-circle"></i></div>
+    <div><div class="ms-num">{{ day_stats.total }}</div><div class="ms-lbl">إجمالي</div></div>
+  </div>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="pills">
+    <a href="?status=active&date={{ date_filter }}{% if search_query %}&search={{ search_query }}{% endif %}" class="pill {% if status_filter == 'active' %}active{% endif %}"><span class="dot"></span>نشطة</a>
+    <a href="?status=printed&date={{ date_filter }}{% if search_query %}&search={{ search_query }}{% endif %}" class="pill {% if status_filter == 'printed' %}active{% endif %}"><span class="dot"></span>مطبوعة</a>
+    <a href="?status=cancelled&date={{ date_filter }}{% if search_query %}&search={{ search_query }}{% endif %}" class="pill {% if status_filter == 'cancelled' %}active{% endif %}"><span class="dot"></span>ملغية</a>
+    <a href="?status=all&date={{ date_filter }}{% if search_query %}&search={{ search_query }}{% endif %}" class="pill {% if status_filter == 'all' %}active{% endif %}">الكل</a>
+  </div>
+  <div class="search-wrap">
+    <i class="fas fa-search si"></i>
+    <input type="text" id="srch" placeholder="رقم الطلب..." value="{{ search_query }}">
+  </div>
+  <input type="date" class="date-pick" id="dp" value="{{ date_filter }}">
+  <button class="apply-btn" id="applyBtn"><i class="fas fa-search"></i> تطبيق</button>
+</div>
+
+<!-- List -->
+<div class="olist" id="olist">
+  {% for o in orders %}
+  <div class="orow" data-id="{{ o.id }}" data-status="{{ o.status }}">
+    <div class="orow-id"><span class="hash">#</span><span>{{ o.id }}</span></div>
+
+    <div class="orow-body">
+      <div class="orow-main">
+        <i class="fas fa-chair" style="color:var(--muted);font-size:.78rem"></i>
+        {{ o.table|default:"بدون طاولة" }}
+      </div>
+      <div class="orow-meta">
+        <span><i class="fas fa-clock"></i>{{ o.created_at|time:"H:i" }}</span>
+        <span class="meta-sep"></span>
+        <span><i class="fas fa-user"></i>{{ o.cashier.username|truncatechars:12 }}</span>
+        <span class="meta-sep"></span>
+        <span><i class="fas fa-box"></i>{{ o.items.count }} صنف</span>
+      </div>
+    </div>
+
+    <div class="orow-status">
+      <span class="badge {% if o.status == 'open' %}badge-warning{% elif o.status == 'printed' %}badge-purple{% elif o.status == 'cancelled' %}badge-danger{% else %}badge-blue{% endif %}">
+        {{ o.get_status_display }}
+      </span>
+    </div>
+
+    <div class="orow-total">{{ o.total|floatformat:2 }} ج</div>
+
+    <div class="orow-actions" onclick="event.stopPropagation()">
+      <a href="{% url 'order_detail' o.id %}" class="ab ab-v" title="تفاصيل"><i class="fas fa-eye"></i></a>
+      {% if o.status in 'open,printed' %}
+      <button class="ab ab-p btn-rp" data-id="{{ o.id }}" title="إعادة طباعة"><i class="fas fa-print"></i></button>
+      <button class="ab ab-c btn-cancel" data-id="{{ o.id }}" title="إلغاء"><i class="fas fa-times"></i></button>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty">
+    <span class="ei">🧾</span>
+    <h3>مفيش طلبات</h3>
+    <p>مفيش طلبات في الفلتر ده للتاريخ المحدد</p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if orders.has_other_pages %}
+<div class="pag">
+  {% if orders.has_previous %}
+  <a href="?page={{ orders.previous_page_number }}&status={{ status_filter }}&date={{ date_filter }}{% if search_query %}&search={{ search_query }}{% endif %}">&laquo; السابق</a>
+  {% endif %}
+  {% for num in orders.paginator.page_range %}
+    {% if orders.number == num %}<span class="cur">{{ num }}</span>
+    {% elif num > orders.number|add:'-3' and num < orders.number|add:'3' %}
+    <a href="?page={{ num }}&status={{ status_filter }}&date={{ date_filter }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if orders.has_next %}
+  <a href="?page={{ orders.next_page_number }}&status={{ status_filter }}&date={{ date_filter }}{% if search_query %}&search={{ search_query }}{% endif %}">التالي &raquo;</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}<script>
+function csrf(){const v=document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');return v?v.pop():'';}
+
+document.getElementById('applyBtn').addEventListener('click',()=>{
+  const s=document.getElementById('srch').value;
+  const d=document.getElementById('dp').value;
+  const url=new URL(window.location.href);
+  s?url.searchParams.set('search',s):url.searchParams.delete('search');
+  d?url.searchParams.set('date',d):url.searchParams.delete('date');
+  url.searchParams.delete('page');
+  location.href=url.toString();
+});
+document.getElementById('srch').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('applyBtn').click()});
+
+// Row click → detail
+document.querySelectorAll('.orow').forEach(r=>{
+  r.addEventListener('click',e=>{
+    if(e.target.closest('.orow-actions'))return;
+    location.href=`/orders/${r.dataset.id}/`;
+  });
+});
+
+// Event delegation
+document.getElementById('olist').addEventListener('click',async e=>{
+  const cancel=e.target.closest('.btn-cancel');
+  const rp    =e.target.closest('.btn-rp');
+
+  if(cancel){
+    e.stopPropagation();
+    if(!confirm('هتلغي الطلب ده؟'))return;
+    cancel.disabled=true;
+    const res=await fetch(`/orders/${cancel.dataset.id}/cancel/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});
+    const d=await res.json();
+    if(d.success){
+      showToast('تم إلغاء الطلب','error');
+      const row=cancel.closest('.orow');
+      row.style.opacity='0';row.style.transform='translateX(20px)';
+      setTimeout(()=>row.remove(),260);
+    }else{showToast(d.error||'خطأ','error');cancel.disabled=false;}
+  }
+
+  if(rp){
+    e.stopPropagation();
+    rp.disabled=true;
+    const res=await fetch(`/orders/${rp.dataset.id}/reprint/`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+      body:JSON.stringify({open_drawer:false}),
+    });
+    const d=await res.json();
+    showToast(d.success?'تم الطباعة ✓':'الطابعة مش متصلة',d.success?'success':'warning');
+    rp.disabled=false;
+  }
+});
+</script>{% endblock %}

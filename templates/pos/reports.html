@@ -1,0 +1,166 @@
+{% extends 'pos/base.html' %}
+{% block title %}التقارير{% endblock %}
+{% block page_icon %}<i class="fas fa-chart-bar"></i>{% endblock %}
+{% block page_title %}التقارير{% endblock %}
+
+{% block extra_css %}<style>
+.period-bar{
+  display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;
+}
+.pb{
+  padding:8px 18px;border-radius:999px;border:1.5px solid var(--border);
+  background:#fff;cursor:pointer;font-size:.82rem;font-weight:700;
+  text-decoration:none;color:var(--text2);transition:all .18s;
+}
+.pb:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-l)}
+.pb.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.pb-dates{font-size:.78rem;color:var(--muted);margin-right:auto;font-weight:600}
+
+.kpi4{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+.rk{
+  background:#fff;border-radius:14px;padding:18px 20px;
+  border:1px solid var(--border);position:relative;overflow:hidden;
+  transition:transform .2s,box-shadow .2s;
+}
+.rk:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.rk-glow{position:absolute;bottom:-15px;left:-15px;width:80px;height:80px;border-radius:50%;opacity:.07}
+.rk.g .rk-glow{background:#10b981}
+.rk.b .rk-glow{background:#4f46e5}
+.rk.o .rk-glow{background:#f59e0b}
+.rk-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:12px}
+.rk.g .rk-icon{background:var(--success-l);color:#059669}
+.rk.b .rk-icon{background:var(--primary-l);color:#4f46e5}
+.rk.o .rk-icon{background:var(--warning-l);color:#d97706}
+.rk-val{font-size:1.7rem;font-weight:900;color:var(--text);line-height:1}
+.rk-val small{font-size:.95rem;font-weight:500;color:var(--muted);margin-right:2px}
+.rk-lbl{font-size:.78rem;color:var(--muted);margin-top:5px;font-weight:500}
+
+.charts-grid{display:grid;grid-template-columns:3fr 2fr;gap:18px;margin-bottom:22px}
+
+.top-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f4f6fb}
+.top-item:last-child{border-bottom:none}
+.ti-rank{
+  font-size:.72rem;font-weight:800;padding:2px 9px;border-radius:999px;
+  background:#f1f5f9;color:var(--muted);min-width:30px;text-align:center;flex-shrink:0;
+}
+.ti-rank.gold{background:var(--warning-l);color:#92400e}
+.ti-rank.silver{background:#f1f5f9;color:#475569}
+.ti-rank.bronze{background:#fff7ed;color:#9a3412}
+.ti-name{flex:1;font-size:.86rem;font-weight:600}
+.ti-bar-wrap{background:#f1f5f9;border-radius:999px;height:7px;flex:1}
+.ti-bar{background:linear-gradient(90deg,#4f46e5,#7c3aed);height:100%;border-radius:999px;transition:width .5s}
+.ti-qty{font-weight:800;font-size:.82rem;color:var(--primary);min-width:55px;text-align:left}
+</style>{% endblock %}
+
+{% block content %}
+
+<!-- Period picker -->
+<div class="period-bar">
+  <a href="?period=today"  class="pb {% if period == 'today' %}active{% endif %}">اليوم</a>
+  <a href="?period=week"   class="pb {% if period == 'week' or not period %}active{% endif %}">آخر 7 أيام</a>
+  <a href="?period=month"  class="pb {% if period == 'month' %}active{% endif %}">هذا الشهر</a>
+  <span class="pb-dates">{{ start_date|date:"d/m" }} — {{ end_date|date:"d/m/Y" }}</span>
+</div>
+
+<!-- KPIs -->
+<div class="kpi4">
+  <div class="rk g">
+    <div class="rk-glow"></div>
+    <div class="rk-icon"><i class="fas fa-coins"></i></div>
+    <div class="rk-val">{{ total_revenue|floatformat:0 }}<small>ج</small></div>
+    <div class="rk-lbl">إجمالي الإيراد</div>
+  </div>
+  <div class="rk b">
+    <div class="rk-glow"></div>
+    <div class="rk-icon"><i class="fas fa-receipt"></i></div>
+    <div class="rk-val">{{ total_orders }}</div>
+    <div class="rk-lbl">إجمالي الطلبات</div>
+  </div>
+  <div class="rk o">
+    <div class="rk-glow"></div>
+    <div class="rk-icon"><i class="fas fa-calculator"></i></div>
+    <div class="rk-val">{{ avg_order|floatformat:0 }}<small>ج</small></div>
+    <div class="rk-lbl">متوسط الطلب</div>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <!-- Chart -->
+  <div class="card">
+    <div class="card-hdr"><span><i class="fas fa-chart-area"></i>الإيراد اليومي</span></div>
+    <canvas id="revenueChart" height="190"></canvas>
+    <p style="text-align:center;font-size:.75rem;color:var(--muted);margin-top:8px">
+      يشمل الطلبات المطبوعة فقط
+    </p>
+  </div>
+
+  <!-- Top items -->
+  <div class="card">
+    <div class="card-hdr"><span><i class="fas fa-star"></i>الأكثر طلبًا</span></div>
+    {% if top_items %}
+      {% with max_qty=top_items.0.total_qty %}
+      {% for item in top_items %}
+      <div class="top-item">
+        <span class="ti-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+          #{{ forloop.counter }}
+        </span>
+        <span class="ti-name">{{ item.menu_item__name }}</span>
+        <div class="ti-bar-wrap">
+          <div class="ti-bar" style="width:{% widthratio item.total_qty max_qty 100 %}%"></div>
+        </div>
+        <span class="ti-qty">{{ item.total_qty }}</span>
+      </div>
+      {% endfor %}
+      {% endwith %}
+    {% else %}
+    <div style="text-align:center;padding:30px;color:var(--muted)">
+      <i class="fas fa-chart-pie" style="font-size:2rem;opacity:.35;display:block;margin-bottom:8px"></i>
+      مفيش بيانات كافية
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const raw = {{ daily_data|safe }};
+new Chart(document.getElementById('revenueChart'), {
+  type: 'bar',
+  data: {
+    labels: raw.map(d=>d.date),
+    datasets: [
+      {
+        label:'الإيراد (ج)',
+        data:raw.map(d=>d.revenue),
+        backgroundColor: raw.map((_,i)=>i===raw.length-1?'#10b981':'#6366f1'),
+        borderRadius:7,yAxisID:'y',
+      },
+      {
+        label:'الطلبات',
+        data:raw.map(d=>d.count),
+        type:'line',
+        borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.08)',
+        pointBackgroundColor:'#f59e0b',pointRadius:4,tension:.35,yAxisID:'y2',
+      }
+    ],
+  },
+  options:{
+    responsive:true,
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{position:'bottom',labels:{font:{size:12},usePointStyle:true}},
+      tooltip:{callbacks:{
+        label:ctx=>ctx.dataset.label==='الإيراد (ج)'?`الإيراد: ${ctx.raw.toFixed(2)} ج`:`الطلبات: ${ctx.raw}`
+      }}
+    },
+    scales:{
+      y :{beginAtZero:true,position:'right', grid:{drawOnChartArea:true}},
+      y2:{beginAtZero:true,position:'left',  grid:{drawOnChartArea:false},ticks:{stepSize:1}},
+      x :{grid:{display:false}},
+    }
+  }
+});
+</script>
+{% endblock %}
