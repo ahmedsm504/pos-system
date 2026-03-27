@@ -38,20 +38,26 @@ NORMAL_SIZE   = ESC + b'!\x00'
 LINE_FEED     = b'\r\n'
 OPEN_DRAWER   = ESC + b'p\x00\x19\xfa'
 
-# أفضل محاولة: cp1256 مع أمر إضافي (ESC R 0) لضبط اللغة العربية
-# يمكن تجربة cp1252 بدلاً من ذلك: SET_CODEPAGE = ESC + b't\x1a'
-SET_CODEPAGE = ESC + b't\x1c' + ESC + b'R\x00'   # cp1256 + language Arabic
+# صفحة الكود الافتراضية (1256 = عربي, 1252 = لاتيني)
+CODEPAGE = 1256
+CODEPAGE_CMD = {
+    1256: ESC + b't\x1c',   # 28 = cp1256
+    1252: ESC + b't\x1a',   # 26 = cp1252
+}
+
+def set_codepage():
+    return CODEPAGE_CMD.get(CODEPAGE, ESC + b't\x1c')
 
 # ── Arabic encoding ───────────────────────────────────────────────────────────
 def encode_arabic(text: str) -> bytes:
     try:
-        return text.encode('cp1256')
+        return text.encode('cp1256' if CODEPAGE == 1256 else 'cp1252')
     except (UnicodeEncodeError, LookupError):
-        return text.encode('cp1256', errors='replace')
+        return text.encode('cp1252', errors='replace')
 
 # ── Build receipts ────────────────────────────────────────────────────────────
 def build_receipt(lines: list) -> bytes:
-    data = INIT + SET_CODEPAGE
+    data = INIT + set_codepage() + LINE_FEED  # تأكيد صفحة الكود
 
     for line in lines:
         if line.get('divider'):
@@ -82,9 +88,7 @@ def build_receipt(lines: list) -> bytes:
     return data
 
 def build_kitchen_ticket(lines: list) -> bytes:
-    # نفس البناء لكن بدون فتح الدرج
-    data = INIT + SET_CODEPAGE
-
+    data = INIT + set_codepage() + LINE_FEED
     for line in lines:
         if line.get('divider'):
             data += ALIGN_LEFT + encode_arabic('=' * 32) + LINE_FEED
@@ -139,7 +143,7 @@ def print_raw(printer_name: str, data: bytes) -> bool:
 
 # ── Cash Drawer ───────────────────────────────────────────────────────────────
 def open_cash_drawer() -> bool:
-    return print_raw(MAIN_PRINTER, INIT + SET_CODEPAGE + OPEN_DRAWER)
+    return print_raw(MAIN_PRINTER, INIT + set_codepage() + OPEN_DRAWER)
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.route('/print', methods=['POST'])
@@ -156,8 +160,8 @@ def handle_print():
     if main_lines:
         data = build_receipt(main_lines)
         if open_drawer:
-            # إضافة أمر فتح الدرج قبل الطباعة
-            data = INIT + SET_CODEPAGE + OPEN_DRAWER + data[len(INIT+SET_CODEPAGE):]
+            # إضافة أمر فتح الدرج قبل الطباعة مع الحفاظ على تعيين الصفحة
+            data = INIT + set_codepage() + OPEN_DRAWER + data[len(INIT+set_codepage()):]
         results['main'] = print_raw(MAIN_PRINTER, data)
 
     if kitchen_lines:
@@ -184,7 +188,7 @@ def health():
     except ImportError:
         win32_ok = False
         msg = 'win32print غير متاح — الطباعة مش هتشتغل'
-    return jsonify({'status': 'running', 'version': '2.3', 'win32print': win32_ok, 'note': msg})
+    return jsonify({'status': 'running', 'version': '2.4', 'win32print': win32_ok, 'note': msg})
 
 @app.route('/printers', methods=['GET'])
 def list_printers():
@@ -198,6 +202,36 @@ def list_printers():
         return jsonify({'printers': [], 'error': 'win32print غير متاح'})
     except Exception as e:
         return jsonify({'error': str(e)})
+
+@app.route('/set_codepage/<int:cp>', methods=['POST'])
+def set_codepage_route(cp):
+    global CODEPAGE
+    if cp in [1256, 1252]:
+        CODEPAGE = cp
+        log.info(f'Codepage changed to {cp}')
+        return jsonify({'success': True, 'codepage': cp})
+    return jsonify({'success': False, 'error': 'Invalid codepage'}), 400
+
+@app.route('/test_codepage/<int:cp>', methods=['GET'])
+def test_codepage(cp):
+    if cp not in [1256, 1252]:
+        return jsonify({'error': 'Invalid cp'}), 400
+    lines = [
+        {'text': f'اختبار صفحة كود {cp}', 'align': 'center', 'bold': True, 'size': 'large'},
+        {'divider': True},
+        {'text': 'طلب #100', 'bold': True},
+        {'text': 'كوكاكولا 2 × 15ج'},
+        {'text': 'بيتزا مارجريتا 1 × 80ج'},
+        {'divider': True},
+        {'text': 'الإجمالي: 110 ج', 'bold': True, 'align': 'center'},
+    ]
+    global CODEPAGE
+    old_cp = CODEPAGE
+    CODEPAGE = cp
+    data = build_receipt(lines)
+    ok = print_raw(MAIN_PRINTER, data)
+    CODEPAGE = old_cp
+    return jsonify({'success': ok, 'codepage_tested': cp})
 
 @app.route('/test', methods=['GET'])
 def test_print():
@@ -216,8 +250,11 @@ def test_print():
     return jsonify({'success': ok, 'message': 'تم الارسال' if ok else 'فشلت الطباعة'})
 
 if __name__ == '__main__':
-    log.info('Print Service v2.3  →  http://127.0.0.1:5000')
-    log.info('  /health   ← حالة win32print')
-    log.info('  /printers ← اسماء الطابعات')
-    log.info('  /test     ← اختبار طباعة عربي')
+    log.info('Print Service v2.4  →  http://127.0.0.1:5000')
+    log.info('  /health            ← حالة win32print')
+    log.info('  /printers          ← اسماء الطابعات')
+    log.info('  /test              ← اختبار عادي')
+    log.info('  /test_codepage/1256 ← اختبار cp1256')
+    log.info('  /test_codepage/1252 ← اختبار cp1252')
+    log.info('  /set_codepage/1256  ← تغيير صفحة الكود بشكل دائم')
     app.run(host='127.0.0.1', port=5000, debug=False)
