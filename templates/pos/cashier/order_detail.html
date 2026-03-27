@@ -1,0 +1,210 @@
+{% extends 'pos/cashier/base.html' %}
+{% block title %}طلب #{{ order.id }}{% endblock %}
+{% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
+{% block page_title %}طلب #{{ order.id }}{% endblock %}
+
+{% block extra_css %}<style>
+.od-layout{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+.items-card{background:#fff;border-radius:16px;border:1.5px solid var(--border);overflow:hidden}
+.ic-hdr{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;background:#fafbff;border-bottom:1px solid var(--border)}
+.ic-hdr h3{font-size:.92rem;font-weight:800}
+.it-tbl{width:100%;border-collapse:collapse}
+.it-tbl th{text-align:right;padding:9px 16px;font-size:.7rem;color:var(--muted);font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--border);background:#fafbff}
+.it-tbl td{padding:11px 16px;border-bottom:1px solid #f4f6fb;font-size:.85rem;vertical-align:middle}
+.it-tbl tr:last-child td{border-bottom:none}
+.it-foot{padding:13px 16px;border-top:2px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#fafbff}
+.info-card{background:#fff;border-radius:16px;border:1.5px solid var(--border);overflow:hidden;margin-bottom:12px}
+.info-hdr{padding:11px 16px;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:#fafbff;border-bottom:1px solid var(--border)}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid #f4f6fb;font-size:.84rem}
+.info-row:last-child{border-bottom:none}
+.act-btn{width:100%;padding:11px 14px;border-radius:10px;border:none;cursor:pointer;font-size:.86rem;font-weight:700;display:flex;align-items:center;gap:9px;justify-content:center;transition:all .18s;font-family:inherit;margin-bottom:8px}
+.act-btn:last-child{margin-bottom:0}
+.act-complete{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 4px 14px rgba(16,185,129,.3)}
+.act-complete:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.act-reprint{background:#f1f5f9;color:var(--text)}
+.act-reprint:hover{background:#e2e8f0}
+.act-cancel{background:var(--dan-l);color:#991b1b}
+.act-cancel:hover{background:#fecaca}
+
+/* Add item mini panel */
+.add-item-wrap{padding:12px 16px;border-top:1px solid var(--border);background:#fafbff}
+.add-item-wrap h4{font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:8px}
+.mini-menu{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;max-height:200px;overflow-y:auto}
+.mini-mi{background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:9px 7px;cursor:pointer;text-align:center;font-family:inherit;transition:all .15s}
+.mini-mi:hover{border-color:var(--suc);background:var(--suc-l)}
+.mini-mi-name{font-weight:700;font-size:.75rem;display:block}
+.mini-mi-price{font-size:.72rem;color:var(--pri);font-weight:800}
+</style>{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
+  <a href="{% url 'cashier_dashboard' %}" class="btn btn-out btn-sm"><i class="fas fa-arrow-right"></i> رجوع</a>
+  <span style="font-size:.82rem;color:var(--muted)">
+    {% if order.status == 'open' %}🟡 مفتوح{% elif order.status == 'printed' %}🟣 قيد الانتظار{% elif order.status == 'completed' %}✅ مكتمل{% else %}❌ ملغي{% endif %}
+  </span>
+</div>
+
+<div class="od-layout">
+
+  <!-- Items -->
+  <div class="items-card">
+    <div class="ic-hdr">
+      <h3><i class="fas fa-utensils" style="color:var(--pri)"></i> الأصناف</h3>
+      <span style="font-size:.8rem;color:var(--muted)">{{ order.total_items }} صنف</span>
+    </div>
+
+    <table class="it-tbl">
+      <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th>{% if order.status in 'open,printed' %}<th></th>{% endif %}</tr></thead>
+      <tbody id="orderItemsTbody">
+        {% for item in order.items.all %}
+        <tr id="row-{{ item.id }}">
+          <td>
+            <strong>{{ item.menu_item.name }}</strong>
+            {% if item.notes %}<div style="font-size:.73rem;color:var(--muted)">{{ item.notes }}</div>{% endif %}
+          </td>
+          <td><span style="background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:800">{{ item.quantity }}</span></td>
+          <td style="color:var(--muted)">{{ item.price }} ج</td>
+          <td><strong>{{ item.subtotal|floatformat:2 }} ج</strong></td>
+          {% if order.status in 'open,printed' %}
+          <td>
+            <button class="btn btn-dan btn-sm" onclick="removeItem({{ item.id }}, {{ order.id }}, {{ item.quantity }})">
+              <i class="fas fa-minus"></i>
+            </button>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if order.notes %}
+    <div style="margin:0 16px 14px;padding:10px 13px;background:var(--war-l);border-radius:9px;font-size:.83rem;color:#92400e">
+      <i class="fas fa-sticky-note"></i> {{ order.notes }}
+    </div>
+    {% endif %}
+
+    <div class="it-foot">
+      <span style="color:var(--muted);font-weight:600;font-size:.85rem">الإجمالي الكلي</span>
+      <span style="font-size:1.3rem;font-weight:900" id="orderTotal">{{ order.total|floatformat:2 }} ج</span>
+    </div>
+
+    <!-- Add item (only if not completed/cancelled) -->
+    {% if order.status in 'open,printed' %}
+    <div class="add-item-wrap">
+      <h4><i class="fas fa-plus"></i> إضافة صنف للطلب</h4>
+      <div class="mini-menu">
+        {% for cat in categories %}
+          {% for item in cat.items.all %}{% if item.is_available %}
+          <button class="mini-mi" onclick="addItemToOrder({{ item.id }}, {{ order.id }})">
+            <span class="mini-mi-name">{{ item.name }}</span>
+            <span class="mini-mi-price">{{ item.price }} ج</span>
+          </button>
+          {% endif %}{% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Sidebar -->
+  <div>
+    <!-- Order Info -->
+    <div class="info-card">
+      <div class="info-hdr">معلومات الطلب</div>
+      <div class="info-row"><span style="color:var(--muted)">النوع</span><strong>{% if order.order_type == 'delivery' %}🛵 ديليفري{% else %}🪑 داخلي{% endif %}</strong></div>
+      {% if order.order_type == 'dine_in' %}
+      <div class="info-row"><span style="color:var(--muted)">الطاولة</span><strong>{{ order.table|default:"—" }}</strong></div>
+      {% if order.waiter %}<div class="info-row"><span style="color:var(--muted)">الويتر</span><strong>{{ order.waiter }}</strong></div>{% endif %}
+      {% else %}
+      <div class="info-row"><span style="color:var(--muted)">العميل</span><strong>{{ order.customer_name }}</strong></div>
+      <div class="info-row"><span style="color:var(--muted)">الهاتف</span><strong>{{ order.customer_phone }}</strong></div>
+      <div class="info-row"><span style="color:var(--muted)">العنوان</span><strong style="font-size:.8rem">{{ order.customer_address }}</strong></div>
+      {% if order.driver %}<div class="info-row"><span style="color:var(--muted)">الطيار</span><strong>{{ order.driver }}</strong></div>{% endif %}
+      {% endif %}
+      <div class="info-row"><span style="color:var(--muted)">الوقت</span><strong>{{ order.created_at|time:"H:i" }}</strong></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="info-card">
+      <div class="info-hdr">الإجراءات</div>
+      <div style="padding:12px">
+        {% if order.status in 'open,printed' %}
+        <button class="act-btn act-complete" onclick="completeOrder({{ order.id }})">
+          <i class="fas fa-check-circle"></i> إنهاء الطلب وفتح الدرج
+        </button>
+        {% endif %}
+        <button class="act-btn act-reprint" onclick="reprintOrder({{ order.id }})">
+          <i class="fas fa-print"></i> إعادة الطباعة
+        </button>
+        {% if order.status in 'open,printed' %}
+        <button class="act-btn act-cancel" onclick="cancelOrderReq({{ order.id }}, '{{ order.status }}')">
+          <i class="fas fa-times-circle"></i> إلغاء الطلب
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}<script>
+async function addItemToOrder(menuItemId, orderId){
+  const r=await fetch(`/api/order/${orderId}/add-item/`,{
+    method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+    body:JSON.stringify({menu_item_id:menuItemId,quantity:1})
+  });
+  const d=await r.json();
+  if(d.success){showToast('تم إضافة الصنف ✓','suc');location.reload();}
+  else showToast(d.error||'خطأ','err');
+}
+
+function removeItem(itemId, orderId, qty){
+  const status='{{ order.status }}';
+  const doRemove=(au,ap)=>{
+    fetch(`/api/order/${orderId}/remove-item/`,{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+      body:JSON.stringify({item_id:itemId,qty:1,admin_username:au||'',admin_password:ap||''})
+    }).then(r=>r.json()).then(d=>{
+      if(d.success){showToast('تم حذف الصنف','suc');location.reload();}
+      else showToast(d.error||'خطأ','err');
+    });
+  };
+  if(status==='printed'||status==='completed'){
+    requireAdmin('حذف صنف من طلب مطبوع يتطلب موافقة المدير',doRemove);
+  }else{
+    doRemove('','');
+  }
+}
+
+async function completeOrder(orderId){
+  if(!confirm('هتنهي الطلب وهيتفتح الدرج؟'))return;
+  const r=await fetch(`/api/order/${orderId}/complete/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});
+  const d=await r.json();
+  if(d.success){showToast('✅ تم إنهاء الطلب وفتح الدرج','suc');setTimeout(()=>location.reload(),900);}
+  else showToast(d.error||'خطأ','err');
+}
+
+async function reprintOrder(orderId){
+  const r=await fetch(`/api/order/${orderId}/reprint/`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({open_drawer:false})});
+  const d=await r.json();
+  showToast(d.success?'تم إرسال الطباعة ✓':'الطابعة مش متصلة',d.success?'suc':'war');
+}
+
+function cancelOrderReq(orderId, status){
+  if(status==='printed'){
+    requireAdmin('إلغاء طلب مطبوع يتطلب موافقة المدير',async(au,ap)=>{
+      const r=await fetch(`/api/order/${orderId}/cancel/`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({admin_username:au,admin_password:ap})});
+      const d=await r.json();
+      if(d.success){showToast('تم إلغاء الطلب','err');setTimeout(()=>location.href='{% url "cashier_dashboard" %}',900);}
+      else showToast(d.error||'خطأ','err');
+    });
+  }else{
+    if(!confirm('هتلغي الطلب ده؟'))return;
+    fetch(`/api/order/${orderId}/cancel/`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({})})
+    .then(r=>r.json()).then(d=>{
+      if(d.success){showToast('تم إلغاء الطلب','err');setTimeout(()=>location.href='{% url "cashier_dashboard" %}',900);}
+      else showToast(d.error||'خطأ','err');
+    });
+  }
+}
+</script>{% endblock %}

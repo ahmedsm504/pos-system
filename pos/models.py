@@ -1,110 +1,148 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=100, verbose_name='الاسم')
-    category_type = models.CharField(
-        max_length=10,
-        choices=[('food', 'أكل'), ('drink', 'مشروبات'), ('other', 'أخرى')],
-        default='other',
-        verbose_name='النوع'
-    )
-    order = models.PositiveIntegerField(default=0, verbose_name='الترتيب')
-
+    TYPE_CHOICES = [('food','أكل'),('drink','مشروبات'),('other','أخرى')]
+    name          = models.CharField(max_length=100, verbose_name='الاسم')
+    category_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='other', verbose_name='النوع')
+    order         = models.PositiveIntegerField(default=0, verbose_name='الترتيب')
+    is_active     = models.BooleanField(default=True, verbose_name='نشط')
     class Meta:
-        verbose_name = 'تصنيف'
-        verbose_name_plural = 'التصنيفات'
-        ordering = ['order', 'name']
-
-    def __str__(self):
-        return self.name
+        verbose_name='تصنيف'; verbose_name_plural='التصنيفات'; ordering=['order','name']
+    def __str__(self): return self.name
 
 
 class MenuItem(models.Model):
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='items', verbose_name='التصنيف')
-    name = models.CharField(max_length=200, verbose_name='الاسم')
-    price = models.DecimalField(max_digits=8, decimal_places=2, verbose_name='السعر')
+    category     = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='items', verbose_name='التصنيف')
+    name         = models.CharField(max_length=200, verbose_name='الاسم')
+    price        = models.DecimalField(max_digits=8, decimal_places=2, verbose_name='السعر')
     is_available = models.BooleanField(default=True, verbose_name='متاح')
-    order = models.PositiveIntegerField(default=0, verbose_name='الترتيب')
-
+    order        = models.PositiveIntegerField(default=0, verbose_name='الترتيب')
+    description  = models.TextField(blank=True, verbose_name='الوصف')
     class Meta:
-        verbose_name = 'منتج'
-        verbose_name_plural = 'المنتجات'
-        ordering = ['order', 'name']
+        verbose_name='منتج'; verbose_name_plural='المنتجات'; ordering=['order','name']
+    def __str__(self): return f"{self.name} — {self.price} ج"
 
-    def __str__(self):
-        return f"{self.name} - {self.price} ج"
+
+class Waiter(models.Model):
+    name      = models.CharField(max_length=100, verbose_name='الاسم')
+    phone     = models.CharField(max_length=20, blank=True, verbose_name='الهاتف')
+    is_active = models.BooleanField(default=True, verbose_name='نشط')
+    class Meta:
+        verbose_name='ويتر'; verbose_name_plural='الويترين'; ordering=['name']
+    def __str__(self): return self.name
+
+
+class DeliveryDriver(models.Model):
+    name      = models.CharField(max_length=100, verbose_name='الاسم')
+    phone     = models.CharField(max_length=20, verbose_name='رقم الهاتف')
+    is_active = models.BooleanField(default=True, verbose_name='نشط')
+    class Meta:
+        verbose_name='طيار ديليفري'; verbose_name_plural='طياري الديليفري'; ordering=['name']
+    def __str__(self): return f"{self.name} ({self.phone})"
 
 
 class Table(models.Model):
-    number = models.PositiveIntegerField(unique=True, verbose_name='رقم الطاولة')
-    name = models.CharField(max_length=50, blank=True, verbose_name='الاسم (اختياري)')
+    number    = models.PositiveIntegerField(unique=True, verbose_name='رقم الطاولة')
+    name      = models.CharField(max_length=50, blank=True, verbose_name='الاسم')
     is_active = models.BooleanField(default=True, verbose_name='نشطة')
-
     class Meta:
-        verbose_name = 'طاولة'
-        verbose_name_plural = 'الطاولات'
-        ordering = ['number']
-
+        verbose_name='طاولة'; verbose_name_plural='الطاولات'; ordering=['number']
     def __str__(self):
-        return f"طاولة {self.number}" + (f" - {self.name}" if self.name else "")
+        return f"طاولة {self.number}" + (f" — {self.name}" if self.name else "")
 
 
 class Order(models.Model):
     STATUS_CHOICES = [
-        ('open', 'مفتوح'),
-        ('printed', 'مطبوع'),
-        ('paid', 'مدفوع'),
-        ('cancelled', 'ملغي'),
+        ('open','مفتوح'),
+        ('printed','قيد الانتظار'),
+        ('completed','مكتمل'),
+        ('cancelled','ملغي'),
     ]
+    TYPE_CHOICES = [('dine_in','داخل المحل'),('delivery','ديليفري')]
 
-    table = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='الطاولة')
-    cashier = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='الكاشير')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open', verbose_name='الحالة')
-    notes = models.TextField(blank=True, verbose_name='ملاحظات')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='وقت الإنشاء')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='آخر تحديث')
-    printed_at = models.DateTimeField(null=True, blank=True, verbose_name='وقت الطباعة')
-    paid_at = models.DateTimeField(null=True, blank=True, verbose_name='وقت الدفع')
+    cashier          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='orders', verbose_name='الكاشير')
+    order_type       = models.CharField(max_length=20, choices=TYPE_CHOICES, default='dine_in', verbose_name='نوع الطلب')
+    status           = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open', verbose_name='الحالة')
+    notes            = models.TextField(blank=True, verbose_name='ملاحظات')
+    table            = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='الطاولة')
+    waiter           = models.ForeignKey(Waiter, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='الويتر')
+    customer_name    = models.CharField(max_length=150, blank=True, verbose_name='اسم العميل')
+    customer_phone   = models.CharField(max_length=30, blank=True, verbose_name='رقم العميل')
+    customer_address = models.TextField(blank=True, verbose_name='عنوان العميل')
+    driver           = models.ForeignKey(DeliveryDriver, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='الطيار')
+    created_at       = models.DateTimeField(auto_now_add=True)
+    printed_at       = models.DateTimeField(null=True, blank=True)
+    completed_at     = models.DateTimeField(null=True, blank=True)
+    cancelled_at     = models.DateTimeField(null=True, blank=True)
+    cancel_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_cancels')
 
     class Meta:
-        verbose_name = 'طلب'
-        verbose_name_plural = 'الطلبات'
-        ordering = ['-created_at']
+        verbose_name='طلب'; verbose_name_plural='الطلبات'; ordering=['-created_at']
 
-    def __str__(self):
-        return f"طلب #{self.id} - {self.get_status_display()}"
+    def __str__(self): return f"طلب #{self.id}"
 
     @property
     def total(self):
-        return sum(item.subtotal for item in self.items.all())
+        return sum(i.subtotal for i in self.items.all())
 
     @property
     def total_items(self):
-        return sum(item.quantity for item in self.items.all())
+        return sum(i.quantity for i in self.items.all())
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', verbose_name='الطلب')
+    order     = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', verbose_name='الطلب')
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE, verbose_name='المنتج')
-    quantity = models.PositiveIntegerField(default=1, verbose_name='الكمية')
-    price = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, verbose_name='السعر وقت الطلب')
-    notes = models.CharField(max_length=200, blank=True, verbose_name='ملاحظات')
-
+    quantity  = models.PositiveIntegerField(default=1, verbose_name='الكمية')
+    price     = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, verbose_name='السعر')
+    notes     = models.CharField(max_length=200, blank=True, verbose_name='ملاحظات')
     class Meta:
-        verbose_name = 'عنصر طلب'
-        verbose_name_plural = 'عناصر الطلب'
-
-    def __str__(self):
-        return f"{self.quantity}x {self.menu_item.name}"
-
+        verbose_name='عنصر طلب'; verbose_name_plural='عناصر الطلب'
+    def __str__(self): return f"{self.quantity}× {self.menu_item.name}"
     @property
-    def subtotal(self):
-        return self.quantity * self.price
-
+    def subtotal(self): return self.quantity * (self.price or 0)
     def save(self, *args, **kwargs):
-        # Save current price at time of order
         if self.price is None:
             self.price = self.menu_item.price
         super().save(*args, **kwargs)
+
+
+class InventoryEntry(models.Model):
+    name       = models.CharField(max_length=200, verbose_name='اسم الصنف')
+    quantity   = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='الكمية')
+    unit       = models.CharField(max_length=50, blank=True, verbose_name='الوحدة')
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='التكلفة الإجمالية')
+    date       = models.DateField(default=timezone.now, verbose_name='تاريخ الوارد')
+    added_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='أضافه')
+    notes      = models.TextField(blank=True, verbose_name='ملاحظات')
+    class Meta:
+        verbose_name='وارد مخزون'; verbose_name_plural='واردات المخزون'; ordering=['-date','-id']
+    def __str__(self): return f"{self.name} — {self.total_cost} ج"
+
+
+class Shift(models.Model):
+    cashier        = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shifts', verbose_name='الكاشير')
+    start_time     = models.DateTimeField(auto_now_add=True)
+    end_time       = models.DateTimeField(null=True, blank=True)
+    status         = models.CharField(max_length=10, choices=[('open','مفتوح'),('closed','مغلق')], default='open')
+    cash_in_drawer = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='الفلوس في الدرج')
+    system_total   = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='إجمالي السيستم')
+    difference     = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='الفرق')
+    notes          = models.TextField(blank=True)
+    class Meta:
+        verbose_name='شيفت'; verbose_name_plural='الشيفتات'; ordering=['-start_time']
+    def __str__(self): return f"شيفت {self.cashier.username}"
+
+
+class CashierProfile(models.Model):
+    user             = models.OneToOneField(User, on_delete=models.CASCADE, related_name='cashier_profile')
+    can_view_totals  = models.BooleanField(default=False, verbose_name='يشوف الإجماليات')
+    can_view_history = models.BooleanField(default=False, verbose_name='يشوف التاريخ بدون إذن')
+    can_open_drawer  = models.BooleanField(default=False, verbose_name='يفتح الدرج بدون إذن')
+    phone            = models.CharField(max_length=20, blank=True, verbose_name='الهاتف')
+    class Meta:
+        verbose_name='بروفايل كاشير'; verbose_name_plural='بروفايلات الكاشير'
+    def __str__(self): return f"بروفايل — {self.user.username}"

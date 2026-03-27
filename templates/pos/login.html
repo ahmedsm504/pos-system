@@ -1,111 +1,52 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - نظام الكاشير</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .login-box {
-            background: white;
-            border-radius: 16px;
-            padding: 40px;
-            width: 380px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .logo i {
-            font-size: 2.5rem;
-            color: #2563eb;
-        }
-        .logo h2 {
-            margin-top: 10px;
-            font-size: 1.4rem;
-            color: #1e293b;
-        }
-        .logo p { color: #64748b; font-size: 0.9rem; margin-top: 4px; }
-
-        .form-group { margin-bottom: 18px; }
-        label { display: block; margin-bottom: 6px; font-size: 0.9rem; color: #374151; font-weight: 500; }
-        input {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            transition: border-color 0.2s;
-            direction: ltr;
-        }
-        input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        .btn-login {
-            width: 100%;
-            padding: 13px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-login:hover { background: #1d4ed8; }
-        .error {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 0.88rem;
-            margin-bottom: 16px;
-        }
-    </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تسجيل الدخول</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:linear-gradient(135deg,#0d1117 0%,#1e293b 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.box{background:#fff;border-radius:20px;padding:40px 36px;width:380px;max-width:95vw;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+.logo{text-align:center;margin-bottom:30px}
+.logo-icon{width:60px;height:60px;background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#fff;margin:0 auto 12px;box-shadow:0 8px 24px rgba(79,70,229,.4)}
+.logo h2{font-size:1.3rem;font-weight:800;color:#1e293b}
+.logo p{font-size:.82rem;color:#64748b;margin-top:4px}
+.fg{margin-bottom:18px}
+label{display:block;font-size:.85rem;font-weight:700;color:#374151;margin-bottom:6px}
+input{width:100%;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;font-family:inherit;transition:all .18s;direction:ltr}
+input:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+.btn{width:100%;padding:13px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:800;cursor:pointer;transition:all .2s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px}
+.btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.err{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:.85rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+</style>
 </head>
 <body>
-<div class="login-box">
-    <div class="logo">
-        <i class="fas fa-cash-register"></i>
-        <h2>نظام الكاشير</h2>
-        <p>سجّل دخولك للمتابعة</p>
-    </div>
+<div class="box">
+  <div class="logo">
+    <div class="logo-icon"><i class="fas fa-cash-register"></i></div>
+    <h2>نظام الكاشير</h2>
+    <p>سجّل دخولك للمتابعة</p>
+  </div>
 
-    {% if form.errors %}
-    <div class="error">
-        <i class="fas fa-exclamation-circle"></i>
-        اسم المستخدم أو كلمة السر غلط
-    </div>
-    {% endif %}
+  {% if error %}
+  <div class="err"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+  {% endif %}
 
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>اسم المستخدم</label>
-            <input type="text" name="username" autofocus placeholder="username">
-        </div>
-        <div class="form-group">
-            <label>كلمة السر</label>
-            <input type="password" name="password" placeholder="••••••••">
-        </div>
-        <button type="submit" class="btn-login">
-            <i class="fas fa-sign-in-alt"></i>
-            دخول
-        </button>
-    </form>
+  <form method="post">
+    {% csrf_token %}
+    <div class="fg">
+      <label>اسم المستخدم</label>
+      <input type="text" name="username" autofocus placeholder="username">
+    </div>
+    <div class="fg">
+      <label>كلمة السر</label>
+      <input type="password" name="password" placeholder="••••••••">
+    </div>
+    <button type="submit" class="btn">
+      <i class="fas fa-sign-in-alt"></i> دخول
+    </button>
+  </form>
 </div>
 </body>
 </html>

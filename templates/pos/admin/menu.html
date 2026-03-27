@@ -1,0 +1,105 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}المنيو{% endblock %}
+{% block page_icon %}<i class="fas fa-utensils"></i>{% endblock %}
+{% block page_title %}المنيو{% endblock %}
+
+{% block extra_css %}<style>
+.menu-layout{display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:start}
+.cat-list{display:flex;flex-direction:column;gap:8px}
+.cat-row{background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:13px 15px;display:flex;align-items:center;gap:10px;transition:all .18s}
+.cat-row:hover{border-color:var(--pri-l)}
+.cat-badge{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
+.cat-food{background:var(--war-l);color:#92400e}.cat-drink{background:#dbeafe;color:#1e40af}.cat-other{background:var(--pri-l);color:#3730a3}
+.cat-name{flex:1;font-weight:700;font-size:.9rem}
+.cat-count{font-size:.75rem;color:var(--muted);margin-top:1px}
+.cat-actions{display:flex;gap:4px}
+
+.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.item-card{background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:14px 15px;transition:all .18s}
+.item-card:hover{border-color:var(--pri);box-shadow:0 4px 14px rgba(79,70,229,.1)}
+.item-card.unavail{opacity:.55}
+.item-name{font-weight:800;font-size:.9rem;margin-bottom:5px}
+.item-price{font-size:1rem;font-weight:900;color:var(--pri)}
+.item-cat{font-size:.72rem;color:var(--muted);margin-top:3px}
+.item-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+</style>{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+  <div></div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'admin_cat_add' %}" class="btn btn-out"><i class="fas fa-folder-plus"></i> تصنيف جديد</a>
+    <a href="{% url 'admin_item_add' %}" class="btn btn-pri"><i class="fas fa-plus"></i> منتج جديد</a>
+  </div>
+</div>
+
+<div class="menu-layout">
+  <!-- Categories -->
+  <div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-hdr"><span><i class="fas fa-tags"></i>التصنيفات</span></div>
+      <div class="cat-list">
+        {% for cat in categories %}
+        <div class="cat-row">
+          <div class="cat-badge cat-{{ cat.category_type }}">
+            {% if cat.category_type == 'food' %}<i class="fas fa-drumstick-bite"></i>
+            {% elif cat.category_type == 'drink' %}<i class="fas fa-mug-hot"></i>
+            {% else %}<i class="fas fa-box"></i>{% endif %}
+          </div>
+          <div style="flex:1">
+            <div class="cat-name">{{ cat.name }}</div>
+            <div class="cat-count">{{ cat.items.count }} منتج {% if not cat.is_active %}· (غير نشط){% endif %}</div>
+          </div>
+          <div class="cat-actions">
+            <a href="{% url 'admin_cat_edit' cat.pk %}" class="btn btn-out btn-sm"><i class="fas fa-edit"></i></a>
+            <button class="btn btn-dan btn-sm" onclick="deleteCat({{ cat.pk }})"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+        {% empty %}
+        <p style="color:var(--muted);text-align:center;padding:20px">مفيش تصنيفات</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Items -->
+  <div class="card">
+    <div class="card-hdr"><span><i class="fas fa-burger"></i>المنتجات ({{ categories|length }} تصنيف)</span></div>
+    {% for cat in categories %}
+    <div style="margin-bottom:20px">
+      <div style="font-size:.8rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">
+        {{ cat.name }}
+      </div>
+      <div class="items-grid">
+        {% for item in cat.items.all %}
+        <div class="item-card {% if not item.is_available %}unavail{% endif %}">
+          <div class="item-name">{{ item.name }}</div>
+          <div class="item-price">{{ item.price }} ج</div>
+          <div class="item-cat">{% if not item.is_available %}⚠️ غير متاح{% endif %}</div>
+          <div class="item-actions">
+            <a href="{% url 'admin_item_edit' item.pk %}" class="btn btn-out btn-sm" style="flex:1;justify-content:center"><i class="fas fa-edit"></i> تعديل</a>
+            <button class="btn btn-dan btn-sm" onclick="deleteItem({{ item.pk }})"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+        {% empty %}
+        <p style="color:var(--muted);font-size:.82rem">مفيش منتجات في هذا التصنيف</p>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}<script>
+async function deleteCat(pk){
+  if(!confirm('حذف التصنيف وكل منتجاته؟'))return;
+  const r=await fetch(`/admin-panel/menu/category/${pk}/delete/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});
+  if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}
+}
+async function deleteItem(pk){
+  if(!confirm('حذف المنتج؟'))return;
+  const r=await fetch(`/admin-panel/menu/item/${pk}/delete/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});
+  if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}
+}
+</script>{% endblock %}

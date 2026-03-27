@@ -1,0 +1,75 @@
+{% extends 'pos/cashier/base.html' %}
+{% block title %}إنهاء الشيفت{% endblock %}
+{% block page_icon %}<i class="fas fa-clock"></i>{% endblock %}
+{% block page_title %}إنهاء الشيفت{% endblock %}
+{% block content %}
+<div style="max-width:480px;margin:0 auto">
+  <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;padding:24px;color:#fff;margin-bottom:20px;text-align:center">
+    <i class="fas fa-clock" style="font-size:2.5rem;margin-bottom:12px;display:block;opacity:.9"></i>
+    <h2 style="font-size:1.2rem;margin-bottom:6px">إنهاء الشيفت</h2>
+    <p style="opacity:.8;font-size:.85rem">أدخل الفلوس الموجودة في الدرج</p>
+    {% if shift %}<p style="opacity:.7;font-size:.8rem;margin-top:6px">بدأ: {{ shift.start_time|date:"H:i" }}</p>{% endif %}
+  </div>
+
+  <div class="card" id="inputCard">
+    <div class="fg">
+      <label style="font-size:1rem;font-weight:800;margin-bottom:10px">الفلوس المحصّلة في الدرج (ج)</label>
+      <input type="number" id="cashInput" step="0.01" placeholder="0.00" style="font-size:1.5rem;text-align:center;padding:16px;direction:ltr">
+    </div>
+    <button class="btn btn-pri btn-lg" style="width:100%;justify-content:center;margin-top:10px" onclick="submitShift()">
+      <i class="fas fa-calculator"></i> احسب الشيفت
+    </button>
+    <a href="{% url 'cashier_dashboard' %}" class="btn btn-out" style="width:100%;justify-content:center;margin-top:8px">
+      <i class="fas fa-arrow-right"></i> رجوع
+    </a>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <div style="text-align:center;margin-bottom:20px">
+      <div id="resultIcon" style="font-size:3rem;margin-bottom:10px"></div>
+      <div id="resultTitle" style="font-size:1.1rem;font-weight:800"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#f8fafc;border-radius:10px">
+        <span style="color:var(--muted);font-weight:600">السيستم محاسبه</span>
+        <strong id="sysTotal" style="font-size:1rem"></strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#f8fafc;border-radius:10px">
+        <span style="color:var(--muted);font-weight:600">الدرج عندك</span>
+        <strong id="cashTotal" style="font-size:1rem"></strong>
+      </div>
+      <div id="diffCard" style="display:flex;justify-content:space-between;padding:14px 16px;border-radius:10px;border:2px solid">
+        <span style="font-weight:700">الفرق</span>
+        <strong id="diffVal" style="font-size:1.1rem"></strong>
+      </div>
+    </div>
+    <a href="{% url 'cashier_dashboard' %}" class="btn btn-suc btn-lg" style="width:100%;justify-content:center;margin-top:18px">
+      <i class="fas fa-home"></i> انتهى — رجوع
+    </a>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+async function submitShift(){
+  const cash=document.getElementById('cashInput').value;
+  if(!cash){showToast('أدخل المبلغ أولاً','err');return}
+  const fd=new FormData();fd.append('cash_in_drawer',cash);fd.append('csrfmiddlewaretoken',csrf());
+  const r=await fetch('{% url "cashier_submit_shift" %}',{method:'POST',body:fd});
+  const d=await r.json();
+  if(d.success){
+    document.getElementById('inputCard').style.display='none';
+    document.getElementById('resultCard').style.display='block';
+    document.getElementById('sysTotal').textContent=d.system_total.toFixed(2)+' ج';
+    document.getElementById('cashTotal').textContent=d.cash_input.toFixed(2)+' ج';
+    const diff=d.difference;
+    const diffCard=document.getElementById('diffCard');
+    const diffVal=document.getElementById('diffVal');
+    const icon=document.getElementById('resultIcon');
+    const title=document.getElementById('resultTitle');
+    diffVal.textContent=(diff>=0?'+':'')+diff.toFixed(2)+' ج';
+    if(diff===0){diffCard.style.borderColor='var(--suc)';diffCard.style.background='var(--suc-l)';icon.textContent='✅';title.textContent='ممتاز! الحسابات متطابقة'}
+    else if(diff>0){diffCard.style.borderColor='var(--pri)';diffCard.style.background='var(--pri-l)';diffVal.style.color='var(--pri)';icon.textContent='💰';title.textContent='فيه زيادة في الدرج'}
+    else{diffCard.style.borderColor='var(--dan)';diffCard.style.background='var(--dan-l)';diffVal.style.color='var(--dan)';icon.textContent='⚠️';title.textContent='فيه نقص في الدرج'}
+  }else{showToast(d.error||'خطأ','err')}
+}
+</script>{% endblock %}

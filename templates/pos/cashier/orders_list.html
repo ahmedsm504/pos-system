@@ -1,0 +1,37 @@
+{% extends 'pos/cashier/base.html' %}
+{% block title %}طلبات اليوم{% endblock %}
+{% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
+{% block page_title %}طلبات اليوم{% endblock %}
+{% block content %}
+<div class="card">
+  {% for o in orders %}
+  <div style="background:#fff;border-radius:12px;border:1.5px solid var(--border);display:grid;grid-template-columns:55px 1fr auto auto auto;align-items:center;transition:all .18s;cursor:pointer;overflow:hidden;margin-bottom:8px" onclick="location.href='{% url 'cashier_order_detail' o.id %}'">
+    <div style="width:55px;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fafbff;border-left:1.5px solid var(--border);font-weight:900;color:var(--pri);font-size:.9rem">
+      <span style="font-size:.6rem;color:var(--muted)">#</span>{{ o.id }}
+    </div>
+    <div style="padding:11px 13px">
+      <div style="font-weight:800;font-size:.88rem;margin-bottom:3px">{% if o.order_type == 'delivery' %}🛵 {{ o.customer_name|default:"ديليفري" }}{% else %}🪑 {{ o.table|default:"بدون طاولة" }}{% endif %}</div>
+      <div style="font-size:.71rem;color:var(--muted);display:flex;gap:8px">
+        <span>⏰ {{ o.created_at|time:"H:i" }}</span><span>📦 {{ o.total_items }} صنف</span>
+      </div>
+    </div>
+    <div style="padding:0 8px">
+      {% if o.status == 'open' %}<span class="badge b-war">مفتوح</span>
+      {% elif o.status == 'printed' %}<span class="badge b-pri">انتظار</span>
+      {% elif o.status == 'completed' %}<span class="badge b-suc">مكتمل</span>
+      {% else %}<span class="badge b-dan">ملغي</span>{% endif %}
+    </div>
+    <div style="padding:0 8px;font-weight:800;font-size:.9rem">{{ o.total|floatformat:2 }} ج</div>
+    <div style="padding:0 14px 0 8px" onclick="event.stopPropagation()">
+      <a href="{% url 'cashier_order_detail' o.id %}" class="btn btn-out btn-sm"><i class="fas fa-eye"></i></a>
+    </div>
+  </div>
+  {% empty %}
+  <div style="text-align:center;padding:50px;color:var(--muted)">
+    <i class="fas fa-receipt" style="font-size:2.5rem;display:block;margin-bottom:10px;opacity:.3"></i>
+    <p>مفيش طلبات اليوم</p>
+    <a href="{% url 'cashier_new_order' %}" class="btn btn-suc" style="margin-top:14px"><i class="fas fa-plus"></i> طلب جديد</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

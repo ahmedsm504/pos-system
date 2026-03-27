@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}الكاشير{% endblock %}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --sw:220px;--th:56px;
+  --pri:#4f46e5;--pri-l:#ede9fe;--pri-d:#3730a3;
+  --suc:#10b981;--suc-l:#d1fae5;
+  --dan:#ef4444;--dan-l:#fee2e2;
+  --war:#f59e0b;--war-l:#fef3c7;
+  --bg:#f0f2f9;--text:#1e293b;--text2:#475569;--muted:#94a3b8;--border:#e2e8f0;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
+}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.sb{position:fixed;right:0;top:0;bottom:0;width:var(--sw);background:linear-gradient(160deg,#0d1117,#1e293b);display:flex;flex-direction:column;z-index:300;box-shadow:-4px 0 30px rgba(0,0,0,.3)}
+.sb-logo{padding:18px 14px;display:flex;align-items:center;gap:11px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-logo-i{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#10b981,#0891b2);display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#fff;flex-shrink:0}
+.sb-logo h2{font-size:.88rem;font-weight:800;color:#f1f5f9}
+.sb-logo p{font-size:.65rem;color:#64748b;margin-top:1px}
+.sb-nav{flex:1;padding:10px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.sb-a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;color:#94a3b8;text-decoration:none;font-size:.86rem;font-weight:600;transition:all .18s;position:relative}
+.sb-a i{width:17px;text-align:center;font-size:.88rem;flex-shrink:0}
+.sb-a:hover{background:rgba(255,255,255,.06);color:#e2e8f0}
+.sb-a.active{background:rgba(16,185,129,.2);color:#6ee7b7}
+.sb-a.active::after{content:'';position:absolute;right:0;top:25%;bottom:25%;width:3px;background:#10b981;border-radius:0 3px 3px 0}
+.sb-a.new-order-btn{background:linear-gradient(135deg,#10b981,#0891b2);color:#fff;margin-bottom:4px;box-shadow:0 4px 14px rgba(16,185,129,.3)}
+.sb-a.new-order-btn:hover{filter:brightness(1.08)}
+.sb-foot{padding:10px 8px;border-top:1px solid rgba(255,255,255,.06)}
+.sb-user{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;background:rgba(255,255,255,.04);margin-bottom:6px}
+.sb-av{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#10b981,#0891b2);display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:800;color:#fff;flex-shrink:0}
+.sb-ui strong{display:block;font-size:.8rem;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.sb-ui span{font-size:.67rem;color:#64748b}
+.sb-out{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:9px;color:#f87171;text-decoration:none;font-size:.8rem;transition:background .18s}
+.sb-out:hover{background:rgba(239,68,68,.1)}
+.sb-shift-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:9px;color:#fbbf24;text-decoration:none;font-size:.8rem;transition:background .18s;cursor:pointer;background:none;border:none;font-family:inherit;width:100%;margin-bottom:4px}
+.sb-shift-btn:hover{background:rgba(251,191,36,.1)}
+.main{margin-right:var(--sw);min-height:100vh;display:flex;flex-direction:column}
+.topbar{height:var(--th);background:#fff;padding:0 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;box-shadow:0 1px 6px rgba(0,0,0,.05)}
+.topbar-l{display:flex;align-items:center;gap:12px}
+.pg-icon{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#10b981,#0891b2);display:flex;align-items:center;justify-content:center;font-size:.8rem;color:#fff}
+.pg-title{font-size:.97rem;font-weight:800}
+.topbar-r{display:flex;align-items:center;gap:10px}
+.drawer-btn{display:flex;align-items:center;gap:7px;padding:6px 14px;background:#fff;border:1.5px solid var(--border);border-radius:999px;font-size:.78rem;font-weight:700;color:var(--text2);cursor:pointer;transition:all .18s;font-family:inherit}
+.drawer-btn:hover{background:var(--war-l);border-color:var(--war);color:var(--war)}
+.clock-c{display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:.76rem;font-weight:600;color:var(--text2)}
+.clk-dot{width:6px;height:6px;border-radius:50%;background:#10b981;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.content{padding:18px 22px;flex:1}
+.card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:.84rem;font-weight:700;text-decoration:none;font-family:inherit;display:inline-flex;align-items:center;gap:7px;transition:all .18s}
+.btn-pri{background:var(--pri);color:#fff}.btn-pri:hover{background:var(--pri-d)}
+.btn-suc{background:var(--suc);color:#fff}.btn-suc:hover{filter:brightness(1.08)}
+.btn-dan{background:var(--dan);color:#fff}
+.btn-out{background:transparent;border:1.5px solid var(--border);color:var(--text2)}.btn-out:hover{background:var(--bg)}
+.btn-ghost{background:transparent;color:var(--muted);border:none}.btn-ghost:hover{background:var(--bg);color:var(--text)}
+.btn-sm{padding:5px 11px;font-size:.77rem;border-radius:7px}
+.btn-lg{padding:12px 24px;font-size:.95rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.badge{padding:3px 10px;border-radius:999px;font-size:.7rem;font-weight:700}
+.b-suc{background:var(--suc-l);color:#065f46}.b-war{background:var(--war-l);color:#92400e}
+.b-dan{background:var(--dan-l);color:#991b1b}.b-pri{background:var(--pri-l);color:#3730a3}
+.b-grey{background:#f1f5f9;color:#475569}
+#toast{position:fixed;bottom:18px;left:18px;z-index:9999;padding:12px 18px;border-radius:11px;background:#1e293b;color:#fff;font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.22);min-width:200px;opacity:0;transform:translateY(8px);transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.suc{background:#065f46}#toast.err{background:#991b1b}#toast.war{background:#92400e}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s;backdrop-filter:blur(3px)}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:#fff;border-radius:18px;width:420px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.3);transform:translateY(20px) scale(.97);transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.overlay.open .modal{transform:translateY(0) scale(1)}
+.modal-hdr{padding:15px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.modal-hdr h3{font-size:.92rem;font-weight:800}
+.modal-close{background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted)}
+.modal-close:hover{color:var(--dan)}
+.modal-body{padding:18px;overflow-y:auto;flex:1}
+.modal-ftr{padding:13px 18px;border-top:1px solid var(--border);display:flex;gap:10px;background:#fafbff;border-radius:0 0 18px 18px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.8rem;font-weight:700;color:var(--text2);margin-bottom:5px}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.87rem;font-family:inherit;transition:border .18s;background:#fff}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="sb-logo-i"><i class="fas fa-cash-register"></i></div>
+    <div><h2>نظام الكاشير</h2><p>{{ request.user.get_full_name|default:request.user.username }}</p></div>
+  </div>
+  <nav class="sb-nav">
+    <a href="{% url 'cashier_new_order' %}" class="sb-a new-order-btn"><i class="fas fa-plus-circle"></i> طلب جديد</a>
+    <a href="{% url 'cashier_dashboard' %}" class="sb-a {% if request.resolver_match.url_name == 'cashier_dashboard' %}active{% endif %}"><i class="fas fa-home"></i> الرئيسية</a>
+    <a href="{% url 'cashier_orders' %}" class="sb-a {% if request.resolver_match.url_name == 'cashier_orders' %}active{% endif %}"><i class="fas fa-receipt"></i> طلبات اليوم</a>
+  </nav>
+  <div class="sb-foot">
+    <div class="sb-user">
+      <div class="sb-av">{{ request.user.username|first|upper }}</div>
+      <div class="sb-ui">
+        <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+        <span>كاشير</span>
+      </div>
+    </div>
+    <a href="{% url 'cashier_end_shift' %}" class="sb-shift-btn"><i class="fas fa-clock"></i> إنهاء الشيفت</a>
+    <a href="{% url 'logout' %}" class="sb-out"><i class="fas fa-sign-out-alt"></i> خروج</a>
+  </div>
+</aside>
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-l">
+      <div class="pg-icon">{% block page_icon %}<i class="fas fa-home"></i>{% endblock %}</div>
+      <span class="pg-title">{% block page_title %}{% endblock %}</span>
+    </div>
+    <div class="topbar-r">
+      <button class="drawer-btn" onclick="openDrawerRequest()"><i class="fas fa-archive"></i> فتح الدرج</button>
+      <div class="clock-c"><span class="clk-dot"></span><span id="clk">--:--</span></div>
+    </div>
+  </header>
+  <div class="content">{% block content %}{% endblock %}</div>
+</main>
+
+<div id="toast"></div>
+
+<!-- Admin Confirm Modal -->
+<div class="overlay" id="adminModal">
+  <div class="modal" style="width:360px">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,#dc2626,#b91c1c);border-radius:18px 18px 0 0">
+      <h3 style="color:#fff"><i class="fas fa-shield-halved"></i> تأكيد المدير</h3>
+      <button class="modal-close" style="color:#fff" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:.83rem;margin-bottom:14px" id="admin-modal-desc">هذا الإجراء يتطلب موافقة المدير</p>
+      <div class="fg"><label>اسم المستخدم</label><input type="text" id="adm-u" style="direction:ltr" placeholder="admin username"></div>
+      <div class="fg"><label>كلمة السر</label><input type="password" id="adm-p" style="direction:ltr" placeholder="••••••••"></div>
+      <div id="adm-err" style="color:var(--dan);font-size:.8rem;display:none;margin-top:4px"></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-out" style="flex:1;justify-content:center" onclick="closeAdmin()">إلغاء</button>
+      <button class="btn btn-dan" style="flex:2;justify-content:center" id="adm-confirm" onclick="confirmAdmin()"><i class="fas fa-check"></i> تأكيد</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];function tick(){const n=new Date();document.getElementById('clk').textContent=days[n.getDay()]+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')}tick();setInterval(tick,15000)})();
+
+function showToast(msg,type='suc',dur=3200){
+  const t=document.getElementById('toast');
+  t.innerHTML=`<i class="fas ${type==='suc'?'fa-check-circle':type==='war'?'fa-exclamation-triangle':'fa-times-circle'}"></i> ${msg}`;
+  t.className='show '+type;clearTimeout(t._t);t._t=setTimeout(()=>t.className='',dur);
+}
+function csrf(){const v=document.cookie.match('(^|;)\s*csrftoken\s*=\s*([^;]+)');return v?v.pop():''}
+
+let _adminCb=null;
+function requireAdmin(desc,callback){
+  _adminCb=callback;
+  document.getElementById('admin-modal-desc').textContent=desc||'هذا الإجراء يتطلب موافقة المدير';
+  document.getElementById('adm-u').value='';document.getElementById('adm-p').value='';
+  document.getElementById('adm-err').style.display='none';
+  document.getElementById('adminModal').classList.add('open');
+  setTimeout(()=>document.getElementById('adm-u').focus(),100);
+}
+function closeAdmin(){document.getElementById('adminModal').classList.remove('open')}
+async function confirmAdmin(){
+  const u=document.getElementById('adm-u').value,p=document.getElementById('adm-p').value;
+  const btn=document.getElementById('adm-confirm');btn.disabled=true;
+  btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';
+  try{
+    const r=await fetch('/api/admin-verify/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({username:u,password:p})});
+    const d=await r.json();
+    if(d.success){closeAdmin();if(_adminCb)_adminCb(u,p);}
+    else{const e=document.getElementById('adm-err');e.textContent=d.error||'بيانات غلط';e.style.display='block';}
+  }catch{document.getElementById('adm-err').textContent='خطأ في الاتصال';document.getElementById('adm-err').style.display='block';}
+  btn.disabled=false;btn.innerHTML='<i class="fas fa-check"></i> تأكيد';
+}
+document.getElementById('adm-p').addEventListener('keydown',e=>{if(e.key==='Enter')confirmAdmin()});
+
+function openDrawerRequest(){
+  requireAdmin('فتح الدرج يتطلب موافقة المدير',async(u,p)=>{
+    const r=await fetch('/api/drawer/open/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({admin_username:u,admin_password:p})});
+    const d=await r.json();
+    showToast(d.success?'تم فتح الدرج ✓':'الدرج مش متصل',d.success?'suc':'war');
+  });
+}
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

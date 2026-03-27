@@ -1,0 +1,124 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}التقارير والأرباح{% endblock %}
+{% block page_icon %}<i class="fas fa-chart-bar"></i>{% endblock %}
+{% block page_title %}التقارير والأرباح{% endblock %}
+{% block extra_css %}<style>
+.period-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.ptab{padding:8px 18px;border-radius:999px;border:1.5px solid var(--border);background:#fff;text-decoration:none;font-size:.82rem;font-weight:700;color:var(--text2);transition:all .18s}
+.ptab:hover{border-color:var(--pri);color:var(--pri)}
+.ptab.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+.kpi3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.rk{background:#fff;border-radius:14px;padding:18px 20px;border:1px solid var(--border)}
+.rk-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:12px}
+.rk-val{font-size:1.6rem;font-weight:900;color:var(--text);line-height:1}
+.rk-val small{font-size:.9rem;font-weight:500;color:var(--muted)}
+.rk-lbl{font-size:.77rem;color:var(--muted);margin-top:4px}
+.charts-g{display:grid;grid-template-columns:3fr 2fr;gap:18px;margin-bottom:18px}
+.type-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.type-row:last-child{border-bottom:none}
+.top-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f4f6fb}
+.top-item:last-child{border-bottom:none}
+.ti-rank{font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:999px;background:#f1f5f9;color:var(--muted);min-width:28px;text-align:center;flex-shrink:0}
+.ti-rank.g{background:var(--war-l);color:#92400e}
+.ti-bar-w{background:#f1f5f9;border-radius:999px;height:7px;flex:1}
+.ti-bar{background:linear-gradient(90deg,#4f46e5,#7c3aed);height:100%;border-radius:999px;transition:width .5s}
+</style>{% endblock %}
+{% block content %}
+<div class="period-bar">
+  <a href="?period=today" class="ptab {% if period == 'today' %}active{% endif %}">اليوم</a>
+  <a href="?period=week"  class="ptab {% if period == 'week' or not period %}active{% endif %}">آخر 7 أيام</a>
+  <a href="?period=month" class="ptab {% if period == 'month' %}active{% endif %}">هذا الشهر</a>
+  <span style="font-size:.78rem;color:var(--muted);margin-right:auto">{{ start|date:"d/m" }} — {{ end|date:"d/m/Y" }}</span>
+</div>
+
+<div class="kpi3">
+  <div class="rk">
+    <div class="rk-icon" style="background:var(--suc-l);color:#059669"><i class="fas fa-coins"></i></div>
+    <div class="rk-val">{{ total_revenue|floatformat:0 }}<small> ج</small></div>
+    <div class="rk-lbl">إجمالي الإيراد</div>
+  </div>
+  <div class="rk">
+    <div class="rk-icon" style="background:var(--dan-l);color:#dc2626"><i class="fas fa-arrow-down"></i></div>
+    <div class="rk-val">{{ total_expenses|floatformat:0 }}<small> ج</small></div>
+    <div class="rk-lbl">إجمالي المصاريف</div>
+  </div>
+  <div class="rk" style="border:2px solid {% if profit >= 0 %}var(--suc){% else %}var(--dan){% endif %}">
+    <div class="rk-icon" style="background:{% if profit >= 0 %}var(--suc-l){% else %}var(--dan-l){% endif %};color:{% if profit >= 0 %}#059669{% else %}#dc2626{% endif %}">
+      <i class="fas fa-chart-line"></i>
+    </div>
+    <div class="rk-val" style="color:{% if profit >= 0 %}var(--suc){% else %}var(--dan){% endif %}">{{ profit|floatformat:0 }}<small> ج</small></div>
+    <div class="rk-lbl">صافي الربح</div>
+  </div>
+</div>
+
+<div class="charts-g">
+  <div class="card">
+    <div class="card-hdr"><span><i class="fas fa-chart-area"></i>الإيراد اليومي</span></div>
+    <canvas id="revChart" height="200"></canvas>
+  </div>
+  <div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-hdr"><span>نوع الطلبات</span></div>
+      <div class="type-row">
+        <span>داخل المحل</span>
+        <div style="text-align:left">
+          <div style="font-weight:800">{{ dine_count }} طلب</div>
+          <div style="font-size:.8rem;color:var(--muted)">{{ dine_revenue|floatformat:0 }} ج</div>
+        </div>
+      </div>
+      <div class="type-row">
+        <span>ديليفري</span>
+        <div style="text-align:left">
+          <div style="font-weight:800">{{ delivery_count }} طلب</div>
+          <div style="font-size:.8rem;color:var(--muted)">{{ delivery_revenue|floatformat:0 }} ج</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><span>أداء الكاشيرين</span></div>
+      {% for cs in cashier_stats %}
+      <div class="type-row">
+        <span>{{ cs.cashier.get_full_name|default:cs.cashier.username }}</span>
+        <div style="text-align:left">
+          <div style="font-weight:800">{{ cs.count }} طلب</div>
+          <div style="font-size:.8rem;color:var(--muted)">{{ cs.revenue|floatformat:0 }} ج</div>
+        </div>
+      </div>
+      {% empty %}<p style="color:var(--muted);font-size:.85rem">—</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-hdr"><span><i class="fas fa-star"></i>الأكثر طلبًا</span></div>
+  {% if top_items %}{% with max_qty=top_items.0.qty %}
+  {% for item in top_items %}
+  <div class="top-item">
+    <span class="ti-rank {% if forloop.counter == 1 %}g{% endif %}">#{{ forloop.counter }}</span>
+    <span style="flex:1;font-size:.86rem;font-weight:600">{{ item.menu_item__name }}</span>
+    <div class="ti-bar-w"><div class="ti-bar" style="width:{% widthratio item.qty max_qty 100 %}%"></div></div>
+    <span style="font-weight:800;font-size:.82rem;color:var(--pri);min-width:55px;text-align:left">{{ item.qty }} وحدة</span>
+  </div>
+  {% endfor %}{% endwith %}
+  {% else %}<p style="color:var(--muted);text-align:center;padding:20px">مفيش بيانات كافية</p>{% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const raw={{daily_json|safe}};
+new Chart(document.getElementById('revChart'),{
+  type:'bar',
+  data:{
+    labels:raw.map(d=>d.date),
+    datasets:[
+      {label:'إيراد',data:raw.map(d=>d.revenue),backgroundColor:'#6366f1',borderRadius:6,yAxisID:'y'},
+      {label:'مصاريف',data:raw.map(d=>d.expenses),backgroundColor:'#ef4444',borderRadius:6,yAxisID:'y'},
+      {label:'طلبات',data:raw.map(d=>d.count),type:'line',borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.1)',pointBackgroundColor:'#f59e0b',tension:.35,yAxisID:'y2'},
+    ]
+  },
+  options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{font:{size:11},usePointStyle:true}}},scales:{y:{beginAtZero:true,position:'right'},y2:{beginAtZero:true,position:'left',grid:{drawOnChartArea:false},ticks:{stepSize:1}},x:{grid:{display:false}}}}
+});
+</script>
+{% endblock %}

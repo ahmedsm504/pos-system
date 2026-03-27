@@ -31,5 +31,5 @@ class OrderItemInline(admin.TabularInline):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ['id', 'table', 'cashier', 'status', 'total', 'created_at']
     list_filter = ['status', 'created_at']
-    readonly_fields = ['created_at', 'updated_at', 'paid_at']
+    readonly_fields = ['created_at', 'completed_at']
     inlines = [OrderItemInline]

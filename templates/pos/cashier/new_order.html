@@ -1,0 +1,291 @@
+{% extends 'pos/cashier/base.html' %}
+{% block title %}طلب جديد{% endblock %}
+{% block page_icon %}<i class="fas fa-plus-circle"></i>{% endblock %}
+{% block page_title %}طلب جديد{% endblock %}
+
+{% block extra_css %}<style>
+.pos-wrap{display:grid;grid-template-columns:1fr 360px;gap:16px;height:calc(100vh - var(--th) - 36px)}
+
+/* Menu */
+.menu-side{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.cats{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.cat-btn{padding:6px 15px;border-radius:999px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:.78rem;font-weight:700;color:var(--text2);transition:all .18s;white-space:nowrap;font-family:inherit}
+.cat-btn:hover{border-color:var(--pri);color:var(--pri);background:var(--pri-l)}
+.cat-btn.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:9px;overflow-y:auto;flex:1;padding-bottom:8px}
+.mi{background:#fff;border:2px solid var(--border);border-radius:12px;padding:13px 9px;cursor:pointer;text-align:center;transition:all .18s;display:flex;flex-direction:column;gap:4px;position:relative;font-family:inherit}
+.mi:hover{border-color:var(--pri);transform:translateY(-2px);box-shadow:0 5px 16px rgba(79,70,229,.14)}
+.mi.in-cart{border-color:var(--suc);background:#f0fdf4}
+.mi-badge{position:absolute;top:-8px;left:-8px;background:var(--suc);color:#fff;border-radius:999px;font-size:.68rem;font-weight:800;padding:2px 8px;display:none;box-shadow:0 2px 8px rgba(16,185,129,.4)}
+.mi.in-cart .mi-badge{display:block}
+.mi-name{font-weight:700;font-size:.83rem;color:var(--text)}
+.mi-price{color:var(--pri);font-size:.86rem;font-weight:800}
+.mi-cat{font-size:.68rem;color:var(--muted)}
+
+/* Order panel */
+.op{background:#fff;border-radius:16px;border:1.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow)}
+.op-hdr{padding:12px 14px;border-bottom:1px solid var(--border);background:#fafbff}
+.op-hdr h3{font-size:.9rem;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cart-count{background:var(--pri);color:#fff;border-radius:999px;font-size:.7rem;font-weight:800;padding:2px 9px}
+.type-tabs{display:flex;gap:6px;margin-bottom:8px}
+.type-tab{flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:.78rem;font-weight:700;text-align:center;transition:all .18s;font-family:inherit}
+.type-tab.active.dine{background:var(--suc);color:#fff;border-color:var(--suc)}
+.type-tab.active.delivery{background:var(--war);color:#fff;border-color:var(--war)}
+.dine-fields,.delivery-fields{display:none}
+.dine-fields.show,.delivery-fields.show{display:block}
+.sel{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;font-family:inherit;background:#fff;margin-bottom:6px}
+.sel:focus{outline:none;border-color:var(--pri)}
+.op-items{flex:1;overflow-y:auto;padding:9px}
+.ci{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:7px;padding:8px 6px;border-bottom:1px solid #f4f6fb;border-radius:7px}
+.ci:hover{background:#fafbff}
+.ci-name{font-size:.84rem;font-weight:600}
+.ci-price{font-size:.78rem;color:var(--muted);direction:ltr;text-align:left;min-width:58px}
+.qc{display:flex;align-items:center;gap:4px}
+.qb{width:25px;height:25px;border-radius:6px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:.9rem;font-weight:800;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1}
+.qb:hover{background:var(--pri-l);border-color:var(--pri);color:var(--pri)}
+.qb.minus:hover{background:var(--dan-l);border-color:var(--dan);color:var(--dan)}
+.qn{font-weight:800;min-width:16px;text-align:center;font-size:.88rem}
+.op-empty{text-align:center;padding:35px 16px;color:var(--muted)}
+.op-empty i{font-size:2rem;display:block;margin-bottom:8px;opacity:.3}
+.op-foot{border-top:1px solid var(--border);padding:12px 14px;background:#fafbff}
+.op-total{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.op-total-val{font-size:1.2rem;font-weight:900}
+.notes-inp{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;margin-bottom:9px;resize:none;font-family:inherit;transition:border .18s}
+.notes-inp:focus{outline:none;border-color:var(--pri)}
+.preview-btn{width:100%;padding:12px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:10px;font-size:.93rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;box-shadow:0 4px 14px rgba(79,70,229,.35);font-family:inherit}
+.preview-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.preview-btn:disabled{background:#94a3b8;box-shadow:none;transform:none;cursor:not-allowed}
+
+/* Preview Modal */
+.receipt{background:#fafbff;border:1px dashed #c7d2fe;border-radius:11px;padding:16px;font-size:.83rem}
+.rcpt-title{text-align:center;font-size:1rem;font-weight:900;margin-bottom:3px}
+.rcpt-sub{text-align:center;color:var(--muted);font-size:.74rem;margin-bottom:12px}
+.rcpt-hr{border:none;border-top:1px dashed #c7d2fe;margin:10px 0}
+.rcpt-item{display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px solid #f0f2f9}
+.rcpt-item:last-of-type{border-bottom:none}
+.rcpt-item-name{flex:1;font-weight:600}
+.rcpt-qty{color:var(--muted);font-size:.8rem;min-width:26px;text-align:center}
+.rcpt-price{font-weight:700;min-width:62px;text-align:left;direction:ltr}
+.rcpt-total{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:.97rem;font-weight:900;padding-top:10px;border-top:2px solid var(--pri-l)}
+.cat-chip{font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:5px;margin-left:5px}
+.chip-food{background:var(--war-l);color:#92400e}.chip-drink{background:#dbeafe;color:#1e40af}
+.confirm-btn{flex:2;padding:12px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:10px;font-size:.93rem;font-weight:800;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(16,185,129,.35)}
+.confirm-btn:hover{filter:brightness(1.07)}
+.confirm-btn:disabled{background:#94a3b8;box-shadow:none;cursor:not-allowed}
+</style>{% endblock %}
+
+{% block content %}
+<div class="pos-wrap">
+
+  <!-- MENU -->
+  <div class="menu-side">
+    <div class="cats">
+      <button class="cat-btn active" onclick="filterCat(this,'all')">⭐ الكل</button>
+      {% for cat in categories %}
+      <button class="cat-btn" onclick="filterCat(this,'{{ cat.id }}')">{{ cat.name }}</button>
+      {% endfor %}
+    </div>
+    <div class="menu-grid" id="menuGrid">
+      {% for cat in categories %}
+        {% for item in cat.items.all %}{% if item.is_available %}
+        <button class="mi" id="mb{{ item.id }}" data-cat="{{ cat.id }}" data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}" onclick="addItem(this)">
+          <span class="mi-badge" id="bd{{ item.id }}">0</span>
+          <span class="mi-name">{{ item.name }}</span>
+          <span class="mi-price">{{ item.price }} ج</span>
+          <span class="mi-cat">{{ cat.name }}</span>
+        </button>
+        {% endif %}{% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ORDER PANEL -->
+  <div class="op">
+    <div class="op-hdr">
+      <h3><i class="fas fa-shopping-cart" style="color:var(--pri)"></i>الطلب<span class="cart-count" id="cartCount">0</span></h3>
+      <div class="type-tabs">
+        <button class="type-tab active dine" id="tab-dine" onclick="setType('dine_in')"><i class="fas fa-chair"></i> داخلي</button>
+        <button class="type-tab delivery" id="tab-delivery" onclick="setType('delivery')"><i class="fas fa-motorcycle"></i> ديليفري</button>
+      </div>
+      <!-- Dine in fields -->
+      <div class="dine-fields show" id="dine-fields">
+        <select class="sel" id="tableSelect">
+          <option value="">الطاولة...</option>
+          {% for t in tables %}<option value="{{ t.id }}">{{ t }}</option>{% endfor %}
+        </select>
+        <select class="sel" id="waiterSelect">
+          <option value="">الويتر...</option>
+          {% for w in waiters %}<option value="{{ w.id }}">{{ w.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <!-- Delivery fields -->
+      <div class="delivery-fields" id="delivery-fields">
+        <input class="sel" id="custName" placeholder="اسم العميل">
+        <input class="sel" id="custPhone" placeholder="رقم الهاتف *" style="direction:ltr">
+        <input class="sel" id="custAddr" placeholder="العنوان *">
+        <select class="sel" id="driverSelect">
+          <option value="">الطيار (اختياري)...</option>
+          {% for d in drivers %}<option value="{{ d.id }}">{{ d.name }} — {{ d.phone }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="op-items" id="cartItems">
+      <div class="op-empty" id="emptyMsg"><i class="fas fa-utensils"></i><p>اختار من المنيو</p></div>
+    </div>
+
+    <div class="op-foot">
+      <div class="op-total">
+        <span style="color:var(--muted);font-weight:600;font-size:.85rem">الإجمالي</span>
+        <span class="op-total-val" id="totalVal">0.00 ج</span>
+      </div>
+      <textarea class="notes-inp" id="orderNotes" rows="2" placeholder="ملاحظات..."></textarea>
+      <button class="preview-btn" id="previewBtn" onclick="openPreview()" disabled>
+        <i class="fas fa-eye"></i> معاينة وطباعة
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PREVIEW MODAL -->
+<div class="overlay" id="previewOverlay" onclick="if(event.target===this)closePreview()">
+  <div class="modal">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:18px 18px 0 0">
+      <h3 style="color:#fff"><i class="fas fa-receipt"></i> معاينة الطلب</h3>
+      <button class="modal-close" style="color:#fff" onclick="closePreview()">✕</button>
+    </div>
+    <div class="modal-body"><div class="receipt" id="receiptHTML"></div></div>
+    <div class="modal-ftr">
+      <button class="btn btn-out" style="flex:1;justify-content:center" onclick="closePreview()"><i class="fas fa-edit"></i> تعديل</button>
+      <button class="confirm-btn" id="confirmBtn" onclick="confirmPrint()"><i class="fas fa-print"></i> تأكيد وطباعة</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}<script>
+let cart={}, orderType='dine_in';
+
+function filterCat(el,catId){
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.mi').forEach(b=>b.style.display=(catId==='all'||b.dataset.cat===catId)?'':'none');
+}
+
+function setType(type){
+  orderType=type;
+  document.getElementById('tab-dine').className='type-tab'+(type==='dine_in'?' active dine':'');
+  document.getElementById('tab-delivery').className='type-tab delivery'+(type==='delivery'?' active':'');
+  document.getElementById('dine-fields').className='dine-fields'+(type==='dine_in'?' show':'');
+  document.getElementById('delivery-fields').className='delivery-fields'+(type==='delivery'?' show':'');
+}
+
+function addItem(btn){
+  const{id,name,price}=btn.dataset;
+  cart[id]?cart[id].qty++:(cart[id]={id,name,price:parseFloat(price),qty:1});
+  btn.style.borderColor='#10b981';setTimeout(()=>btn.style.borderColor='',280);
+  renderCart();
+}
+
+function updateQty(id,d){if(!cart[id])return;cart[id].qty+=d;if(cart[id].qty<=0)delete cart[id];renderCart()}
+
+function renderCart(){
+  const items=Object.values(cart),container=document.getElementById('cartItems'),emptyMsg=document.getElementById('emptyMsg');
+  container.querySelectorAll('.ci').forEach(e=>e.remove());
+  document.querySelectorAll('.mi').forEach(b=>{b.classList.remove('in-cart');const bd=document.getElementById('bd'+b.dataset.id);if(bd)bd.textContent='0'});
+  if(!items.length){emptyMsg.style.display='block';document.getElementById('totalVal').textContent='0.00 ج';document.getElementById('previewBtn').disabled=true;document.getElementById('cartCount').textContent='0';return}
+  emptyMsg.style.display='none';document.getElementById('previewBtn').disabled=false;
+  let total=0,count=0;
+  items.forEach(item=>{
+    const sub=item.price*item.qty;total+=sub;count+=item.qty;
+    const mb=document.getElementById('mb'+item.id),bd=document.getElementById('bd'+item.id);
+    if(mb)mb.classList.add('in-cart');if(bd)bd.textContent=item.qty;
+    const div=document.createElement('div');div.className='ci';
+    div.innerHTML=`<div class="ci-name">${item.name}</div><div class="qc"><button class="qb minus" onclick="updateQty('${item.id}',-1)">−</button><span class="qn">${item.qty}</span><button class="qb" onclick="updateQty('${item.id}',1)">+</button></div><div class="ci-price">${sub.toFixed(2)} ج</div>`;
+    container.insertBefore(div,emptyMsg);
+  });
+  document.getElementById('totalVal').textContent=total.toFixed(2)+' ج';
+  document.getElementById('cartCount').textContent=count;
+}
+
+async function openPreview(){
+  const items=Object.values(cart);if(!items.length)return;
+  const btn=document.getElementById('previewBtn');btn.disabled=true;
+  btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> جاري...';
+
+  // Delivery validation
+  if(orderType==='delivery'){
+    if(!document.getElementById('custPhone').value||!document.getElementById('custAddr').value){
+      showToast('رقم الهاتف والعنوان مطلوبان','err');btn.disabled=false;btn.innerHTML='<i class="fas fa-eye"></i> معاينة وطباعة';return;
+    }
+  }
+
+  try{
+    const r=await fetch('/api/order/preview/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+      body:JSON.stringify({
+        order_type:orderType,
+        table_id:document.getElementById('tableSelect')?.value||null,
+        waiter_id:document.getElementById('waiterSelect')?.value||null,
+        customer_name:document.getElementById('custName')?.value||'',
+        customer_phone:document.getElementById('custPhone')?.value||'',
+        customer_address:document.getElementById('custAddr')?.value||'',
+        driver_id:document.getElementById('driverSelect')?.value||null,
+        notes:document.getElementById('orderNotes').value,
+        items:items.map(i=>({id:i.id,quantity:i.qty})),
+      })
+    });
+    const d=await r.json();
+    if(d.success){renderReceipt(d);document.getElementById('previewOverlay').classList.add('open')}
+    else showToast(d.error||'خطأ','err');
+  }catch{showToast('خطأ في الاتصال','err')}
+  btn.disabled=false;btn.innerHTML='<i class="fas fa-eye"></i> معاينة وطباعة';
+}
+
+function renderReceipt(d){
+  const catLabel=ct=>ct==='food'?'<span class="cat-chip chip-food">مطبخ</span>':ct==='drink'?'<span class="cat-chip chip-drink">بار</span>':'';
+  let html=`<div class="rcpt-title">🧾 فاتورة طلب</div>
+  <div class="rcpt-sub">${d.order_type==='delivery'?'🛵 ديليفري':'🪑 داخلي'} — ${d.table} — ${d.time}</div>`;
+  if(d.customer_name)html+=`<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;padding:7px;background:var(--war-l);border-radius:7px">👤 ${d.customer_name}</div>`;
+  html+=`<hr class="rcpt-hr">`;
+  d.items.forEach(item=>{html+=`<div class="rcpt-item"><div class="rcpt-item-name">${catLabel(item.cat_type)}${item.name}${item.notes?` <small style="color:var(--muted)">(${item.notes})</small>`:''}</div><span class="rcpt-qty">×${item.qty}</span><span class="rcpt-price">${item.subtotal.toFixed(2)} ج</span></div>`});
+  html+=`<hr class="rcpt-hr"><div class="rcpt-total"><span>الإجمالي الكلي</span><span style="color:var(--pri)">${d.total.toFixed(2)} ج</span></div>`;
+  if(d.notes)html+=`<div style="margin-top:9px;padding:8px;background:var(--war-l);border-radius:7px;font-size:.78rem;color:#92400e"><i class="fas fa-sticky-note"></i> ${d.notes}</div>`;
+  document.getElementById('receiptHTML').innerHTML=html;
+}
+
+function closePreview(){document.getElementById('previewOverlay').classList.remove('open')}
+
+async function confirmPrint(){
+  const btn=document.getElementById('confirmBtn');btn.disabled=true;
+  btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> جاري الطباعة...';
+  try{
+    const r=await fetch('/api/order/create/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+      body:JSON.stringify({
+        order_type:orderType,
+        table_id:document.getElementById('tableSelect')?.value||null,
+        waiter_id:document.getElementById('waiterSelect')?.value||null,
+        customer_name:document.getElementById('custName')?.value||'',
+        customer_phone:document.getElementById('custPhone')?.value||'',
+        customer_address:document.getElementById('custAddr')?.value||'',
+        driver_id:document.getElementById('driverSelect')?.value||null,
+        notes:document.getElementById('orderNotes').value,
+        items:Object.values(cart).map(i=>({id:i.id,quantity:i.qty})),
+      })
+    });
+    const d=await r.json();
+    if(d.success){
+      closePreview();
+      showToast(d.print_success?`✅ طلب #${d.order_id} تم طباعته`:`⚠️ طلب #${d.order_id} محفوظ (الطابعة مش متصلة)`,'suc',4000);
+      cart={};renderCart();
+      document.getElementById('orderNotes').value='';
+      document.getElementById('tableSelect').value='';
+      document.getElementById('waiterSelect').value='';
+    }else showToast(d.error||'خطأ','err');
+  }catch{showToast('خطأ في الاتصال','err')}
+  btn.disabled=false;btn.innerHTML='<i class="fas fa-print"></i> تأكيد وطباعة';
+}
+</script>{% endblock %}

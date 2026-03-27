@@ -1,0 +1,70 @@
+{% extends 'pos/cashier/base.html' %}
+{% block title %}الرئيسية{% endblock %}
+{% block page_icon %}<i class="fas fa-home"></i>{% endblock %}
+{% block page_title %}مرحباً، {{ request.user.get_full_name|default:request.user.username }}{% endblock %}
+{% block extra_css %}<style>
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.qc{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:16px 18px;text-decoration:none;color:var(--text);display:flex;align-items:center;gap:12px;transition:all .2s}
+.qc:hover{border-color:var(--pri);box-shadow:0 4px 18px rgba(79,70,229,.12)}
+.qc-ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;transition:transform .2s}
+.qc:hover .qc-ic{transform:scale(1.1)}
+.orow{background:#fff;border-radius:12px;border:1.5px solid var(--border);display:grid;grid-template-columns:55px 1fr auto auto auto;align-items:center;transition:all .18s;cursor:pointer;overflow:hidden;margin-bottom:8px}
+.orow:hover{border-color:var(--suc);box-shadow:0 0 0 3px var(--suc-l)}
+.orow-id{width:55px;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fafbff;border-left:1.5px solid var(--border);font-weight:900;color:var(--suc);font-size:.9rem}
+.orow-body{padding:11px 13px}
+.orow-main{font-weight:800;font-size:.87rem;margin-bottom:3px}
+.orow-meta{font-size:.71rem;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+</style>{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px">
+  <div style="background:linear-gradient(135deg,#10b981,#0891b2);border-radius:14px;padding:18px 20px;color:#fff">
+    <i class="fas fa-receipt" style="font-size:1.5rem;opacity:.8;display:block;margin-bottom:8px"></i>
+    <div style="font-size:1.8rem;font-weight:900">{{ orders_count }}</div>
+    <div style="font-size:.8rem;opacity:.8">طلبات اليوم</div>
+  </div>
+  <div style="background:linear-gradient(135deg,#f59e0b,#ef4444);border-radius:14px;padding:18px 20px;color:#fff">
+    <i class="fas fa-fire" style="font-size:1.5rem;opacity:.8;display:block;margin-bottom:8px"></i>
+    <div style="font-size:1.8rem;font-weight:900">{{ active_orders.count }}</div>
+    <div style="font-size:.8rem;opacity:.8">طلبات نشطة</div>
+  </div>
+  <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;padding:18px 20px;color:#fff;cursor:pointer" onclick="location.href='{% url 'cashier_end_shift' %}'">
+    <i class="fas fa-clock" style="font-size:1.5rem;opacity:.8;display:block;margin-bottom:8px"></i>
+    <div style="font-size:1rem;font-weight:800">إنهاء الشيفت</div>
+    <div style="font-size:.75rem;opacity:.8">احسب الفلوس</div>
+  </div>
+</div>
+
+<div class="quick">
+  <a href="{% url 'cashier_new_order' %}" class="qc">
+    <div class="qc-ic" style="background:linear-gradient(135deg,#10b981,#0891b2);color:#fff;box-shadow:0 4px 12px rgba(16,185,129,.3)"><i class="fas fa-plus"></i></div>
+    <div><strong style="display:block;font-size:.93rem">طلب جديد</strong><span style="font-size:.77rem;color:var(--muted)">فتح شاشة الكاشير</span></div>
+  </a>
+  <a href="{% url 'cashier_orders' %}" class="qc">
+    <div class="qc-ic" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;box-shadow:0 4px 12px rgba(79,70,229,.3)"><i class="fas fa-list"></i></div>
+    <div><strong style="display:block;font-size:.93rem">طلبات اليوم</strong><span style="font-size:.77rem;color:var(--muted)">عرض وإدارة الطلبات</span></div>
+  </a>
+</div>
+
+{% if active_orders %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <span style="font-weight:800;font-size:.92rem"><i class="fas fa-fire" style="color:var(--dan);margin-left:6px"></i>الطلبات النشطة</span>
+    <a href="{% url 'cashier_orders' %}" class="btn btn-ghost btn-sm">الكل <i class="fas fa-arrow-left"></i></a>
+  </div>
+  {% for o in active_orders %}
+  <div class="orow" onclick="location.href='{% url 'cashier_order_detail' o.id %}'">
+    <div class="orow-id"><span style="font-size:.6rem;color:var(--muted)">#</span>{{ o.id }}</div>
+    <div class="orow-body">
+      <div class="orow-main">{% if o.order_type == 'delivery' %}🛵 {{ o.customer_name|default:"ديليفري" }}{% else %}🪑 {{ o.table|default:"بدون طاولة" }}{% endif %}{% if o.waiter %} · {{ o.waiter }}{% endif %}</div>
+      <div class="orow-meta"><span>⏰ {{ o.created_at|time:"H:i" }}</span><span>📦 {{ o.total_items }} صنف</span><span>💰 {{ o.total|floatformat:2 }} ج</span></div>
+    </div>
+    <div style="padding:0 8px">
+      {% if o.status == 'printed' %}<span class="badge b-pri">انتظار</span>{% else %}<span class="badge b-war">مفتوح</span>{% endif %}
+    </div>
+    <div style="padding:0 8px;font-weight:800">{{ o.total|floatformat:0 }} ج</div>
+    <div style="padding:0 14px 0 8px"><a href="{% url 'cashier_order_detail' o.id %}" class="btn btn-suc btn-sm" onclick="event.stopPropagation()"><i class="fas fa-eye"></i></a></div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

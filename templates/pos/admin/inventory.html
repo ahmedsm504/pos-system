@@ -1,0 +1,48 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}المخزون{% endblock %}
+{% block page_icon %}<i class="fas fa-boxes-stacked"></i>{% endblock %}
+{% block page_title %}المخزون والواردات{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+  <form method="get" style="display:flex;gap:8px;align-items:center">
+    <input type="date" name="start" value="{{ start }}" class="fg" style="margin:0;padding:7px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.83rem;font-family:inherit">
+    <span style="color:var(--muted)">—</span>
+    <input type="date" name="end" value="{{ end }}" class="fg" style="margin:0;padding:7px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.83rem;font-family:inherit">
+    <button type="submit" class="btn btn-out"><i class="fas fa-search"></i> فلتر</button>
+  </form>
+  <a href="{% url 'admin_inventory_add' %}" class="btn btn-pri"><i class="fas fa-plus"></i> إضافة وارد</a>
+</div>
+
+<div style="background:linear-gradient(135deg,#ef4444,#b91c1c);border-radius:14px;padding:16px 22px;margin-bottom:18px;display:flex;align-items:center;gap:14px;color:#fff">
+  <i class="fas fa-boxes-stacked" style="font-size:1.8rem;opacity:.8"></i>
+  <div>
+    <div style="font-size:.78rem;opacity:.8">إجمالي التكاليف في الفترة</div>
+    <div style="font-size:1.6rem;font-weight:900">{{ total_cost|floatformat:2 }} ج</div>
+  </div>
+</div>
+
+<div class="card">
+  <table class="tbl">
+    <thead><tr><th>التاريخ</th><th>الصنف</th><th>الكمية</th><th>الوحدة</th><th>التكلفة</th><th>أضافه</th><th>ملاحظات</th><th></th></tr></thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td style="color:var(--muted);font-size:.8rem">{{ e.date|date:"Y/m/d" }}</td>
+        <td><strong>{{ e.name }}</strong></td>
+        <td>{{ e.quantity|floatformat:2 }}</td>
+        <td>{{ e.unit|default:"—" }}</td>
+        <td><strong style="color:var(--dan)">{{ e.total_cost|floatformat:2 }} ج</strong></td>
+        <td>{{ e.added_by.username|default:"—" }}</td>
+        <td style="font-size:.8rem;color:var(--muted)">{{ e.notes|truncatechars:30|default:"—" }}</td>
+        <td><button class="btn btn-dan btn-sm" onclick="delInv({{ e.pk }})"><i class="fas fa-trash"></i></button></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px">مفيش واردات في هذه الفترة</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+async function delInv(pk){if(!confirm('حذف هذا الوارد؟'))return;const r=await fetch(`/admin-panel/inventory/${pk}/delete/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}}
+</script>{% endblock %}

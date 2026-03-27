@@ -1,0 +1,46 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}الكاشيرين{% endblock %}
+{% block page_icon %}<i class="fas fa-users"></i>{% endblock %}
+{% block page_title %}إدارة الكاشيرين{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+  <a href="{% url 'admin_cashier_add' %}" class="btn btn-pri"><i class="fas fa-user-plus"></i> إضافة كاشير</a>
+</div>
+<div class="card">
+  <table class="tbl">
+    <thead><tr><th>#</th><th>الاسم</th><th>المستخدم</th><th>الهاتف</th><th>الصلاحيات</th><th>آخر دخول</th><th></th></tr></thead>
+    <tbody>
+      {% for u in cashiers %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td><strong>{{ u.get_full_name|default:u.username }}</strong></td>
+        <td style="direction:ltr;text-align:right">{{ u.username }}</td>
+        <td>{{ u.cashier_profile.phone|default:"—" }}</td>
+        <td>
+          {% if u.cashier_profile.can_view_totals %}<span class="badge b-suc" style="margin:1px">إجماليات</span>{% endif %}
+          {% if u.cashier_profile.can_view_history %}<span class="badge b-pri" style="margin:1px">تاريخ</span>{% endif %}
+          {% if u.cashier_profile.can_open_drawer %}<span class="badge b-war" style="margin:1px">درج</span>{% endif %}
+          {% if not u.cashier_profile.can_view_totals and not u.cashier_profile.can_view_history and not u.cashier_profile.can_open_drawer %}<span style="color:var(--muted);font-size:.8rem">أساسي</span>{% endif %}
+        </td>
+        <td style="color:var(--muted)">{{ u.last_login|date:"d/m H:i"|default:"لم يدخل" }}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <a href="{% url 'admin_cashier_edit' u.pk %}" class="btn btn-out btn-sm"><i class="fas fa-edit"></i></a>
+            <button class="btn btn-dan btn-sm" onclick="deleteCashier({{ u.pk }})"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">مفيش كاشيرين</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+async function deleteCashier(pk){
+  if(!confirm('حذف هذا الكاشير؟'))return;
+  const r=await fetch(`/admin-panel/cashiers/${pk}/delete/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});
+  if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}
+}
+</script>{% endblock %}

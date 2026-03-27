@@ -1,0 +1,39 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_icon %}<i class="fas fa-user-plus"></i>{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div style="max-width:520px">
+<div class="card">
+  <form method="post">{% csrf_token %}
+    <div class="fg-row">
+      <div class="fg"><label>اسم المستخدم *</label><input name="username" value="{{ obj.username|default:'' }}" required style="direction:ltr"></div>
+      <div class="fg"><label>الاسم الكامل</label><input name="full_name" value="{{ obj.get_full_name|default:'' }}"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>كلمة السر {% if obj %}(اتركها فارغة للإبقاء){% else %}*{% endif %}</label><input name="password" type="password" {% if not obj %}required{% endif %} style="direction:ltr"></div>
+      <div class="fg"><label>رقم الهاتف</label><input name="phone" value="{{ profile.phone|default:'' }}"></div>
+    </div>
+    <div class="card" style="padding:14px;background:#fafbff;margin-top:4px">
+      <div style="font-size:.82rem;font-weight:800;color:var(--text2);margin-bottom:10px">⚙️ الصلاحيات الإضافية</div>
+      <label style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:.88rem">
+        <input type="checkbox" name="can_view_totals" {% if profile.can_view_totals %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--pri)">
+        يشوف إجمالي الفلوس المجمعة في الشيفت
+      </label>
+      <label style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:.88rem">
+        <input type="checkbox" name="can_view_history" {% if profile.can_view_history %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--pri)">
+        يشوف تاريخ الطلبات المكتملة بدون إذن المدير
+      </label>
+      <label style="display:flex;align-items:center;gap:9px;padding:8px 0;cursor:pointer;font-size:.88rem">
+        <input type="checkbox" name="can_open_drawer" {% if profile.can_open_drawer %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--pri)">
+        يفتح الدرج بدون إذن المدير
+      </label>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <a href="{% url 'admin_cashiers' %}" class="btn btn-out" style="flex:1;justify-content:center">إلغاء</a>
+      <button type="submit" class="btn btn-pri" style="flex:2;justify-content:center"><i class="fas fa-save"></i> حفظ</button>
+    </div>
+  </form>
+</div>
+</div>
+{% endblock %}

@@ -5,10 +5,8 @@
 
 {% block extra_css %}<style>
 .back{margin-bottom:18px}
-
 .detail-grid{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
 
-/* Items */
 .items-card{background:#fff;border-radius:16px;border:1.5px solid var(--border);overflow:hidden}
 .ic-header{
   padding:16px 22px;display:flex;justify-content:space-between;align-items:center;
@@ -20,23 +18,20 @@
 .it-table{width:100%;border-collapse:collapse}
 .it-table th{
   text-align:right;padding:10px 20px;font-size:.72rem;
-  color:var(--muted);font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;
   border-bottom:1px solid var(--border);background:#fafbff;
 }
 .it-table td{padding:13px 20px;border-bottom:1px solid #f4f6fb;font-size:.88rem;vertical-align:middle}
 .it-table tr:last-child td{border-bottom:none}
 .it-table tbody tr:hover td{background:#fafbff}
 
-.ct-chip{
-  font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:6px;margin-left:6px;
-}
+.ct-chip{font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:6px;margin-left:6px}
 .ct-food {background:var(--warning-l);color:#92400e}
 .ct-drink{background:#dbeafe;color:#1e40af}
 
 .it-foot{
   padding:15px 20px;border-top:2px solid var(--border);
-  display:flex;justify-content:space-between;align-items:center;
-  background:#fafbff;
+  display:flex;justify-content:space-between;align-items:center;background:#fafbff;
 }
 .it-total-val{font-size:1.35rem;font-weight:900;color:var(--text)}
 
@@ -47,9 +42,7 @@
   display:flex;align-items:flex-start;gap:8px;
 }
 
-/* Sidebar */
 .detail-sidebar{display:flex;flex-direction:column;gap:14px}
-
 .info-card{background:#fff;border-radius:16px;border:1.5px solid var(--border);overflow:hidden}
 .info-card-hdr{
   padding:12px 18px;font-size:.72rem;font-weight:700;
@@ -65,7 +58,6 @@
 .info-label i{font-size:.78rem;width:15px;text-align:center}
 .info-val{font-weight:700}
 
-/* Status */
 .status-box{padding:14px 18px;display:flex;justify-content:center}
 .status-pill{
   padding:10px 26px;border-radius:999px;font-weight:800;font-size:.95rem;
@@ -74,8 +66,8 @@
 .sp-open     {background:var(--warning-l);color:#92400e}
 .sp-printed  {background:var(--primary-l);color:#3730a3}
 .sp-cancelled{background:var(--danger-l);color:#991b1b}
+.sp-completed{background:var(--success-l);color:#065f46}
 
-/* Actions */
 .actions-card{background:#fff;border-radius:16px;border:1.5px solid var(--border);padding:14px}
 .act-btn{
   width:100%;padding:12px 16px;border-radius:11px;border:none;
@@ -128,7 +120,9 @@
               {% else %}أخرى{% endif %}
             </span>
             <strong>{{ item.menu_item.name }}</strong>
-            {% if item.notes %}<div style="font-size:.75rem;color:var(--muted);margin-top:2px">{{ item.notes }}</div>{% endif %}
+            {% if item.notes %}
+            <div style="font-size:.75rem;color:var(--muted);margin-top:2px">{{ item.notes }}</div>
+            {% endif %}
           </td>
           <td>
             <span style="background:#f1f5f9;padding:3px 11px;border-radius:6px;font-weight:800">{{ item.quantity }}</span>
@@ -161,6 +155,7 @@
           {% if order.status == 'open' %}<i class="fas fa-hourglass-half"></i> مفتوح
           {% elif order.status == 'printed' %}<i class="fas fa-print"></i> مطبوع
           {% elif order.status == 'cancelled' %}<i class="fas fa-times-circle"></i> ملغي
+          {% elif order.status == 'completed' %}<i class="fas fa-check-circle"></i> مكتمل
           {% endif %}
         </div>
       </div>
@@ -196,53 +191,109 @@
     <!-- Actions -->
     <div class="actions-card">
       <label class="drawer-opt">
-        <input type="checkbox" id="drawerOpt" checked>
+        <input type="checkbox" id="drawerOpt">
         <i class="fas fa-archive"></i> فتح الدرج مع الطباعة
       </label>
 
-      <button class="act-btn ab-reprint" onclick="reprintOrder()">
+      <button class="act-btn ab-reprint" id="btnReprint">
         <i class="fas fa-print"></i> إعادة الطباعة
       </button>
-      <button class="act-btn ab-drawer" onclick="openDrawerBtn()">
+      <button class="act-btn ab-drawer" id="btnDrawer">
         <i class="fas fa-archive"></i> فتح الدرج فقط
       </button>
-      {% if order.status in 'open,printed' %}
-      <button class="act-btn ab-cancel" onclick="cancelOrder()">
+      {% if order.status == 'open' or order.status == 'printed' %}
+      <button class="act-btn ab-cancel" id="btnCancel">
         <i class="fas fa-times-circle"></i> إلغاء الطلب
       </button>
       {% endif %}
     </div>
+
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}<script>
-function csrf(){const v=document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');return v?v.pop():'';}
-
-async function reprintOrder(){
-  const openDrawer=document.getElementById('drawerOpt').checked;
-  const res=await fetch("{% url 'reprint_order' order.id %}",{
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
-    body:JSON.stringify({open_drawer:openDrawer}),
-  });
-  const d=await res.json();
-  showToast(d.success?'تم إرسال الطباعة ✓':'الطابعة مش متصلة',d.success?'success':'warning');
+function csrf() {
+  const v = document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
 }
 
-async function openDrawerBtn(){
-  const res=await fetch("{% url 'open_drawer' %}",{method:'POST',headers:{'X-CSRFToken':csrf()}});
-  const d=await res.json();
-  showToast(d.success?'تم فتح الدرج ✓':'الدرج مش متصل',d.success?'success':'warning');
-}
-
-async function cancelOrder(){
-  if(!confirm('هتلغي الطلب ده؟'))return;
-  const res=await fetch("{% url 'cancel_order' order.id %}",{method:'POST',headers:{'X-CSRFToken':csrf()}});
-  const d=await res.json();
-  if(d.success){
-    showToast('تم إلغاء الطلب','error');
-    setTimeout(()=>location.href="{% url 'orders_list' %}",900);
+// إعادة الطباعة
+document.getElementById('btnReprint').addEventListener('click', async () => {
+  const btn        = document.getElementById('btnReprint');
+  const openDrawer = document.getElementById('drawerOpt').checked;
+  btn.disabled = true;
+  try {
+    const res = await fetch("{% url 'reprint_order' order.id %}", {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body:    JSON.stringify({ open_drawer: openDrawer }),
+    });
+    const d = await res.json();
+    showToast(
+      d.success ? 'تم إرسال الطباعة ✓' : 'الطابعة مش متصلة',
+      d.success ? 'success' : 'warning'
+    );
+  } catch (err) {
+    showToast('خطأ في الاتصال', 'error');
+  } finally {
+    btn.disabled = false;
   }
+});
+
+// فتح الدرج
+document.getElementById('btnDrawer').addEventListener('click', async () => {
+  const btn = document.getElementById('btnDrawer');
+  btn.disabled = true;
+  try {
+    const res = await fetch("{% url 'open_drawer' %}", {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body:    JSON.stringify({}),
+    });
+    const d = await res.json();
+    if (d.need_admin) {
+      showToast('محتاج تأكيد مدير لفتح الدرج', 'warning');
+    } else {
+      showToast(
+        d.success ? 'تم فتح الدرج ✓' : 'الدرج مش متصل',
+        d.success ? 'success' : 'warning'
+      );
+    }
+  } catch (err) {
+    showToast('خطأ في الاتصال', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// إلغاء الطلب
+const cancelBtn = document.getElementById('btnCancel');
+if (cancelBtn) {
+  cancelBtn.addEventListener('click', async () => {
+    if (!confirm('هتلغي الطلب ده؟')) return;
+    cancelBtn.disabled = true;
+    try {
+      const res = await fetch("{% url 'cancel_order' order.id %}", {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body:    JSON.stringify({}),
+      });
+      const d = await res.json();
+      if (d.success) {
+        showToast('تم إلغاء الطلب', 'error');
+        setTimeout(() => location.href = "{% url 'orders_list' %}", 900);
+      } else if (d.need_admin) {
+        showToast('الطلب مطبوع — محتاج تأكيد مدير', 'warning');
+        cancelBtn.disabled = false;
+      } else {
+        showToast(d.error || 'خطأ', 'error');
+        cancelBtn.disabled = false;
+      }
+    } catch (err) {
+      showToast('خطأ في الاتصال', 'error');
+      cancelBtn.disabled = false;
+    }
+  });
 }
 </script>{% endblock %}

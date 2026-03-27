@@ -1,0 +1,34 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}الطاولات{% endblock %}
+{% block page_icon %}<i class="fas fa-chair"></i>{% endblock %}
+{% block page_title %}إدارة الطاولات{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+  <a href="{% url 'admin_table_add' %}" class="btn btn-pri"><i class="fas fa-plus"></i> إضافة طاولة</a>
+</div>
+<div class="card">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
+    {% for t in tables %}
+    <div style="background:#fff;border:1.5px solid {% if t.is_active %}var(--border){% else %}#fecaca{% endif %};border-radius:13px;padding:16px;text-align:center;transition:all .18s">
+      <div style="font-size:2rem;margin-bottom:6px">🪑</div>
+      <div style="font-weight:800;font-size:1rem">طاولة {{ t.number }}</div>
+      {% if t.name %}<div style="font-size:.8rem;color:var(--muted)">{{ t.name }}</div>{% endif %}
+      {% if not t.is_active %}<span class="badge b-dan" style="margin-top:6px">غير نشطة</span>{% endif %}
+      <div style="display:flex;gap:6px;margin-top:12px;justify-content:center">
+        <a href="{% url 'admin_table_edit' t.pk %}" class="btn btn-out btn-sm"><i class="fas fa-edit"></i></a>
+        <button class="btn btn-dan btn-sm" onclick="delTable({{ t.pk }})"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>
+    {% empty %}
+    <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">مفيش طاولات مضافة</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+async function delTable(pk){
+  if(!confirm('حذف هذه الطاولة؟'))return;
+  const r=await fetch(`/admin-panel/tables/${pk}/delete/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});
+  if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}
+}
+</script>{% endblock %}

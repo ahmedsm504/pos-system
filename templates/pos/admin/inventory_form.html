@@ -1,0 +1,24 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}إضافة وارد{% endblock %}
+{% block page_icon %}<i class="fas fa-boxes-stacked"></i>{% endblock %}
+{% block page_title %}إضافة وارد مخزون{% endblock %}
+{% block content %}
+<div style="max-width:520px"><div class="card">
+  <form method="post">{% csrf_token %}
+    <div class="fg"><label>اسم الصنف *</label><input name="name" required placeholder="مثال: زيت، دقيق، قهوة..."></div>
+    <div class="fg-row">
+      <div class="fg"><label>الكمية *</label><input name="quantity" type="number" step="0.01" required placeholder="0"></div>
+      <div class="fg"><label>الوحدة</label><input name="unit" placeholder="كيلو، لتر، علبة..."></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>التكلفة الإجمالية (ج) *</label><input name="total_cost" type="number" step="0.01" required placeholder="0.00"></div>
+      <div class="fg"><label>التاريخ *</label><input name="date" type="date" value="{{ today }}" required></div>
+    </div>
+    <div class="fg"><label>ملاحظات</label><textarea name="notes" placeholder="أي ملاحظات إضافية..."></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <a href="{% url 'admin_inventory' %}" class="btn btn-out" style="flex:1;justify-content:center">إلغاء</a>
+      <button type="submit" class="btn btn-pri" style="flex:2;justify-content:center"><i class="fas fa-save"></i> حفظ</button>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

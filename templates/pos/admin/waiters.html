@@ -1,0 +1,37 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}الويترين{% endblock %}
+{% block page_icon %}<i class="fas fa-person-walking"></i>{% endblock %}
+{% block page_title %}إدارة الويترين{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+  <a href="{% url 'admin_waiter_add' %}" class="btn btn-pri"><i class="fas fa-plus"></i> إضافة ويتر</a>
+</div>
+<div class="card">
+  <table class="tbl">
+    <thead><tr><th>#</th><th>الاسم</th><th>الهاتف</th><th>الحالة</th><th></th></tr></thead>
+    <tbody>
+      {% for w in waiters %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td><strong>{{ w.name }}</strong></td>
+        <td>{{ w.phone|default:"—" }}</td>
+        <td>{% if w.is_active %}<span class="badge b-suc">نشط</span>{% else %}<span class="badge b-dan">غير نشط</span>{% endif %}</td>
+        <td><div style="display:flex;gap:6px">
+          <a href="{% url 'admin_waiter_edit' w.pk %}" class="btn btn-out btn-sm"><i class="fas fa-edit"></i></a>
+          <button class="btn btn-dan btn-sm" onclick="del('/admin-panel/waiters/{{ w.pk }}/delete/')"><i class="fas fa-trash"></i></button>
+        </div></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px">مفيش ويترين</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+async function del(url){
+  if(!confirm('حذف؟'))return;
+  const r=await fetch(url,{method:'POST',headers:{'X-CSRFToken':csrf()}});
+  if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}
+}
+</script>{% endblock %}

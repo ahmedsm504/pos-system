@@ -1,0 +1,47 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}طياري الديليفري{% endblock %}
+{% block page_icon %}<i class="fas fa-motorcycle"></i>{% endblock %}
+{% block page_title %}طياري الديليفري</span>{% endblock %}
+{% block extra_css %}<style>
+.period-tabs{display:flex;gap:8px;margin-bottom:16px}
+.ptab{padding:6px 16px;border-radius:999px;border:1.5px solid var(--border);background:#fff;text-decoration:none;font-size:.8rem;font-weight:700;color:var(--text2);transition:all .18s}
+.ptab.active{background:var(--pri);color:#fff;border-color:var(--pri)}
+.driver-card{background:#fff;border-radius:14px;border:1.5px solid var(--border);padding:18px 20px;display:flex;align-items:center;gap:16px;transition:all .18s}
+.driver-card:hover{border-color:var(--pri-l);box-shadow:var(--shadow)}
+.driver-av{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;flex-shrink:0}
+</style>{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <div class="period-tabs">
+    <a href="?period=7"  class="ptab {% if period == '7' %}active{% endif %}">7 أيام</a>
+    <a href="?period=30" class="ptab {% if period == '30' or not period %}active{% endif %}">30 يوم</a>
+    <a href="?period=90" class="ptab {% if period == '90' %}active{% endif %}">3 أشهر</a>
+  </div>
+  <a href="{% url 'admin_driver_add' %}" class="btn btn-pri"><i class="fas fa-plus"></i> إضافة طيار</a>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
+  {% for ds in driver_stats %}
+  <div class="driver-card">
+    <div class="driver-av">{{ ds.driver.name|first }}</div>
+    <div style="flex:1">
+      <div style="font-weight:800;font-size:.95rem">{{ ds.driver.name }}</div>
+      <div style="font-size:.8rem;color:var(--muted)">📱 {{ ds.driver.phone }}</div>
+      <div style="display:flex;gap:12px;margin-top:8px">
+        <div style="text-align:center"><div style="font-size:1.1rem;font-weight:900;color:var(--pri)">{{ ds.count }}</div><div style="font-size:.7rem;color:var(--muted)">طلب</div></div>
+        <div style="text-align:center"><div style="font-size:1.1rem;font-weight:900;color:var(--suc)">{{ ds.revenue|floatformat:0 }} ج</div><div style="font-size:.7rem;color:var(--muted)">إيراد</div></div>
+        {% if not ds.driver.is_active %}<span class="badge b-dan">غير نشط</span>{% endif %}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <a href="{% url 'admin_driver_edit' ds.driver.pk %}" class="btn btn-out btn-sm"><i class="fas fa-edit"></i></a>
+      <button class="btn btn-dan btn-sm" onclick="del('/admin-panel/delivery/{{ ds.driver.pk }}/delete/')"><i class="fas fa-trash"></i></button>
+    </div>
+  </div>
+  {% empty %}
+  <div style="grid-column:1/-1;text-align:center;padding:50px;color:var(--muted)">مفيش طياري ديليفري</div>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+async function del(url){if(!confirm('حذف؟'))return;const r=await fetch(url,{method:'POST',headers:{'X-CSRFToken':csrf()}});if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}}
+</script>{% endblock %}

@@ -17,47 +17,55 @@ log = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # ── اسم الطابعات في Windows (غيّرها حسب الأسماء عندك) ──────────────────────
-MAIN_PRINTER   = "Main Printer"      # فاتورة كاملة للكاشير
+MAIN_PRINTER    = "Main Printer"      # فاتورة كاملة للكاشير
 KITCHEN_PRINTER = "Kitchen Printer"  # طابعة المطبخ
-BAR_PRINTER    = "Bar Printer"       # طابعة البار
+BAR_PRINTER     = "Bar Printer"      # طابعة البار
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── ESC/POS Constants ────────────────────────────────────────────────────────
 ESC = b'\x1b'
 GS  = b'\x1d'
 
-INIT          = ESC + b'@'           # تهيئة الطابعة
-CUT           = GS  + b'V\x41\x03'  # قطع الورق
+INIT          = ESC + b'@'
+CUT           = GS  + b'V\x41\x03'
 ALIGN_CENTER  = ESC + b'a\x01'
 ALIGN_LEFT    = ESC + b'a\x00'
+ALIGN_RIGHT   = ESC + b'a\x02'
 BOLD_ON       = ESC + b'E\x01'
 BOLD_OFF      = ESC + b'E\x00'
 DOUBLE_HEIGHT = ESC + b'!\x10'
 NORMAL_SIZE   = ESC + b'!\x00'
 LINE_FEED     = b'\n'
-
-# Cash Drawer — يشغّل على pin 2
 OPEN_DRAWER   = ESC + b'p\x00\x19\xfa'
 
-# ── Arabic encoding helper ───────────────────────────────────────────────────
+# Code Page 1256 = Windows Arabic — الاشيع على Xprinter
+SET_CODEPAGE_1256 = ESC + b't\x1c'
+
+
+# ── Arabic encoding ───────────────────────────────────────────────────────────
 def encode_arabic(text: str) -> bytes:
-    for enc in ('cp720', 'cp864', 'utf-8'):
-        try:
-            return text.encode(enc)
-        except Exception:
-            continue
-    return text.encode('ascii', errors='replace')
+    try:
+        return text.encode('cp1256')
+    except (UnicodeEncodeError, LookupError):
+        return text.encode('cp1256', errors='replace')
 
 
-def build_receipt(lines: list[dict]) -> bytes:
-    data = INIT
+# ── Build receipts ────────────────────────────────────────────────────────────
+def build_receipt(lines: list) -> bytes:
+    data = INIT + SET_CODEPAGE_1256
+
     for line in lines:
         if line.get('divider'):
-            data += ALIGN_LEFT + encode_arabic('─' * 42) + LINE_FEED
+            data += ALIGN_LEFT + encode_arabic('-' * 32) + LINE_FEED
             continue
 
         align = line.get('align', 'right')
-        data += ALIGN_CENTER if align == 'center' else ALIGN_LEFT
+        if align == 'center':
+            data += ALIGN_CENTER
+        elif align == 'left':
+            data += ALIGN_LEFT
+        else:
+            data += ALIGN_RIGHT
 
         if line.get('bold'):
             data += BOLD_ON
@@ -71,31 +79,51 @@ def build_receipt(lines: list[dict]) -> bytes:
         if line.get('bold'):
             data += BOLD_OFF
 
-    data += LINE_FEED * 3
-    data += CUT
+    data += LINE_FEED * 3 + CUT
     return data
 
 
-def build_kitchen_ticket(lines: list[dict]) -> bytes:
-    data = INIT
+def build_kitchen_ticket(lines: list) -> bytes:
+    data = INIT + SET_CODEPAGE_1256
+
     for line in lines:
         if line.get('divider'):
-            data += ALIGN_LEFT + encode_arabic('=' * 42) + LINE_FEED
+            data += ALIGN_LEFT + encode_arabic('=' * 32) + LINE_FEED
             continue
-        data += ALIGN_CENTER if line.get('align') == 'center' else ALIGN_LEFT
-        if line.get('bold'): data += BOLD_ON
-        if line.get('size') == 'large': data += DOUBLE_HEIGHT
+
+        align = line.get('align', 'right')
+        if align == 'center':
+            data += ALIGN_CENTER
+        elif align == 'left':
+            data += ALIGN_LEFT
+        else:
+            data += ALIGN_RIGHT
+
+        if line.get('bold'):
+            data += BOLD_ON
+        if line.get('size') == 'large':
+            data += DOUBLE_HEIGHT
+
         data += encode_arabic(line.get('text', '')) + LINE_FEED
-        if line.get('size') == 'large': data += NORMAL_SIZE
-        if line.get('bold'): data += BOLD_OFF
-    data += LINE_FEED * 2
-    data += CUT
+
+        if line.get('size') == 'large':
+            data += NORMAL_SIZE
+        if line.get('bold'):
+            data += BOLD_OFF
+
+    data += LINE_FEED * 2 + CUT
     return data
 
 
+# ── Raw print via Windows win32print ─────────────────────────────────────────
 def print_raw(printer_name: str, data: bytes) -> bool:
     try:
         import win32print
+    except ImportError:
+        log.error('win32print غير متاح — شغل الـ service على Windows')
+        return False   # ← False مش True
+
+    try:
         h = win32print.OpenPrinter(printer_name)
         try:
             win32print.StartDocPrinter(h, 1, ('POS Job', None, 'RAW'))
@@ -105,21 +133,19 @@ def print_raw(printer_name: str, data: bytes) -> bool:
             win32print.EndDocPrinter(h)
         finally:
             win32print.ClosePrinter(h)
-        log.info(f'✅ Printed → {printer_name}')
-        return True
-    except ImportError:
-        log.warning('win32print غير متاح — محاكاة الطباعة')
-        log.info(f'[MOCK PRINT] → {printer_name}\n{data}')
+        log.info(f'Printed OK → {printer_name}')
         return True
     except Exception as e:
-        log.error(f'❌ Print error ({printer_name}): {e}')
+        log.error(f'Print error ({printer_name}): {e}')
         return False
 
 
-def open_cash_drawer(printer_name: str) -> bool:
-    return print_raw(printer_name, INIT + OPEN_DRAWER)
+# ── Cash Drawer ───────────────────────────────────────────────────────────────
+def open_cash_drawer() -> bool:
+    return print_raw(MAIN_PRINTER, INIT + SET_CODEPAGE_1256 + OPEN_DRAWER)
 
 
+# ── Routes ────────────────────────────────────────────────────────────────────
 @app.route('/print', methods=['POST'])
 def handle_print():
     d = request.json or {}
@@ -134,7 +160,7 @@ def handle_print():
     if main_lines:
         data = build_receipt(main_lines)
         if open_drawer:
-            data = INIT + OPEN_DRAWER + data
+            data = INIT + SET_CODEPAGE_1256 + OPEN_DRAWER + data
         results['main'] = print_raw(MAIN_PRINTER, data)
 
     if kitchen_lines:
@@ -144,18 +170,26 @@ def handle_print():
         results['bar'] = print_raw(BAR_PRINTER, build_kitchen_ticket(bar_lines))
 
     success = all(results.values()) if results else False
+    log.info(f'Print results: {results}  success={success}')
     return jsonify({'status': 'done', 'results': results, 'success': success})
 
 
 @app.route('/drawer', methods=['POST'])
-def open_drawer_route():
-    ok = open_cash_drawer(MAIN_PRINTER)
+def drawer_route():
+    ok = open_cash_drawer()
     return jsonify({'success': ok})
 
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'running', 'version': '2.0'})
+    try:
+        import win32print
+        win32_ok = True
+        msg = 'win32print متاح'
+    except ImportError:
+        win32_ok = False
+        msg = 'win32print غير متاح — الطباعة مش هتشتغل'
+    return jsonify({'status': 'running', 'version': '2.2', 'win32print': win32_ok, 'note': msg})
 
 
 @app.route('/printers', methods=['GET'])
@@ -167,13 +201,31 @@ def list_printers():
         )]
         return jsonify({'printers': printers})
     except ImportError:
-        return jsonify({'printers': [], 'note': 'win32print غير متاح'})
+        return jsonify({'printers': [], 'error': 'win32print غير متاح'})
     except Exception as e:
         return jsonify({'error': str(e)})
 
 
+@app.route('/test', methods=['GET'])
+def test_print():
+    lines = [
+        {'text': 'اختبار الطباعة', 'align': 'center', 'bold': True, 'size': 'large'},
+        {'divider': True},
+        {'text': 'طلب رقم: #999', 'bold': True},
+        {'text': 'الطاولة: طاولة 5'},
+        {'text': 'كوكاكولا  x2'},
+        {'text': 'بيتزا مارجريتا  x1'},
+        {'divider': True},
+        {'text': 'الاجمالي: 150 ج', 'bold': True, 'align': 'center'},
+        {'text': 'شكرا لزيارتكم', 'align': 'center'},
+    ]
+    ok = print_raw(MAIN_PRINTER, build_receipt(lines))
+    return jsonify({'success': ok, 'message': 'تم الارسال' if ok else 'فشلت الطباعة'})
+
+
 if __name__ == '__main__':
-    log.info('🖨️  Print Service v2.0 شغّال على http://127.0.0.1:5000')
-    log.info('   http://127.0.0.1:5000/printers  ← شوف الطابعات')
-    log.info('   http://127.0.0.1:5000/health    ← تأكد إنه شغّال')
+    log.info('Print Service v2.2  →  http://127.0.0.1:5000')
+    log.info('  /health   ← حالة win32print')
+    log.info('  /printers ← اسماء الطابعات')
+    log.info('  /test     ← اختبار طباعة عربي')
     app.run(host='127.0.0.1', port=5000, debug=False)

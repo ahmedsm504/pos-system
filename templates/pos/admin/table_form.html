@@ -1,0 +1,21 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_icon %}<i class="fas fa-chair"></i>{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div style="max-width:400px"><div class="card">
+  <form method="post">{% csrf_token %}
+    {% if not obj %}
+    <div class="fg"><label>رقم الطاولة *</label><input name="number" type="number" required></div>
+    {% else %}
+    <div class="fg"><label>رقم الطاولة</label><input value="{{ obj.number }}" disabled style="background:#f1f5f9"></div>
+    {% endif %}
+    <div class="fg"><label>الاسم (اختياري)</label><input name="name" value="{{ obj.name|default:'' }}" placeholder="مثال: VIP، تيراس..."></div>
+    {% if obj %}<div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="is_active" {% if obj.is_active %}checked{% endif %}> نشطة</label></div>{% endif %}
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <a href="{% url 'admin_tables' %}" class="btn btn-out" style="flex:1;justify-content:center">إلغاء</a>
+      <button type="submit" class="btn btn-pri" style="flex:2;justify-content:center"><i class="fas fa-save"></i> حفظ</button>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

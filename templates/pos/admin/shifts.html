@@ -1,0 +1,33 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}الشيفتات{% endblock %}
+{% block page_icon %}<i class="fas fa-clock"></i>{% endblock %}
+{% block page_title %}الشيفتات{% endblock %}
+{% block content %}
+<div class="card">
+  <table class="tbl">
+    <thead><tr><th>الكاشير</th><th>بداية</th><th>نهاية</th><th>الحالة</th><th>في الدرج</th><th>السيستم</th><th>الفرق</th><th>ملاحظات</th></tr></thead>
+    <tbody>
+      {% for s in shifts %}
+      <tr>
+        <td><strong>{{ s.cashier.get_full_name|default:s.cashier.username }}</strong></td>
+        <td style="font-size:.8rem">{{ s.start_time|date:"d/m H:i" }}</td>
+        <td style="font-size:.8rem">{{ s.end_time|date:"d/m H:i"|default:"—" }}</td>
+        <td>{% if s.status == 'open' %}<span class="badge b-war">مفتوح</span>{% else %}<span class="badge b-suc">مغلق</span>{% endif %}</td>
+        <td>{% if s.cash_in_drawer is not None %}<strong>{{ s.cash_in_drawer|floatformat:2 }} ج</strong>{% else %}—{% endif %}</td>
+        <td>{% if s.system_total is not None %}{{ s.system_total|floatformat:2 }} ج{% else %}—{% endif %}</td>
+        <td>
+          {% if s.difference is not None %}
+          <span style="font-weight:800;color:{% if s.difference > 0 %}var(--suc){% elif s.difference < 0 %}var(--dan){% else %}var(--muted){% endif %}">
+            {% if s.difference > 0 %}+{% endif %}{{ s.difference|floatformat:2 }} ج
+          </span>
+          {% else %}—{% endif %}
+        </td>
+        <td style="font-size:.8rem;color:var(--muted)">{{ s.notes|truncatechars:25|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px">مفيش شيفتات</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

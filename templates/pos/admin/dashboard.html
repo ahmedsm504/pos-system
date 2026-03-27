@@ -1,0 +1,127 @@
+{% extends 'pos/admin/base.html' %}
+{% block title %}لوحة التحكم{% endblock %}
+{% block page_icon %}<i class="fas fa-chart-pie"></i>{% endblock %}
+{% block page_title %}لوحة التحكم{% endblock %}
+
+{% block extra_css %}<style>
+.kpi4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kpi{background:#fff;border-radius:16px;padding:20px;border:1px solid var(--border);position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.09)}
+.kpi-glow{position:absolute;top:-15px;left:-15px;width:80px;height:80px;border-radius:50%;opacity:.07}
+.kpi.g .kpi-glow{background:#10b981}.kpi.b .kpi-glow{background:#4f46e5}.kpi.o .kpi-glow{background:#f59e0b}.kpi.r .kpi-glow{background:#ef4444}
+.kpi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.kpi-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1rem}
+.kpi.g .kpi-icon{background:var(--suc-l);color:#059669}.kpi.b .kpi-icon{background:var(--pri-l);color:#4f46e5}
+.kpi.o .kpi-icon{background:var(--war-l);color:#d97706}.kpi.r .kpi-icon{background:var(--dan-l);color:#dc2626}
+.kpi-lbl-t{font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:6px}
+.kpi.g .kpi-lbl-t{background:var(--suc-l);color:#065f46}.kpi.b .kpi-lbl-t{background:var(--pri-l);color:#3730a3}
+.kpi.o .kpi-lbl-t{background:var(--war-l);color:#92400e}.kpi.r .kpi-lbl-t{background:var(--dan-l);color:#991b1b}
+.kpi-val{font-size:1.8rem;font-weight:900;color:var(--text);line-height:1}
+.kpi-val small{font-size:.95rem;font-weight:500;color:var(--muted)}
+.kpi-sub{font-size:.77rem;color:var(--muted);margin-top:4px}
+
+.qa{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:22px}
+.qa-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:16px 18px;text-decoration:none;color:var(--text);display:flex;align-items:center;gap:12px;transition:all .2s}
+.qa-card:hover{border-color:var(--pri);box-shadow:0 4px 18px rgba(79,70,229,.12)}
+.qa-ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;transition:transform .2s}
+.qa-card:hover .qa-ic{transform:scale(1.1)}
+.qa-ic.p{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;box-shadow:0 4px 12px rgba(79,70,229,.3)}
+.qa-ic.g{background:linear-gradient(135deg,#10b981,#0891b2);color:#fff;box-shadow:0 4px 12px rgba(16,185,129,.3)}
+.qa-ic.o{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;box-shadow:0 4px 12px rgba(245,158,11,.3)}
+.qa-txt strong{display:block;font-size:.9rem;font-weight:800}
+.qa-txt span{font-size:.75rem;color:var(--muted)}
+
+.orders-tbl{width:100%;border-collapse:collapse}
+.orders-tbl th{text-align:right;padding:9px 14px;font-size:.7rem;color:var(--muted);font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-bottom:1.5px solid var(--border);background:#fafbff}
+.orders-tbl td{padding:11px 14px;border-bottom:1px solid #f4f6fb;font-size:.84rem;vertical-align:middle}
+.orders-tbl tr:last-child td{border-bottom:none}
+.orders-tbl tbody tr{cursor:pointer;transition:background .15s}
+.orders-tbl tbody tr:hover td{background:#fafbff}
+</style>{% endblock %}
+
+{% block content %}
+<div class="kpi4">
+  <div class="kpi g">
+    <div class="kpi-glow"></div>
+    <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-coins"></i></div><span class="kpi-lbl-t">اليوم</span></div>
+    <div class="kpi-val">{{ revenue_today|floatformat:0 }}<small> ج</small></div>
+    <div class="kpi-sub">إيراد اليوم</div>
+  </div>
+  <div class="kpi r">
+    <div class="kpi-glow"></div>
+    <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-arrow-down"></i></div><span class="kpi-lbl-t">مصروف</span></div>
+    <div class="kpi-val">{{ expenses_today|floatformat:0 }}<small> ج</small></div>
+    <div class="kpi-sub">واردات اليوم</div>
+  </div>
+  <div class="kpi b">
+    <div class="kpi-glow"></div>
+    <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-chart-line"></i></div><span class="kpi-lbl-t">صافي</span></div>
+    <div class="kpi-val">{{ profit_today|floatformat:0 }}<small> ج</small></div>
+    <div class="kpi-sub">ربح اليوم</div>
+  </div>
+  <div class="kpi o">
+    <div class="kpi-glow"></div>
+    <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-receipt"></i></div><span class="kpi-lbl-t">{{ open_orders }} نشط</span></div>
+    <div class="kpi-val">{{ orders_count }}</div>
+    <div class="kpi-sub">طلبات اليوم</div>
+  </div>
+</div>
+
+<div class="qa">
+  <a href="{% url 'admin_history' %}" class="qa-card">
+    <div class="qa-ic p"><i class="fas fa-clock-rotate-left"></i></div>
+    <div class="qa-txt"><strong>سجل اليوم</strong><span>كل طلبات اليوم</span></div>
+  </a>
+  <a href="{% url 'admin_reports' %}" class="qa-card">
+    <div class="qa-ic g"><i class="fas fa-chart-bar"></i></div>
+    <div class="qa-txt"><strong>التقارير</strong><span>الأرباح والإحصائيات</span></div>
+  </a>
+  <a href="{% url 'admin_inventory' %}" class="qa-card">
+    <div class="qa-ic o"><i class="fas fa-boxes-stacked"></i></div>
+    <div class="qa-txt"><strong>المخزون</strong><span>إضافة واردات</span></div>
+  </a>
+</div>
+
+{% if top_item %}
+<div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;color:#fff">
+  <div style="font-size:2rem">🏆</div>
+  <div>
+    <div style="font-size:.75rem;opacity:.8;margin-bottom:2px">الأكثر طلبًا اليوم</div>
+    <div style="font-size:1.1rem;font-weight:800">{{ top_item.menu_item__name }}</div>
+    <div style="font-size:.8rem;opacity:.8">طُلب {{ top_item.qty }} مرة</div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-hdr">
+    <span><i class="fas fa-fire"></i>آخر الطلبات</span>
+    <a href="{% url 'admin_history' %}" class="btn btn-ghost btn-sm">عرض الكل <i class="fas fa-arrow-left"></i></a>
+  </div>
+  {% if recent_orders %}
+  <table class="orders-tbl">
+    <thead><tr><th>#</th><th>النوع</th><th>الكاشير</th><th>الطاولة/العميل</th><th>الحالة</th><th>الإجمالي</th><th>الوقت</th></tr></thead>
+    <tbody>
+      {% for o in recent_orders %}
+      <tr onclick="location.href='{% url 'admin_order_detail' o.id %}'">
+        <td><strong style="color:var(--pri)">#{{ o.id }}</strong></td>
+        <td>{% if o.order_type == 'delivery' %}<span class="badge b-war">ديليفري</span>{% else %}<span class="badge b-grey">داخلي</span>{% endif %}</td>
+        <td>{{ o.cashier.username|default:"—" }}</td>
+        <td>{% if o.order_type == 'delivery' %}{{ o.customer_name|default:"—" }}{% else %}{{ o.table|default:"—" }}{% endif %}</td>
+        <td>
+          {% if o.status == 'open' %}<span class="badge b-war">مفتوح</span>
+          {% elif o.status == 'printed' %}<span class="badge b-pri">انتظار</span>
+          {% elif o.status == 'completed' %}<span class="badge b-suc">مكتمل</span>
+          {% else %}<span class="badge b-dan">ملغي</span>{% endif %}
+        </td>
+        <td><strong>{{ o.total|floatformat:2 }} ج</strong></td>
+        <td style="color:var(--muted)">{{ o.created_at|time:"H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center;padding:40px;color:var(--muted)"><i class="fas fa-coffee" style="font-size:2rem;display:block;margin-bottom:10px;opacity:.4"></i><p>مفيش طلبات اليوم</p></div>
+  {% endif %}
+</div>
+{% endblock %}
