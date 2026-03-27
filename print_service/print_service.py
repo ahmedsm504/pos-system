@@ -34,41 +34,42 @@ INIT = ESC + b'@'
 OPEN_DRAWER = ESC + b'p\x00\x19\xfa'
 LINE_FEED = b'\r\n'
 
-# ----------------------------------------------------------------------
-# طباعة عبر GDI (نص عربي)
+# إعدادات الطباعة
+PAPER_WIDTH = 800        # عرض الورق بالنقاط (80 مم ≈ 800 نقطة عند 203 نقطة/بوصة)
+LEFT_MARGIN = 50
+RIGHT_MARGIN = 50
+LINE_HEIGHT = 28         # ارتفاع السطر بالنقاط
+FONT_SIZE = -130         # حجم الخط (9pt) -> -130
+
 def print_gdi(printer_name, lines, open_drawer=False):
-    """طباعة نص عربي عبر GDI باستخدام خط Arial"""
+    """طباعة نص عربي عبر GDI باستخدام خط مناسب"""
     try:
-        # فتح الطابعة
         hprinter = win32print.OpenPrinter(printer_name)
         try:
-            # بدء المستند
             win32print.StartDocPrinter(hprinter, 1, ("POS Job", None, "RAW"))
             win32print.StartPagePrinter(hprinter)
 
-            # إنشاء DC للطابعة
             hdc = win32ui.CreateDC()
             hdc.CreatePrinterDC(printer_name)
             hdc.StartDoc("POS Job")
             hdc.StartPage()
 
-            # تعيين الخط (حجم 12 نقطة، عربي)
+            # تعيين الخط (Tahoma يدعم العربية جيدًا)
             font = win32ui.CreateFont({
-                "name": "Arial",
-                "height": -180,  # 12pt = -180
+                "name": "Tahoma",
+                "height": FONT_SIZE,
                 "weight": win32con.FW_NORMAL,
-                "charset": 0,     # ANSI charset (يدعم العربية)
+                "charset": 0,
             })
             hdc.SelectObject(font)
 
-            # رسم النص
-            y = 100  # بداية من أعلى
+            y = 50  # بداية من أعلى
             for line in lines:
                 if line.get('divider'):
                     # رسم خط فاصل
-                    hdc.MoveTo((100, y))
-                    hdc.LineTo((800, y))
-                    y += 40
+                    hdc.MoveTo((LEFT_MARGIN, y))
+                    hdc.LineTo((PAPER_WIDTH - RIGHT_MARGIN, y))
+                    y += LINE_HEIGHT
                     continue
 
                 align = line.get('align', 'right')
@@ -76,14 +77,22 @@ def print_gdi(printer_name, lines, open_drawer=False):
                 if not text:
                     continue
 
-                # قياس عرض النص لتحديد المحاذاة
+                # قياس عرض النص
                 rect = hdc.GetTextExtent(text)
-                x = 800 - rect[0] - 100 if align == 'right' else 100 if align == 'left' else (800 - rect[0]) // 2
+                text_width = rect[0]
+
+                # تحديد موقع x حسب المحاذاة
+                if align == 'right':
+                    x = PAPER_WIDTH - RIGHT_MARGIN - text_width
+                elif align == 'left':
+                    x = LEFT_MARGIN
+                else:  # center
+                    x = (PAPER_WIDTH - text_width) // 2
 
                 if line.get('bold'):
                     font_bold = win32ui.CreateFont({
-                        "name": "Arial Bold",
-                        "height": -180,
+                        "name": "Tahoma Bold",
+                        "height": FONT_SIZE,
                         "weight": win32con.FW_BOLD,
                         "charset": 0,
                     })
@@ -93,7 +102,13 @@ def print_gdi(printer_name, lines, open_drawer=False):
                 else:
                     hdc.TextOut(x, y, text)
 
-                y += 40  # مسافة بين السطور
+                y += LINE_HEIGHT
+
+                # إذا تجاوزنا نهاية الصفحة، نبدأ صفحة جديدة (نادرًا ما يحدث للفاتورة)
+                if y > 1200:
+                    hdc.EndPage()
+                    hdc.StartPage()
+                    y = 50
 
             hdc.EndPage()
             hdc.EndDoc()
@@ -102,9 +117,7 @@ def print_gdi(printer_name, lines, open_drawer=False):
             win32print.EndPagePrinter(hprinter)
             win32print.EndDocPrinter(hprinter)
 
-            # فتح الدرج إذا طلب
             if open_drawer:
-                # إرسال أمر ESC/POS لفتح الدرج عبر طابعة منفصلة (نفس الطابعة)
                 try:
                     h2 = win32print.OpenPrinter(printer_name)
                     try:
@@ -128,10 +141,7 @@ def print_gdi(printer_name, lines, open_drawer=False):
         log.error(f"GDI Print error: {e}")
         return False
 
-# ----------------------------------------------------------------------
-# تحويل قائمة السطور إلى تنسيق مناسب لـ GDI
 def prepare_gdi_lines(lines):
-    """تحويل السطور الواردة إلى قائمة سطور GDI"""
     gdi_lines = []
     for line in lines:
         if line.get('divider'):
@@ -144,8 +154,6 @@ def prepare_gdi_lines(lines):
         })
     return gdi_lines
 
-# ----------------------------------------------------------------------
-# Routes
 @app.route('/print', methods=['POST'])
 def handle_print():
     d = request.json or {}
@@ -157,17 +165,14 @@ def handle_print():
 
     results = {}
 
-    # طباعة الفاتورة الرئيسية عبر GDI
     if main_lines:
         gdi_lines = prepare_gdi_lines(main_lines)
         results['main'] = print_gdi(MAIN_PRINTER, gdi_lines, open_drawer=open_drawer)
 
-    # طابعة المطبخ (يمكن استخدام GDI أيضًا أو ESC/POS)
     if kitchen_lines:
         gdi_lines_kit = prepare_gdi_lines(kitchen_lines)
         results['kitchen'] = print_gdi(KITCHEN_PRINTER, gdi_lines_kit, open_drawer=False)
 
-    # طابعة البار
     if bar_lines:
         gdi_lines_bar = prepare_gdi_lines(bar_lines)
         results['bar'] = print_gdi(BAR_PRINTER, gdi_lines_bar, open_drawer=False)
@@ -178,7 +183,6 @@ def handle_print():
 
 @app.route('/drawer', methods=['POST'])
 def drawer_route():
-    """فتح الدرج فقط"""
     try:
         h = win32print.OpenPrinter(MAIN_PRINTER)
         try:
@@ -203,7 +207,7 @@ def health():
     except ImportError:
         win32_ok = False
         msg = 'win32print غير متاح'
-    return jsonify({'status': 'running', 'version': '3.0', 'win32print': win32_ok, 'note': msg})
+    return jsonify({'status': 'running', 'version': '3.1', 'win32print': win32_ok, 'note': msg})
 
 @app.route('/printers', methods=['GET'])
 def list_printers():
@@ -217,7 +221,6 @@ def list_printers():
 
 @app.route('/test', methods=['GET'])
 def test_print():
-    """طباعة فاتورة اختبار"""
     lines = [
         {'text': 'اختبار الطباعة', 'align': 'center', 'bold': True},
         {'divider': True},
@@ -226,7 +229,7 @@ def test_print():
         {'text': 'كوكاكولا  x2'},
         {'text': 'بيتزا مارجريتا  x1'},
         {'divider': True},
-        {'text': 'الاجمالي: 150 ج', 'bold': True, 'align': 'center'},
+        {'text': 'الإجمالي: 150 ج', 'bold': True, 'align': 'center'},
         {'text': 'شكرا لزيارتكم', 'align': 'center'},
     ]
     gdi_lines = prepare_gdi_lines(lines)
@@ -234,7 +237,7 @@ def test_print():
     return jsonify({'success': ok, 'message': 'تم الارسال' if ok else 'فشلت الطباعة'})
 
 if __name__ == '__main__':
-    log.info('Print Service v3.0 (GDI Arabic) → http://127.0.0.1:5000')
+    log.info('Print Service v3.1 (GDI Arabic) → http://127.0.0.1:5000')
     log.info('  /health        ← حالة الخدمة')
     log.info('  /printers      ← اسماء الطابعات')
     log.info('  /test          ← طباعة فاتورة اختبار')
