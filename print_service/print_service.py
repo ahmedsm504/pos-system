@@ -18,8 +18,8 @@ app = Flask(__name__)
 
 # ── اسم الطابعات في Windows (غيّرها حسب الأسماء عندك) ──────────────────────
 MAIN_PRINTER    = "Main Printer"      # فاتورة كاملة للكاشير
-KITCHEN_PRINTER = "Kitchen Printer"  # طابعة المطبخ
-BAR_PRINTER     = "Bar Printer"      # طابعة البار
+KITCHEN_PRINTER = "Kitchen Printer"   # طابعة المطبخ
+BAR_PRINTER     = "Bar Printer"       # طابعة البار
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── ESC/POS Constants ────────────────────────────────────────────────────────
@@ -35,12 +35,12 @@ BOLD_ON       = ESC + b'E\x01'
 BOLD_OFF      = ESC + b'E\x00'
 DOUBLE_HEIGHT = ESC + b'!\x10'
 NORMAL_SIZE   = ESC + b'!\x00'
-LINE_FEED     = b'\n'
+LINE_FEED     = b'\r\n'
 OPEN_DRAWER   = ESC + b'p\x00\x19\xfa'
 
-# Code Page 1256 = Windows Arabic — الاشيع على Xprinter
-SET_CODEPAGE_1256 = ESC + b't\x1c'
-
+# أفضل محاولة: cp1256 مع أمر إضافي (ESC R 0) لضبط اللغة العربية
+# يمكن تجربة cp1252 بدلاً من ذلك: SET_CODEPAGE = ESC + b't\x1a'
+SET_CODEPAGE = ESC + b't\x1c' + ESC + b'R\x00'   # cp1256 + language Arabic
 
 # ── Arabic encoding ───────────────────────────────────────────────────────────
 def encode_arabic(text: str) -> bytes:
@@ -49,10 +49,9 @@ def encode_arabic(text: str) -> bytes:
     except (UnicodeEncodeError, LookupError):
         return text.encode('cp1256', errors='replace')
 
-
 # ── Build receipts ────────────────────────────────────────────────────────────
 def build_receipt(lines: list) -> bytes:
-    data = INIT + SET_CODEPAGE_1256
+    data = INIT + SET_CODEPAGE
 
     for line in lines:
         if line.get('divider'):
@@ -82,9 +81,9 @@ def build_receipt(lines: list) -> bytes:
     data += LINE_FEED * 3 + CUT
     return data
 
-
 def build_kitchen_ticket(lines: list) -> bytes:
-    data = INIT + SET_CODEPAGE_1256
+    # نفس البناء لكن بدون فتح الدرج
+    data = INIT + SET_CODEPAGE
 
     for line in lines:
         if line.get('divider'):
@@ -114,14 +113,13 @@ def build_kitchen_ticket(lines: list) -> bytes:
     data += LINE_FEED * 2 + CUT
     return data
 
-
 # ── Raw print via Windows win32print ─────────────────────────────────────────
 def print_raw(printer_name: str, data: bytes) -> bool:
     try:
         import win32print
     except ImportError:
         log.error('win32print غير متاح — شغل الـ service على Windows')
-        return False   # ← False مش True
+        return False
 
     try:
         h = win32print.OpenPrinter(printer_name)
@@ -139,11 +137,9 @@ def print_raw(printer_name: str, data: bytes) -> bool:
         log.error(f'Print error ({printer_name}): {e}')
         return False
 
-
 # ── Cash Drawer ───────────────────────────────────────────────────────────────
 def open_cash_drawer() -> bool:
-    return print_raw(MAIN_PRINTER, INIT + SET_CODEPAGE_1256 + OPEN_DRAWER)
-
+    return print_raw(MAIN_PRINTER, INIT + SET_CODEPAGE + OPEN_DRAWER)
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.route('/print', methods=['POST'])
@@ -160,7 +156,8 @@ def handle_print():
     if main_lines:
         data = build_receipt(main_lines)
         if open_drawer:
-            data = INIT + SET_CODEPAGE_1256 + OPEN_DRAWER + data
+            # إضافة أمر فتح الدرج قبل الطباعة
+            data = INIT + SET_CODEPAGE + OPEN_DRAWER + data[len(INIT+SET_CODEPAGE):]
         results['main'] = print_raw(MAIN_PRINTER, data)
 
     if kitchen_lines:
@@ -173,12 +170,10 @@ def handle_print():
     log.info(f'Print results: {results}  success={success}')
     return jsonify({'status': 'done', 'results': results, 'success': success})
 
-
 @app.route('/drawer', methods=['POST'])
 def drawer_route():
     ok = open_cash_drawer()
     return jsonify({'success': ok})
-
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -189,8 +184,7 @@ def health():
     except ImportError:
         win32_ok = False
         msg = 'win32print غير متاح — الطباعة مش هتشتغل'
-    return jsonify({'status': 'running', 'version': '2.2', 'win32print': win32_ok, 'note': msg})
-
+    return jsonify({'status': 'running', 'version': '2.3', 'win32print': win32_ok, 'note': msg})
 
 @app.route('/printers', methods=['GET'])
 def list_printers():
@@ -204,7 +198,6 @@ def list_printers():
         return jsonify({'printers': [], 'error': 'win32print غير متاح'})
     except Exception as e:
         return jsonify({'error': str(e)})
-
 
 @app.route('/test', methods=['GET'])
 def test_print():
@@ -222,9 +215,8 @@ def test_print():
     ok = print_raw(MAIN_PRINTER, build_receipt(lines))
     return jsonify({'success': ok, 'message': 'تم الارسال' if ok else 'فشلت الطباعة'})
 
-
 if __name__ == '__main__':
-    log.info('Print Service v2.2  →  http://127.0.0.1:5000')
+    log.info('Print Service v2.3  →  http://127.0.0.1:5000')
     log.info('  /health   ← حالة win32print')
     log.info('  /printers ← اسماء الطابعات')
     log.info('  /test     ← اختبار طباعة عربي')
