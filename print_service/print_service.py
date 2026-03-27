@@ -9,7 +9,7 @@ import logging, sys, io
 import win32print
 import win32ui
 import win32con
-from PIL import Image, ImageDraw, ImageFont
+
 import os
 
 logging.basicConfig(
