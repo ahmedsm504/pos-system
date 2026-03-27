@@ -4,7 +4,6 @@ flask>=3.0
 pywin32>=306
 requests>=2.31
 python-dateutil>=2.8
-pillow
-pywin32
-arabic-reshaper
-python-bidi
+Pillow>=10.0
+arabic-reshaper>=3.0
+python-bidi>=0.4
