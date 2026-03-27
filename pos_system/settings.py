@@ -63,6 +63,6 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-PRINT_SERVICE_URL = 'http://127.0.0.1:5000/print'
+PRINT_SERVICE_URL = 'http://127.0.0.1:5050/print'
 
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'

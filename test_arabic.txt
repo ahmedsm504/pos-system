@@ -1,0 +1,4 @@
+Original: فاتورة بيع
+Reshaped: ﻓﺎﺗﻮﺭﺓ ﺑﻴﻊ
+Display:  ﻊﻴﺑ ﺓﺭﻮﺗﺎﻓ
+Same: False

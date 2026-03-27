@@ -460,44 +460,80 @@ def submit_shift_end(request):
 
 def _build_main_lines(order):
     items      = order.items.select_related('menu_item__category').all()
-    now        = timezone.localtime(order.created_at).strftime('%Y-%m-%d  %H:%M')
+    now_date   = timezone.localtime(order.created_at).strftime('%Y-%m-%d')
+    now_time   = timezone.localtime(order.created_at).strftime('%H:%M')
     type_label = 'داخل المحل' if order.order_type == 'dine_in' else 'ديليفري'
+    cashier_name = order.cashier.get_full_name() or order.cashier.username
 
     lines = [
-        {'text': 'فاتورة طلب', 'align': 'center', 'bold': True, 'size': 'large'},
-        {'divider': True},
-        {'text': f'طلب رقم :  #{order.id}', 'bold': True},
-        {'text': f'النوع    :  {type_label}'},
+        {'spacer': True, 'height': 5},
+        {'text': 'فاتورة بيع', 'align': 'center', 'bold': True, 'size': 'xlarge'},
+        {'divider': True, 'divider_style': 'double'},
     ]
+
+    def _info_row(label, value):
+        return {'cols': [
+            {'text': str(value), 'width': 0.45, 'align': 'right'},
+            {'text': label, 'width': 0.55, 'align': 'right', 'bold': True},
+        ]}
+
+    lines.append(_info_row('طلب رقم', f'#{order.id}'))
+    lines.append(_info_row('النوع', type_label))
 
     if order.order_type == 'dine_in':
-        lines.append({'text': f'الطاولة  :  {order.table or "بدون"}'})
-        lines.append({'text': f'الويتر   :  {order.waiter or "-"}'})
+        lines.append(_info_row('الطاولة', order.table or 'بدون'))
+        lines.append(_info_row('الويتر', order.waiter or '-'))
     else:
-        lines.append({'text': f'العميل   :  {order.customer_name}'})
-        lines.append({'text': f'الهاتف   :  {order.customer_phone}'})
-        lines.append({'text': f'العنوان  :  {order.customer_address}'})
+        lines.append(_info_row('العميل', order.customer_name or '-'))
+        lines.append(_info_row('الهاتف', order.customer_phone or '-'))
+        if order.customer_address:
+            lines.append(_info_row('العنوان', order.customer_address))
         if order.driver:
-            lines.append({'text': f'الطيار   :  {order.driver}'})
+            lines.append(_info_row('السائق', order.driver))
 
-    lines += [
-        {'text': f'الوقت    :  {now}'},
-        {'text': f'الكاشير  :  {order.cashier.get_full_name() or order.cashier.username}'},
-        {'divider': True},
-    ]
+    lines.append(_info_row('التاريخ', now_date))
+    lines.append(_info_row('الوقت', now_time))
+    lines.append(_info_row('الكاشير', cashier_name))
+
+    lines.append({'divider': True, 'divider_style': 'double'})
+
+    lines.append({'cols': [
+        {'text': 'الاجمالي', 'width': 0.25, 'align': 'left', 'bold': True},
+        {'text': 'السعر', 'width': 0.2, 'align': 'center', 'bold': True},
+        {'text': 'الكمية', 'width': 0.15, 'align': 'center', 'bold': True},
+        {'text': 'الصنف', 'width': 0.4, 'align': 'right', 'bold': True},
+    ], 'bold': True, 'size': 'small'})
+    lines.append({'divider': True, 'divider_style': 'dashed'})
 
     for item in items:
-        lines.append({'text': f'{item.menu_item.name}  x{item.quantity}', 'bold': True})
-        lines.append({'text': f'   {item.quantity} x {item.price} = {item.subtotal} ج'})
+        subtotal = item.subtotal
+        lines.append({'cols': [
+            {'text': f'{subtotal} ج', 'width': 0.25, 'align': 'left'},
+            {'text': str(item.price), 'width': 0.2, 'align': 'center'},
+            {'text': str(item.quantity), 'width': 0.15, 'align': 'center'},
+            {'text': item.menu_item.name, 'width': 0.4, 'align': 'right'},
+        ]})
         if item.notes:
-            lines.append({'text': f'   ملاحظة: {item.notes}'})
+            lines.append({'text': f'  * {item.notes}', 'align': 'right', 'size': 'small'})
 
-    lines += [
-        {'divider': True},
-        {'text': f'الاجمالي:  {order.total} ج', 'bold': True, 'align': 'center', 'size': 'large'},
-        {'divider': True},
-        {'text': 'شكرا لزيارتكم', 'align': 'center'},
-    ]
+    if order.notes:
+        lines.append({'divider': True, 'divider_style': 'dashed'})
+        lines.append({'text': f'ملاحظات: {order.notes}', 'align': 'right', 'size': 'small'})
+
+    lines.append({'divider': True, 'divider_style': 'double'})
+
+    total_val = order.total
+    lines.append({'cols': [
+        {'text': f'{total_val} ج', 'width': 0.5, 'align': 'left', 'bold': True},
+        {'text': 'الاجمالي', 'width': 0.5, 'align': 'right', 'bold': True},
+    ], 'bold': True, 'size': 'large'})
+
+    lines.append({'divider': True, 'divider_style': 'double'})
+    lines.append({'spacer': True, 'height': 8})
+    lines.append({'text': 'شكرا لزيارتكم', 'align': 'center', 'bold': True})
+    lines.append({'text': 'نتمنى لكم وقتا سعيدا', 'align': 'center', 'size': 'small'})
+    lines.append({'spacer': True, 'height': 10})
+
     return lines
 
 
@@ -510,19 +546,37 @@ def _build_section_lines(order, cat_type):
         return []
 
     label = 'المطبخ' if cat_type == 'food' else 'البار'
-    now   = timezone.localtime(order.created_at).strftime('%H:%M')
+    now_time = timezone.localtime(order.created_at).strftime('%H:%M')
+    type_label = 'داخل المحل' if order.order_type == 'dine_in' else 'ديليفري'
 
     lines = [
-        {'text': f'{label}', 'align': 'center', 'bold': True, 'size': 'large'},
-        {'text': f'طلب #{order.id}   {now}', 'align': 'center', 'bold': True},
-        {'divider': True},
+        {'spacer': True, 'height': 5},
+        {'text': label, 'align': 'center', 'bold': True, 'size': 'xlarge'},
+        {'divider': True, 'divider_style': 'double'},
+        {'cols': [
+            {'text': now_time, 'width': 0.3, 'align': 'left'},
+            {'text': f'طلب #{order.id}', 'width': 0.4, 'align': 'center', 'bold': True},
+            {'text': type_label, 'width': 0.3, 'align': 'right'},
+        ], 'bold': True},
     ]
+
+    if order.order_type == 'dine_in' and order.table:
+        lines.append({'text': f'الطاولة: {order.table}', 'align': 'center', 'bold': True})
+    elif order.order_type == 'delivery' and order.customer_name:
+        lines.append({'text': f'العميل: {order.customer_name}', 'align': 'center', 'bold': True})
+
+    lines.append({'divider': True, 'divider_style': 'double'})
+
     for item in items:
-        lines.append({'text': item.menu_item.name, 'bold': True, 'size': 'large'})
-        lines.append({'text': f'   الكمية: {item.quantity}'})
+        lines.append({'cols': [
+            {'text': str(item.quantity), 'width': 0.15, 'align': 'left', 'bold': True},
+            {'text': item.menu_item.name, 'width': 0.85, 'align': 'right', 'bold': True},
+        ], 'size': 'large', 'bold': True})
         if item.notes:
-            lines.append({'text': f'   ملاحظة: {item.notes}', 'bold': True})
-    lines.append({'divider': True})
+            lines.append({'text': f'  * {item.notes}', 'align': 'right', 'bold': True})
+        lines.append({'divider': True, 'divider_style': 'dashed'})
+
+    lines.append({'spacer': True, 'height': 10})
     return lines
 
 
