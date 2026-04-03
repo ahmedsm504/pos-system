@@ -49,7 +49,8 @@ DATABASES = {
 }
 
 AUTH_PASSWORD_VALIDATORS = []
-LANGUAGE_CODE = 'ar'
+# en-us: clearer Django CLI/admin messages (createsuperuser, validation). App UI stays Arabic in templates.
+LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Africa/Cairo'
 USE_I18N = True
 USE_TZ = True

@@ -2,16 +2,140 @@
 {% block title %}{{ title }}{% endblock %}
 {% block page_icon %}<i class="fas fa-motorcycle"></i>{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .pf-wrap{max-width:640px;margin:0 auto}
+  .pf-hero{
+    display:flex;align-items:center;gap:18px;padding:22px 24px;margin-bottom:20px;border-radius:var(--radius);
+    background:linear-gradient(125deg,#fff7ed 0%,#ffedd5 40%,rgba(255,237,213,.75) 100%);
+    border:1px solid rgba(245,158,11,.28);
+    box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.9);
+  }
+  .pf-hero-icon{
+    width:56px;height:56px;border-radius:16px;flex-shrink:0;
+    background:linear-gradient(145deg,#fcd34d,#f59e0b);
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.35rem;color:#422006;
+    box-shadow:0 6px 20px -4px rgba(245,158,11,.45),inset 0 1px 0 rgba(255,255,255,.45);
+  }
+  .pf-hero h2{font-size:1.05rem;font-weight:800;color:var(--text);letter-spacing:-.02em;margin:0 0 6px;line-height:1.25}
+  .pf-hero p{font-size:.84rem;color:var(--text2);line-height:1.55;margin:0;max-width:40em}
+  .pf-sec{
+    background:var(--card);border-radius:var(--radius);padding:20px 22px;margin-bottom:18px;
+    border:1px solid var(--border);box-shadow:var(--shadow);
+  }
+  .pf-sec-hdr{
+    display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;
+    border-bottom:1px solid var(--border);
+  }
+  .pf-sec-hdr i{
+    width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    font-size:.9rem;color:#92400e;
+    background:linear-gradient(145deg,#ffedd5,#fed7aa);
+    border:1px solid rgba(245,158,11,.25);
+  }
+  .pf-sec-hdr span{font-size:.92rem;font-weight:800;color:var(--text)}
+  .pf-sec-hdr small{display:block;font-size:.72rem;font-weight:600;color:var(--muted);margin-top:2px}
+  .pf-hint{font-size:.74rem;color:var(--muted);margin-top:6px;line-height:1.45}
+  .pf-input-ltr input{direction:ltr;text-align:left}
+  .pf-switch-row{
+    display:flex;align-items:flex-start;gap:14px;padding:4px 0;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .pf-switch-txt{flex:1}
+  .pf-switch-txt strong{display:block;font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:4px}
+  .pf-switch-txt span{font-size:.78rem;color:var(--text2);line-height:1.5}
+  .pf-switch{position:relative;width:48px;height:28px;display:inline-block;flex-shrink:0;margin-top:2px}
+  .pf-switch input{position:absolute;opacity:0;width:0;height:0}
+  .pf-switch span{
+    position:absolute;inset:0;background:#e2e8f0;border-radius:999px;
+    transition:background .22s var(--ease-out),box-shadow .22s;
+    box-shadow:inset 0 2px 4px rgba(15,23,42,.08);
+  }
+  .pf-switch span::after{
+    content:'';position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;
+    background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.12);
+    transition:transform .22s var(--ease-out);
+  }
+  .pf-switch input:checked + span{background:linear-gradient(135deg,var(--suc),#059669);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+  .pf-switch input:checked + span::after{transform:translateX(20px)}
+  .pf-switch input:focus-visible + span{outline:2px solid var(--suc);outline-offset:2px}
+  [dir="rtl"] .pf-switch span::after{left:auto;right:3px}
+  [dir="rtl"] .pf-switch input:checked + span::after{transform:translateX(-20px)}
+  .pf-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px;padding-top:18px;border-top:1px solid var(--border)}
+  .pf-actions .btn{min-height:44px;padding:10px 20px;border-radius:12px;font-size:.88rem}
+  .pf-actions .btn-pri{
+    flex:1;min-width:160px;justify-content:center;
+    background:linear-gradient(135deg,#d97706,#b45309);box-shadow:0 4px 14px -4px rgba(217,119,6,.5)
+  }
+  .pf-actions .btn-pri:hover{filter:brightness(1.06)}
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="max-width:400px"><div class="card">
+<div class="pf-wrap">
+  <div class="pf-hero">
+    <div class="pf-hero-icon"><i class="fas fa-motorcycle"></i></div>
+    <div>
+      <h2>{% if obj %}تعديل بيانات الطيار{% else %}تسجيل طيار ديليفري جديد{% endif %}</h2>
+      <p>
+        {% if obj %}
+        حدّث الاسم أو الهاتف أو التفعيل. الطيار غير النشط قد يُستبعد من الاختيار عند الطلبات الجديدة.
+        {% else %}
+        رقم الهاتف مهم للتواصل عند تسليم الطلبات. يظهر الاسم للكاشير عند تعيين الديليفري.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
   <form method="post">{% csrf_token %}
-    <div class="fg"><label>اسم الطيار *</label><input name="name" value="{{ obj.name|default:'' }}" required></div>
-    <div class="fg"><label>رقم الهاتف *</label><input name="phone" value="{{ obj.phone|default:'' }}" required></div>
-    {% if obj %}<div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="is_active" {% if obj.is_active %}checked{% endif %}> نشط</label></div>{% endif %}
-    <div style="display:flex;gap:10px;margin-top:20px">
-      <a href="{% url 'admin_drivers' %}" class="btn btn-out" style="flex:1;justify-content:center">إلغاء</a>
-      <button type="submit" class="btn btn-pri" style="flex:2;justify-content:center"><i class="fas fa-save"></i> حفظ</button>
+    <div class="pf-sec">
+      <div class="pf-sec-hdr">
+        <i class="fas fa-id-badge"></i>
+        <div>
+          <span>بيانات الطيار</span>
+          <small>ما يظهر في شاشة الطلب والتقارير</small>
+        </div>
+      </div>
+      <div class="fg">
+        <label for="d_name">اسم الطيار <span style="color:var(--dan)">*</span></label>
+        <input id="d_name" name="name" value="{{ obj.name|default:'' }}" required autocomplete="name" placeholder="الاسم الكامل">
+      </div>
+      <div class="fg pf-input-ltr">
+        <label for="d_phone">رقم الهاتف <span style="color:var(--dan)">*</span></label>
+        <input id="d_phone" name="phone" type="tel" inputmode="tel" value="{{ obj.phone|default:'' }}" required placeholder="01xxxxxxxxx">
+        <p class="pf-hint">يُفضَّل رقم يتواصل منه مع المطبخ أو العميل أثناء التوصيل.</p>
+      </div>
+    </div>
+
+    <div class="pf-sec">
+      <div class="pf-sec-hdr">
+        <i class="fas fa-toggle-on"></i>
+        <div>
+          <span>الحالة</span>
+          <small>تفعيل أو إيقاف الطيار مؤقتًا</small>
+        </div>
+      </div>
+      <label class="pf-switch-row">
+        <div class="pf-switch-txt">
+          <strong>طيار نشط</strong>
+          <span>عند الإيقاف يبقى السجل التاريخي؛ يمكنك إخفاؤه من الاختيارات الحالية.</span>
+        </div>
+        <span class="pf-switch">
+          <input type="checkbox" name="is_active" value="1"
+            {% if obj %}{% if obj.is_active %}checked{% endif %}{% else %}checked{% endif %}>
+          <span></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="pf-sec" style="padding-bottom:20px">
+      <div class="pf-actions">
+        <a href="{% url 'admin_drivers' %}" class="btn btn-out"><i class="fas fa-arrow-right"></i> رجوع للقائمة</a>
+        <button type="submit" class="btn btn-pri"><i class="fas fa-check"></i> {% if obj %}حفظ التغييرات{% else %}إضافة الطيار{% endif %}</button>
+      </div>
     </div>
   </form>
-</div></div>
+</div>
 {% endblock %}

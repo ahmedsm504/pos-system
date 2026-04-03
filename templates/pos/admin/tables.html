@@ -2,32 +2,140 @@
 {% block title %}الطاولات{% endblock %}
 {% block page_icon %}<i class="fas fa-chair"></i>{% endblock %}
 {% block page_title %}إدارة الطاولات{% endblock %}
+
+{% block extra_css %}
+<style>
+  .tx-toolbar{
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;
+  }
+  .tx-stats{display:flex;flex-wrap:wrap;gap:12px}
+  .tx-stat{
+    display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:14px;
+    background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);min-width:150px;
+  }
+  .tx-stat i{
+    width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    font-size:.95rem;color:#0f766e;
+    background:linear-gradient(145deg,#ccfbf1,#99f6e4);
+    border:1px solid rgba(45,212,191,.35);
+  }
+  .tx-stat div span{display:block;font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .tx-stat div strong{font-size:1.35rem;font-weight:800;color:var(--text);font-family:'Outfit','Cairo',sans-serif;line-height:1}
+  .tx-add.btn{
+    padding:11px 20px;border-radius:12px;font-size:.88rem;gap:8px;text-decoration:none;
+    background:linear-gradient(135deg,#0d9488,#0f766e);box-shadow:0 4px 16px -4px rgba(13,148,136,.4);
+    color:#f0fdfa;border:none;
+  }
+  .tx-add.btn,.tx-add.btn:visited{color:#f0fdfa}
+  .tx-add.btn:hover{color:#fff;filter:brightness(1.05)}
+  .tx-add.btn i{color:inherit;opacity:.95}
+  .tx-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px;
+  }
+  .tx-card{
+    position:relative;border-radius:16px;padding:20px 16px 16px;text-align:center;
+    background:var(--card);border:1.5px solid var(--border);box-shadow:var(--shadow);
+    transition:transform .2s var(--ease-out),border-color .2s,box-shadow .2s;
+  }
+  .tx-card:hover{
+    transform:translateY(-2px);
+    border-color:rgba(45,212,191,.4);
+    box-shadow:0 12px 32px -12px rgba(15,23,42,.12);
+  }
+  .tx-card.off{
+    border-color:#fecdd3;background:linear-gradient(180deg,#fff,#fff1f2);
+    opacity:.95;
+  }
+  .tx-card.off:hover{border-color:#fda4af}
+  .tx-card-ico{
+    width:48px;height:48px;margin:0 auto 12px;border-radius:15px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.2rem;color:#0f766e;
+    background:linear-gradient(145deg,#ccfbf1,#5eead4);
+    box-shadow:0 4px 14px rgba(20,184,166,.22),inset 0 1px 0 rgba(255,255,255,.6);
+  }
+  .tx-card.off .tx-card-ico{
+    background:linear-gradient(145deg,#e2e8f0,#cbd5e1);color:#64748b;
+    box-shadow:none;
+  }
+  .tx-num{
+    font-size:1.35rem;font-weight:800;font-family:'Outfit','Cairo',sans-serif;color:var(--text);
+    letter-spacing:-.03em;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums;
+  }
+  .tx-num small{font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-top:6px}
+  .tx-name{font-size:.78rem;color:var(--text2);line-height:1.35;min-height:2.4em;display:flex;align-items:center;justify-content:center}
+  .tx-badge{margin-top:10px}
+  .tx-act{display:flex;gap:8px;margin-top:14px;justify-content:center}
+  .tx-act .btn{border-radius:10px;min-width:40px;justify-content:center}
+  .tx-empty{text-align:center;padding:50px 20px 54px;color:var(--text2)}
+  .tx-empty .tx-empty-ico{
+    width:76px;height:76px;margin:0 auto 20px;border-radius:24px;
+    display:flex;align-items:center;justify-content:center;font-size:1.7rem;color:#0f766e;
+    background:linear-gradient(165deg,#ccfbf1,#f0fdfa);border:1px dashed rgba(20,184,166,.4);
+  }
+  .tx-empty h3{font-size:1.02rem;font-weight:800;color:var(--text);margin:0 0 8px}
+  .tx-empty p{font-size:.88rem;max-width:380px;margin:0 auto 22px;line-height:1.55}
+  .tx-shell{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);padding:22px}
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
-  <a href="{% url 'admin_table_add' %}" class="btn btn-pri"><i class="fas fa-plus"></i> إضافة طاولة</a>
-</div>
-<div class="card">
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
-    {% for t in tables %}
-    <div style="background:#fff;border:1.5px solid {% if t.is_active %}var(--border){% else %}#fecaca{% endif %};border-radius:13px;padding:16px;text-align:center;transition:all .18s">
-      <div style="font-size:2rem;margin-bottom:6px">🪑</div>
-      <div style="font-weight:800;font-size:1rem">طاولة {{ t.number }}</div>
-      {% if t.name %}<div style="font-size:.8rem;color:var(--muted)">{{ t.name }}</div>{% endif %}
-      {% if not t.is_active %}<span class="badge b-dan" style="margin-top:6px">غير نشطة</span>{% endif %}
-      <div style="display:flex;gap:6px;margin-top:12px;justify-content:center">
-        <a href="{% url 'admin_table_edit' t.pk %}" class="btn btn-out btn-sm"><i class="fas fa-edit"></i></a>
-        <button class="btn btn-dan btn-sm" onclick="delTable({{ t.pk }})"><i class="fas fa-trash"></i></button>
+<div class="tx-toolbar">
+  <div class="tx-stats">
+    <div class="tx-stat">
+      <i class="fas fa-border-all"></i>
+      <div>
+        <span>عدد الطاولات</span>
+        <strong>{% if tables %}{{ tables|length }}{% else %}0{% endif %}</strong>
       </div>
     </div>
-    {% empty %}
-    <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">مفيش طاولات مضافة</div>
+  </div>
+  <a href="{% url 'admin_table_add' %}" class="btn btn-pri tx-add"><i class="fas fa-plus"></i> إضافة طاولة</a>
+</div>
+
+<div class="tx-shell">
+  {% if tables %}
+  <div class="tx-grid">
+    {% for t in tables %}
+    <article class="tx-card{% if not t.is_active %} off{% endif %}">
+      <div class="tx-card-ico"><i class="fas fa-chair"></i></div>
+      <div class="tx-num">
+        {{ t.number }}
+        <small>طاولة</small>
+      </div>
+      {% if t.name %}
+      <div class="tx-name">{{ t.name }}</div>
+      {% else %}
+      <div class="tx-name" style="color:var(--muted)">بدون اسم</div>
+      {% endif %}
+      <div class="tx-badge">
+        {% if t.is_active %}
+        <span class="badge b-suc" style="font-size:.68rem">نشطة</span>
+        {% else %}
+        <span class="badge b-dan" style="font-size:.68rem">موقوفة</span>
+        {% endif %}
+      </div>
+      <div class="tx-act">
+        <a href="{% url 'admin_table_edit' t.pk %}" class="btn btn-out btn-sm" title="تعديل"><i class="fas fa-pen"></i></a>
+        <button type="button" class="btn btn-dan btn-sm" title="حذف" onclick="txDel({{ t.pk }})"><i class="fas fa-trash"></i></button>
+      </div>
+    </article>
     {% endfor %}
   </div>
+  {% else %}
+  <div class="tx-empty">
+    <div class="tx-empty-ico"><i class="fas fa-chair"></i></div>
+    <h3>لا توجد طاولات</h3>
+    <p>أضف أرقام الطاولات لتتمكن من ربط طلبات الصالة بالمكان الصحيح عند الكاشير.</p>
+    <a href="{% url 'admin_table_add' %}" class="btn tx-add" style="text-decoration:none;display:inline-flex;border-radius:12px;padding:11px 24px"><i class="fas fa-plus"></i> إضافة أول طاولة</a>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
+
 {% block extra_js %}<script>
-async function delTable(pk){
-  if(!confirm('حذف هذه الطاولة؟'))return;
+async function txDel(pk){
+  if(!confirm('حذف هذه الطاولة؟ لا يمكن التراجع.'))return;
   const r=await fetch(`/admin-panel/tables/${pk}/delete/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});
   if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}
 }

@@ -137,13 +137,21 @@ class Shift(models.Model):
     start_time     = models.DateTimeField(auto_now_add=True)
     end_time       = models.DateTimeField(null=True, blank=True)
     status         = models.CharField(max_length=10, choices=[('open','مفتوح'),('closed','مغلق')], default='open')
-    cash_in_drawer = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='الفلوس في الدرج')
+    cash_in_drawer = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        verbose_name='الدرج بعد العدّ',
+        help_text='ما أدخله الكاشير عند إغلاق الشيفت بعد عدّ النقد.',
+    )
     system_total   = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,
-        verbose_name='المتوقع بالدرج',
-        help_text='مجموع طلبات الشيفت + واردات الشيفت (أساس مقارنة العدّ مع الدرج)',
+        verbose_name='مجموع المطابقة',
+        help_text='مفروض المبيعات (طلبات) + واردات الشيفت؛ يُقارن بالدرج لحساب الزيادة أو العجز.',
     )
-    difference     = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='الفرق (الدرج − المتوقع)')
+    difference     = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        verbose_name='الفرق (الدرج − المطابقة)',
+        help_text='موجب = زيادة في الدرج، سالب = عجز عن المطابقة.',
+    )
     notes          = models.TextField(blank=True)
     class Meta:
         verbose_name='شيفت'; verbose_name_plural='الشيفتات'; ordering=['-start_time']

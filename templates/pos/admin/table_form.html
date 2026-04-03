@@ -2,20 +2,166 @@
 {% block title %}{{ title }}{% endblock %}
 {% block page_icon %}<i class="fas fa-chair"></i>{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .tf-wrap{max-width:640px;margin:0 auto}
+  .tf-hero{
+    display:flex;align-items:center;gap:18px;padding:22px 24px;margin-bottom:20px;border-radius:var(--radius);
+    background:linear-gradient(125deg,#f0fdfa 0%,#ccfbf1 38%,rgba(204,251,241,.65) 100%);
+    border:1px solid rgba(45,212,191,.35);
+    box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.92);
+  }
+  .tf-hero-icon{
+    width:56px;height:56px;border-radius:16px;flex-shrink:0;
+    background:linear-gradient(145deg,#5eead4,#14b8a6);
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.35rem;color:#042f2e;
+    box-shadow:0 6px 22px -4px rgba(20,184,166,.45),inset 0 1px 0 rgba(255,255,255,.45);
+  }
+  .tf-hero h2{font-size:1.05rem;font-weight:800;color:var(--text);letter-spacing:-.02em;margin:0 0 6px;line-height:1.25}
+  .tf-hero p{font-size:.84rem;color:var(--text2);line-height:1.55;margin:0;max-width:40em}
+  .tf-sec{
+    background:var(--card);border-radius:var(--radius);padding:20px 22px;margin-bottom:18px;
+    border:1px solid var(--border);box-shadow:var(--shadow);
+  }
+  .tf-sec-hdr{
+    display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;
+    border-bottom:1px solid var(--border);
+  }
+  .tf-sec-hdr i{
+    width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    font-size:.9rem;color:#0f766e;
+    background:linear-gradient(145deg,#ccfbf1,#99f6e4);
+    border:1px solid rgba(45,212,191,.35);
+  }
+  .tf-sec-hdr span{font-size:.92rem;font-weight:800;color:var(--text)}
+  .tf-sec-hdr small{display:block;font-size:.72rem;font-weight:600;color:var(--muted);margin-top:2px}
+  .tf-hint{font-size:.74rem;color:var(--muted);margin-top:6px;line-height:1.45}
+  .tf-num input{
+    font-size:1.25rem;font-weight:800;font-family:'Outfit','Cairo',sans-serif;letter-spacing:-.02em;
+    max-width:200px;font-variant-numeric:tabular-nums;
+  }
+  .tf-readonly{
+    padding:11px 14px;border-radius:11px;background:#f1f5f9;border:1.5px dashed var(--border);
+    font-size:1.15rem;font-weight:800;font-family:'Outfit','Cairo',sans-serif;color:var(--text2);font-variant-numeric:tabular-nums;
+  }
+  .tf-switch-row{
+    display:flex;align-items:flex-start;gap:14px;padding:4px 0;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .tf-switch-txt{flex:1}
+  .tf-switch-txt strong{display:block;font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:4px}
+  .tf-switch-txt span{font-size:.78rem;color:var(--text2);line-height:1.5}
+  .tf-switch{position:relative;width:48px;height:28px;display:inline-block;flex-shrink:0;margin-top:2px}
+  .tf-switch input{position:absolute;opacity:0;width:0;height:0}
+  .tf-switch span{
+    position:absolute;inset:0;background:#e2e8f0;border-radius:999px;
+    transition:background .22s var(--ease-out),box-shadow .22s;
+    box-shadow:inset 0 2px 4px rgba(15,23,42,.08);
+  }
+  .tf-switch span::after{
+    content:'';position:absolute;width:22px;height:22px;left:3px;top:3px;border-radius:50%;
+    background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.12);
+    transition:transform .22s var(--ease-out);
+  }
+  .tf-switch input:checked + span{background:linear-gradient(135deg,#14b8a6,#0d9488);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+  .tf-switch input:checked + span::after{transform:translateX(20px)}
+  .tf-switch input:focus-visible + span{outline:2px solid #14b8a6;outline-offset:2px}
+  [dir="rtl"] .tf-switch span::after{left:auto;right:3px}
+  [dir="rtl"] .tf-switch input:checked + span::after{transform:translateX(-20px)}
+  .tf-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px;padding-top:18px;border-top:1px solid var(--border)}
+  .tf-actions .btn{min-height:44px;padding:10px 20px;border-radius:12px;font-size:.88rem}
+  .tf-actions .btn-pri{
+    flex:1;min-width:160px;justify-content:center;
+    background:linear-gradient(135deg,#0d9488,#0f766e);box-shadow:0 4px 14px -4px rgba(13,148,136,.45);
+  }
+  .tf-actions .btn-pri:hover{filter:brightness(1.05)}
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="max-width:400px"><div class="card">
+<div class="tf-wrap">
+  <div class="tf-hero">
+    <div class="tf-hero-icon"><i class="fas fa-utensils"></i></div>
+    <div>
+      <h2>{% if obj %}تعديل الطاولة{% else %}إضافة طاولة للقاعة{% endif %}</h2>
+      <p>
+        {% if obj %}
+        رقم الطاولة ثابت لتفادي اختلاط الطلبات. يمكنك تغيير الاسم الاختياري أو إيقاف الطاولة مؤقتًا.
+        {% else %}
+        اختر رقمًا فريدًا. الاسم اختياري (مثل تيراس أو VIP) لمساعدة الفريق على التمييز.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
   <form method="post">{% csrf_token %}
-    {% if not obj %}
-    <div class="fg"><label>رقم الطاولة *</label><input name="number" type="number" required></div>
-    {% else %}
-    <div class="fg"><label>رقم الطاولة</label><input value="{{ obj.number }}" disabled style="background:#f1f5f9"></div>
-    {% endif %}
-    <div class="fg"><label>الاسم (اختياري)</label><input name="name" value="{{ obj.name|default:'' }}" placeholder="مثال: VIP، تيراس..."></div>
-    {% if obj %}<div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="is_active" {% if obj.is_active %}checked{% endif %}> نشطة</label></div>{% endif %}
-    <div style="display:flex;gap:10px;margin-top:20px">
-      <a href="{% url 'admin_tables' %}" class="btn btn-out" style="flex:1;justify-content:center">إلغاء</a>
-      <button type="submit" class="btn btn-pri" style="flex:2;justify-content:center"><i class="fas fa-save"></i> حفظ</button>
+    <div class="tf-sec">
+      <div class="tf-sec-hdr">
+        <i class="fas fa-hashtag"></i>
+        <div>
+          <span>رقم الطاولة</span>
+          <small>يُستخدم عند إنشاء طلب داخل الصالة</small>
+        </div>
+      </div>
+      {% if not obj %}
+      <div class="fg tf-num">
+        <label for="t_num">رقم الطاولة <span style="color:var(--dan)">*</span></label>
+        <input id="t_num" name="number" type="number" min="1" step="1" required inputmode="numeric" placeholder="مثال: 12">
+        <p class="tf-hint">يجب ألا يتكرر مع طاولة أخرى؛ إن فشل الحفظ سيظهر تنبيه بأن الرقم مستخدم.</p>
+      </div>
+      {% else %}
+      <div class="fg">
+        <label>رقم الطاولة</label>
+        <div class="tf-readonly" aria-readonly="true">طاولة {{ obj.number }}</div>
+        <p class="tf-hint">لا يمكن تغيير الرقم بعد الإنشاء حتى تبقى السجلات متسقة.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="tf-sec">
+      <div class="tf-sec-hdr">
+        <i class="fas fa-tag"></i>
+        <div>
+          <span>التسمية الاختيارية</span>
+          <small>للتوضيح فقط أمام الطاقم</small>
+        </div>
+      </div>
+      <div class="fg">
+        <label for="t_name">اسم أو وصف قصير</label>
+        <input id="t_name" name="name" value="{{ obj.name|default:'' }}" maxlength="50" placeholder="مثال: تيراس، زاوية، VIP…">
+        <p class="tf-hint">يظهر بجوار رقم الطاولة في القوائم عند وجوده.</p>
+      </div>
+    </div>
+
+    <div class="tf-sec">
+      <div class="tf-sec-hdr">
+        <i class="fas fa-toggle-on"></i>
+        <div>
+          <span>الحالة</span>
+          <small>الطاولات الموقوفة لا تُعرض عادةً عند اختيار الطاولة</small>
+        </div>
+      </div>
+      <label class="tf-switch-row">
+        <div class="tf-switch-txt">
+          <strong>طاولة نشطة</strong>
+          <span>عند الإيقاف يمكن الإبقاء على سجل الطلبات القديمة دون استخدامها في طلبات جديدة.</span>
+        </div>
+        <span class="tf-switch">
+          <input type="checkbox" name="is_active" value="1"
+            {% if obj %}{% if obj.is_active %}checked{% endif %}{% else %}checked{% endif %}>
+          <span></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="tf-sec" style="padding-bottom:20px">
+      <div class="tf-actions">
+        <a href="{% url 'admin_tables' %}" class="btn btn-out"><i class="fas fa-arrow-right"></i> رجوع للقائمة</a>
+        <button type="submit" class="btn btn-pri"><i class="fas fa-check"></i> {% if obj %}حفظ التغييرات{% else %}إضافة الطاولة{% endif %}</button>
+      </div>
     </div>
   </form>
-</div></div>
+</div>
 {% endblock %}

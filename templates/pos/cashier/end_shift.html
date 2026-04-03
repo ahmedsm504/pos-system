@@ -27,16 +27,16 @@
     {% if shift and orders_total is not None and inventory_out is not None %}
     <div style="margin-bottom:18px;padding:14px 16px;border-radius:14px;background:linear-gradient(180deg,#f0fdfa,#ecfdf5);border:1px solid #99f6e4;font-size:.8rem;font-weight:700;color:#0f766e;line-height:1.55">
       <div style="font-size:.72rem;opacity:.85;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">من السيستم (قبل ما تعدّ الدرج)</div>
-      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(15,118,110,.25)"><span>مجموع طلباتك على السيستم <span style="font-size:.68rem;font-weight:600;opacity:.85">(المفروض يتجمع منهم كاش)</span></span><strong dir="ltr">{{ orders_total|floatformat:2 }} ج</strong></div>
-      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(15,118,110,.25)"><span>واردات الشيفت <span style="font-size:.68rem;font-weight:600;opacity:.85">(مبلغ خرج للمخزون، يُضاف للمطابقة)</span></span><strong dir="ltr" style="color:#b45309">+ {{ inventory_out|floatformat:2 }} ج</strong></div>
-      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;padding-top:8px"><span>مجموع المطابقة <span style="font-size:.68rem;font-weight:600;opacity:.85">(طلبات + واردات)</span></span><strong dir="ltr">{{ orders_total|add:inventory_out|floatformat:2 }} ج</strong></div>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(15,118,110,.25)"><span><strong>مفروض المبيعات</strong> <span style="font-size:.68rem;font-weight:600;opacity:.85">(طلبات مطبوعة ومكتملة — النقد المتوقع منها)</span></span><strong dir="ltr">{{ orders_total|floatformat:2 }} ج</strong></div>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(15,118,110,.25)"><span>واردات الشيفت <span style="font-size:.68rem;font-weight:600;opacity:.85">(فلوس خرجت للمخزون — تُجمع مع المبيعات في المطابقة)</span></span><strong dir="ltr" style="color:#b45309">+ {{ inventory_out|floatformat:2 }} ج</strong></div>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;padding-top:8px"><span><strong>مجموع المطابقة</strong> <span style="font-size:.68rem;font-weight:600;opacity:.85">(مفروض المبيعات + واردات — يُقارَن بالدرج بعد العدّ)</span></span><strong dir="ltr">{{ orders_total|add:inventory_out|floatformat:2 }} ج</strong></div>
     </div>
     {% endif %}
     <div class="fg">
       <label style="font-size:1rem;font-weight:800;margin-bottom:10px">عدّ الدرج واكتب المبلغ اللي عندك فعلاً (ج)</label>
       <input type="number" id="cashInput" step="0.01" placeholder="0.00" style="font-size:1.5rem;text-align:center;padding:16px;direction:ltr" {% if shift and pending_orders_count %}disabled{% endif %}>
     </div>
-    <p style="font-size:.74rem;color:var(--muted);font-weight:600;margin:-4px 0 8px;line-height:1.5">بعد الضغط على احسب: <strong>الفرق = الدرج عندك − (مجموع الطلبات + واردات الشيفت)</strong>. موجب = زيادة، سالب = نقص.</p>
+    <p style="font-size:.74rem;color:var(--muted);font-weight:600;margin:-4px 0 8px;line-height:1.5">بعد التأكيد: <strong>الفرق = الدرج بعد العدّ − مجموع المطابقة</strong> (مفروض المبيعات + واردات). <strong>موجب</strong> = زيادة في الدرج، <strong>سالب</strong> = عجز.</p>
     <button type="button" class="btn btn-pri btn-lg" style="width:100%;justify-content:center;margin-top:10px" onclick="submitShift()" {% if shift and pending_orders_count %}disabled{% endif %}>
       <i class="fas fa-calculator"></i> احسب الشيفت
     </button>
@@ -52,7 +52,7 @@
     </div>
     <div style="display:flex;flex-direction:column;gap:12px">
       <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#f8fafc;border-radius:10px">
-        <span style="color:var(--muted);font-weight:600">مجموع الطلبات على السيستم</span>
+        <span style="color:var(--muted);font-weight:600">مفروض المبيعات</span>
         <strong id="ordTotal" style="font-size:1rem"></strong>
       </div>
       <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#fffbeb;border-radius:10px;border:1px solid #fde68a">

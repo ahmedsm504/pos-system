@@ -1,33 +1,247 @@
 {% extends 'pos/admin/base.html' %}
 {% block title %}الشيفتات{% endblock %}
 {% block page_icon %}<i class="fas fa-clock"></i>{% endblock %}
-{% block page_title %}الشيفتات{% endblock %}
+{% block page_title %}الشيفتات ومراجعة الدرج{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sh-flow{
+    display:flex;gap:16px;align-items:flex-start;padding:18px 20px;margin-bottom:20px;border-radius:var(--radius);
+    background:linear-gradient(125deg,#f0fdfa 0%,#ecfdf5 45%,rgba(236,253,245,.9) 100%);
+    border:1px solid rgba(45,212,191,.35);box-shadow:var(--shadow);
+  }
+  .sh-flow > i{color:#0f766e;font-size:1.35rem;margin-top:2px;opacity:.9}
+  .sh-flow h3{font-size:.88rem;font-weight:800;color:var(--text);margin:0 0 8px}
+  .sh-flow p{font-size:.8rem;color:var(--text2);line-height:1.65;margin:0}
+  .sh-flow ul{margin:10px 0 0;padding-right:18px;font-size:.78rem;color:var(--text2);line-height:1.7}
+  .sh-shell{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden}
+  .sh-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl.sh th{font-size:.68rem;white-space:nowrap}
+  .tbl.sh td{vertical-align:middle}
+  .sh-cashier{display:flex;align-items:center;gap:10px;min-width:0}
+  .sh-av{
+    width:36px;height:36px;border-radius:12px;flex-shrink:0;font-weight:800;font-size:.8rem;
+    display:flex;align-items:center;justify-content:center;color:#3a3008;
+    background:linear-gradient(145deg,var(--gold-soft),var(--gold));
+    box-shadow:0 2px 10px rgba(201,162,39,.22);
+  }
+  .sh-money{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+  .sh-money.muted{color:var(--muted);font-weight:600}
+  .sh-diff{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+  .sh-diff strong{font-variant-numeric:tabular-nums;font-size:.9rem}
+  .sh-diff small{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .sh-pill-suc{color:#065f46}.sh-pill-dan{color:#991b1b}.sh-pill-war{color:#92400e}
+  .sh-sub td{background:#fafbff;border-bottom:1px solid var(--border);padding:0!important}
+  .sh-details{margin:0;border:none}
+  .sh-details summary{
+    cursor:pointer;list-style:none;padding:14px 18px;font-size:.82rem;font-weight:800;color:var(--pri-d);
+    display:flex;align-items:center;gap:10px;user-select:none;
+    background:linear-gradient(180deg,rgba(253,248,234,.5),transparent);
+  }
+  .sh-details summary::-webkit-details-marker{display:none}
+  .sh-details summary::before{content:'▸';font-size:.65rem;transition:transform .2s}
+  .sh-details[open] summary::before{transform:rotate(-90deg)}
+  .sh-details .sh-body{padding:0 18px 18px}
+  .sh-kv{
+    display:grid;gap:10px;margin-bottom:16px;padding:14px;border-radius:12px;
+    background:#fff;border:1px solid var(--border);font-size:.8rem;line-height:1.5;
+  }
+  .sh-kv .row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed #e8ecf2}
+  .sh-kv .row:last-child{border-bottom:none}
+  .sh-kv .lbl{color:var(--text2);font-weight:600}
+  .sh-kv .val{font-weight:800;font-variant-numeric:tabular-nums}
+  .sh-warn{
+    padding:10px 12px;border-radius:10px;background:#fff7ed;border:1px solid #fdba74;
+    font-size:.76rem;color:#9a3412;font-weight:700;margin-bottom:14px
+  }
+  .sh-inv-h{font-size:.78rem;font-weight:800;color:var(--text);margin:0 0 8px;display:flex;align-items:center;gap:8px}
+  .sh-inv-h i{color:var(--pri)}
+  .tbl.mini{font-size:.78rem}
+  .tbl.mini th{padding:8px 10px;background:#f8fafc}
+  .tbl.mini td{padding:8px 10px}
+  .sh-notes{font-size:.8rem;color:var(--text2);padding:12px;border-radius:10px;background:#f8fafc;border:1px solid var(--border);margin-top:12px;white-space:pre-wrap}
+  .sh-notes strong{color:var(--text);display:block;margin-bottom:6px;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="card">
-  <table class="tbl">
-    <thead><tr><th>الكاشير</th><th>بداية</th><th>نهاية</th><th>الحالة</th><th>في الدرج</th><th>المتوقع بالدرج</th><th>الفرق</th><th>ملاحظات</th></tr></thead>
-    <tbody>
-      {% for s in shifts %}
-      <tr>
-        <td><strong>{{ s.cashier.get_full_name|default:s.cashier.username }}</strong></td>
-        <td style="font-size:.8rem">{{ s.start_time|date:"d/m H:i" }}</td>
-        <td style="font-size:.8rem">{{ s.end_time|date:"d/m H:i"|default:"—" }}</td>
-        <td>{% if s.status == 'open' %}<span class="badge b-war">مفتوح</span>{% else %}<span class="badge b-suc">مغلق</span>{% endif %}</td>
-        <td>{% if s.cash_in_drawer is not None %}<strong>{{ s.cash_in_drawer|floatformat:2 }} ج</strong>{% else %}—{% endif %}</td>
-        <td>{% if s.system_total is not None %}{{ s.system_total|floatformat:2 }} ج{% else %}—{% endif %}</td>
-        <td>
-          {% if s.difference is not None %}
-          <span style="font-weight:800;color:{% if s.difference > 0 %}var(--suc){% elif s.difference < 0 %}var(--dan){% else %}var(--muted){% endif %}">
-            {% if s.difference > 0 %}+{% endif %}{{ s.difference|floatformat:2 }} ج
-          </span>
-          {% else %}—{% endif %}
-        </td>
-        <td style="font-size:.8rem;color:var(--muted)">{{ s.notes|truncatechars:25|default:"—" }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px">مفيش شيفتات</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="sh-flow">
+  <i class="fas fa-circle-info"></i>
+  <div>
+    <h3>كيف تُحسب مطابقة الدرج؟</h3>
+    <p>نفس منطق شاشة الكاشير عند «إنهاء الشيفت»:</p>
+    <ul>
+      <li><strong>مفروض المبيعات:</strong> مجموع الطلبات <strong>المطبوعة والمكتملة</strong> المسندة للكاشير منذ بداية الشيفت.</li>
+      <li><strong>واردات الشيفت:</strong> ما سُجّل من مشتريات مخزون على هذا الشيفت (اعتبارًا أن المبلغ خرج من الدرج).</li>
+      <li><strong>مجموع المطابقة:</strong> مفروض المبيعات + الواردات. الكاشير يعدّ النقد في الدرج؛ <strong>الفرق = الدرج بعد العدّ − مجموع المطابقة</strong>. سالب = عجز، موجب = زيادة.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="sh-shell">
+  <div class="sh-table-wrap">
+    <table class="tbl sh">
+      <thead>
+        <tr>
+          <th>الكاشير</th>
+          <th>بداية الشيفت</th>
+          <th>نهاية الشيفت</th>
+          <th>الحالة</th>
+          <th>مفروض المبيعات</th>
+          <th>واردات</th>
+          <th>مجموع المطابقة</th>
+          <th>الدرج بعد العدّ</th>
+          <th>الفرق</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in shift_rows %}
+        {% with s=row.shift %}
+        <tr>
+          <td>
+            <div class="sh-cashier">
+              <div class="sh-av">{{ s.cashier.username|first|upper }}</div>
+              <div>
+                <strong style="font-size:.88rem">{{ s.cashier.get_full_name|default:s.cashier.username }}</strong>
+                <div style="font-size:.72rem;color:var(--muted);direction:ltr;text-align:right">@{{ s.cashier.username }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:.8rem;font-variant-numeric:tabular-nums">{{ s.start_time|date:"d/m/Y" }}<br><span style="color:var(--muted)">{{ s.start_time|date:"H:i" }}</span></td>
+          <td style="font-size:.8rem;font-variant-numeric:tabular-nums">
+            {% if s.end_time %}
+              {{ s.end_time|date:"d/m/Y" }}<br><span style="color:var(--muted)">{{ s.end_time|date:"H:i" }}</span>
+            {% else %}
+              <span class="sh-money muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.status == 'open' %}
+            <span class="badge b-war">مفتوح</span>
+            {% else %}
+            <span class="badge b-suc">مغلق</span>
+            {% endif %}
+          </td>
+          <td><span class="sh-money" dir="ltr">{{ row.sales_total|floatformat:2 }} ج</span></td>
+          <td>
+            {% if row.inventory_total > 0 %}
+            <span class="sh-money" dir="ltr" style="color:var(--pri-d)">{{ row.inventory_total|floatformat:2 }} ج</span>
+            {% else %}
+            <span class="sh-money muted">0.00 ج</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="sh-money" dir="ltr">{{ row.match_display|floatformat:2 }} ج</span>
+            {% if row.stored_mismatch %}
+            <span class="badge b-war" style="display:block;margin-top:6px;font-size:.6rem;width:fit-content">إعادة حساب≠محفوظ</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.cash_in_drawer is not None %}
+            <span class="sh-money" dir="ltr">{{ s.cash_in_drawer|floatformat:2 }} ج</span>
+            {% else %}
+            <span class="sh-money muted">لم يُغلق بعد</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.difference is not None %}
+            <div class="sh-diff">
+              <strong dir="ltr" style="color:{% if s.difference > 0 %}var(--suc){% elif s.difference < 0 %}var(--dan){% else %}var(--muted){% endif %}">
+                {% if s.difference > 0 %}+{% endif %}{{ s.difference|floatformat:2 }} ج
+              </strong>
+              {% if s.difference > 0 %}
+              <small class="sh-pill-suc">زيادة</small>
+              {% elif s.difference < 0 %}
+              <small class="sh-pill-dan">عجز</small>
+              {% else %}
+              <small class="sh-pill-war">متطابق</small>
+              {% endif %}
+            </div>
+            {% else %}
+            <span class="sh-money muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr class="sh-sub">
+          <td colspan="9">
+            <details class="sh-details">
+              <summary><i class="fas fa-receipt"></i> تفاصيل إنهاء الشيفت ومطابقة الدرج</summary>
+              <div class="sh-body">
+                <div class="sh-kv">
+                  <div class="row"><span class="lbl">فتح الشيفت (أول تسجيل دخول / إنشاء شيفت)</span><span class="val">{{ s.start_time|date:"Y-m-d H:i" }}</span></div>
+                  {% if s.end_time %}
+                  <div class="row"><span class="lbl">إغلاق الشيفت (حفظ العدّ)</span><span class="val">{{ s.end_time|date:"Y-m-d H:i" }}</span></div>
+                  {% else %}
+                  <div class="row"><span class="lbl">إغلاق الشيفت</span><span class="val muted">لا يزال مفتوحًا</span></div>
+                  {% endif %}
+                  <div class="row"><span class="lbl">مفروض المبيعات (إعادة حساب من الطلبات)</span><span class="val" dir="ltr">{{ row.sales_total|floatformat:2 }} ج</span></div>
+                  <div class="row"><span class="lbl">واردات الشيفت (إجمالي التكلفة المسجّلة)</span><span class="val" dir="ltr">{{ row.inventory_total|floatformat:2 }} ج</span></div>
+                  <div class="row"><span class="lbl">مجموع المطابقة (معاد الحساب: مبيعات + واردات)</span><span class="val" dir="ltr">{{ row.recombined_total|floatformat:2 }} ج</span></div>
+                  {% if s.status == 'closed' and s.system_total is not None %}
+                  <div class="row"><span class="lbl">مجموع المطابقة المحفوظ عند الإغلاق</span><span class="val" dir="ltr">{{ s.system_total|floatformat:2 }} ج</span></div>
+                  {% endif %}
+                  {% if s.cash_in_drawer is not None %}
+                  <div class="row"><span class="lbl">الدرج بعد العدّ (ما أدخله الكاشير)</span><span class="val" dir="ltr">{{ s.cash_in_drawer|floatformat:2 }} ج</span></div>
+                  {% endif %}
+                  {% if s.difference is not None %}
+                  <div class="row"><span class="lbl">الفرق (الدرج − المطابقة)</span>
+                    <span class="val" dir="ltr" style="color:{% if s.difference < 0 %}var(--dan){% elif s.difference > 0 %}var(--suc){% else %}var(--muted){% endif %}">
+                      {% if s.difference > 0 %}+{% endif %}{{ s.difference|floatformat:2 }} ج
+                      {% if s.difference < 0 %} (عجز){% elif s.difference > 0 %} (زيادة){% endif %}
+                    </span>
+                  </div>
+                  {% endif %}
+                </div>
+
+                {% if row.stored_mismatch %}
+                <div class="sh-warn">
+                  <i class="fas fa-triangle-exclamation"></i>
+                  مجموع المعاد حسابه ({{ row.recombined_total|floatformat:2 }} ج) يختلف عن المجموع المحفوظ عند الإغلاق ({{ s.system_total|floatformat:2 }} ج).
+                  قد يكون ذلك بسبب تعديل طلبات أو واردات لاحقًا؛ المعتمد للتدقيق هو ما حُفظ وقت الإغلاق مع مراجعة السجلات.
+                </div>
+                {% endif %}
+
+                {% if row.inventory_entries %}
+                <div class="sh-inv-h"><i class="fas fa-boxes-stacked"></i> واردات مسجّلة على هذا الشيفت</div>
+                <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border)">
+                  <table class="tbl mini" style="margin:0">
+                    <thead>
+                      <tr>
+                        <th>الصنف</th>
+                        <th>التاريخ</th>
+                        <th>الكمية</th>
+                        <th>التكلفة</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for inv in row.inventory_entries %}
+                      <tr>
+                        <td><strong>{{ inv.name }}</strong>{% if inv.unit %} <span style="color:var(--muted);font-size:.72rem">({{ inv.unit }})</span>{% endif %}</td>
+                        <td style="font-variant-numeric:tabular-nums">{{ inv.date|date:"Y-m-d" }}</td>
+                        <td dir="ltr" style="text-align:right">{{ inv.quantity|floatformat:2 }}</td>
+                        <td dir="ltr" style="text-align:right;font-weight:700">{{ inv.total_cost|floatformat:2 }} ج</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                {% else %}
+                <p style="font-size:.8rem;color:var(--muted);margin:0">لا توجد واردات مرتبطة بهذا الشيفت.</p>
+                {% endif %}
+
+                {% if s.notes %}
+                <div class="sh-notes"><strong>ملاحظات الكاشير عند الإغلاق</strong>{{ s.notes }}</div>
+                {% endif %}
+              </div>
+            </details>
+          </td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:48px">لا توجد شيفتات مسجّلة بعد</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

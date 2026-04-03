@@ -697,9 +697,9 @@ def _build_shift_report_lines(
     # —— مطابقة الدرج ——
     lines.append({'text': 'مطابقة الدرج', 'align': 'center', 'bold': True})
     lines.append({'divider': True, 'divider_style': 'dashed'})
-    lines.append(row('مجموع طلبات السيستم', f'{_fmt_j(orders_total)} ج'))
-    lines.append(row('مجموع واردات الشيفت', f'{_fmt_j(inventory_total)} ج'))
-    lines.append(row('مجموع المطابقة', f'{_fmt_j(sys_total)} ج', bold_val=True))
+    lines.append(row('مفروض المبيعات (طلبات مطبوعة + مكتملة)', f'{_fmt_j(orders_total)} ج'))
+    lines.append(row('واردات الشيفت (خرج من الدرج للمخزون)', f'{_fmt_j(inventory_total)} ج'))
+    lines.append(row('مجموع المطابقة (مبيعات + واردات)', f'{_fmt_j(sys_total)} ج', bold_val=True))
     lines.append(row('الدرج بعد العدّ', f'{_fmt_j(cash_input)} ج', bold_val=True))
     lines.append(row('الفرق (زيادة / نقص)', f'{_fmt_shift_diff(diff)} ج', bold_val=True))
     lines.append({'text': 'موجب = زيادة · سالب = نقص', 'align': 'center', 'size': 'small'})

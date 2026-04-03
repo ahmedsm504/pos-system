@@ -1,47 +1,160 @@
 {% extends 'pos/admin/base.html' %}
 {% block title %}طياري الديليفري{% endblock %}
 {% block page_icon %}<i class="fas fa-motorcycle"></i>{% endblock %}
-{% block page_title %}طياري الديليفري</span>{% endblock %}
-{% block extra_css %}<style>
-.period-tabs{display:flex;gap:8px;margin-bottom:16px}
-.ptab{padding:6px 16px;border-radius:999px;border:1.5px solid var(--border);background:#fff;text-decoration:none;font-size:.8rem;font-weight:700;color:var(--text2);transition:all .18s}
-.ptab.active{background:var(--pri);color:#fff;border-color:var(--pri)}
-.driver-card{background:#fff;border-radius:14px;border:1.5px solid var(--border);padding:18px 20px;display:flex;align-items:center;gap:16px;transition:all .18s}
-.driver-card:hover{border-color:var(--pri-l);box-shadow:var(--shadow)}
-.driver-av{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;flex-shrink:0}
-</style>{% endblock %}
+{% block page_title %}طياري الديليفري{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dx-toolbar{
+    display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;
+  }
+  .dx-toolbar-left{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+  .dx-stats{display:flex;flex-wrap:wrap;gap:12px}
+  .dx-stat{
+    display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:14px;
+    background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);min-width:150px;
+  }
+  .dx-stat i{
+    width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    font-size:.95rem;color:#92400e;
+    background:linear-gradient(145deg,#fed7aa,#fdba74);
+    border:1px solid rgba(245,158,11,.3);
+  }
+  .dx-stat div span{display:block;font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .dx-stat div strong{font-size:1.35rem;font-weight:800;color:var(--text);font-family:'Outfit','Cairo',sans-serif;line-height:1}
+  .dx-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:4px;border-radius:999px;background:rgba(255,255,255,.75);border:1px solid var(--border);box-shadow:0 2px 8px -2px rgba(15,23,42,.06)}
+  .dx-tab{
+    padding:8px 16px;border-radius:999px;border:none;background:transparent;
+    font-size:.78rem;font-weight:800;color:var(--text2);text-decoration:none;font-family:inherit;cursor:pointer;
+    transition:background .18s,color .15s,box-shadow .18s;
+  }
+  .dx-tab:hover{color:var(--text);background:rgba(255,255,255,.9)}
+  .dx-tab.active{
+    background:linear-gradient(135deg,#ea580c,#c2410c);color:#fff;
+    box-shadow:0 4px 12px -2px rgba(234,88,12,.4);
+  }
+  .dx-add.btn{
+    padding:11px 20px;border-radius:12px;font-size:.88rem;gap:8px;text-decoration:none;
+    background:linear-gradient(135deg,#d97706,#b45309);box-shadow:0 4px 16px -4px rgba(217,119,6,.45);
+    color:#fffbeb;border:none;
+  }
+  .dx-add.btn,.dx-add.btn:visited{color:#fffbeb}
+  .dx-add.btn:hover{color:#fff;filter:brightness(1.06)}
+  .dx-add.btn i{color:inherit;opacity:.95}
+  .dx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+  .dx-card{
+    background:var(--card);border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow);
+    padding:20px 20px 18px;display:flex;gap:16px;align-items:flex-start;
+    transition:border-color .2s,box-shadow .2s;
+  }
+  .dx-card:hover{border-color:rgba(245,158,11,.35);box-shadow:0 8px 28px -12px rgba(15,23,42,.1)}
+  .dx-av{
+    width:52px;height:52px;border-radius:16px;flex-shrink:0;
+    background:linear-gradient(145deg,#fcd34d,#f59e0b);
+    display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:#422006;
+    box-shadow:0 4px 14px rgba(245,158,11,.35),inset 0 1px 0 rgba(255,255,255,.4);
+  }
+  .dx-body{flex:1;min-width:0}
+  .dx-body-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
+  .dx-body-top h3{font-size:.95rem;font-weight:800;color:var(--text);margin:0;line-height:1.3}
+  .dx-phone{
+    font-size:.8rem;color:var(--text2);direction:ltr;text-align:right;margin-bottom:12px;
+    display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums;
+  }
+  .dx-phone i{color:#d97706;opacity:.85;font-size:.75rem}
+  .dx-metrics{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .dx-metric{
+    flex:1;min-width:88px;padding:10px 12px;border-radius:12px;text-align:center;
+    background:linear-gradient(180deg,#fafbff,#f1f5f9);border:1px solid var(--border);
+  }
+  .dx-metric strong{display:block;font-size:1.05rem;font-weight:800;font-family:'Outfit','Cairo',sans-serif;color:var(--pri)}
+  .dx-metric.suc strong{color:var(--suc)}
+  .dx-metric span{display:block;font-size:.65rem;font-weight:700;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}
+  .dx-side{display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+  .dx-side .btn{border-radius:11px;min-width:42px;justify-content:center}
+  .dx-empty{text-align:center;padding:52px 20px;color:var(--text2)}
+  .dx-empty .dx-empty-ico{
+    width:76px;height:76px;margin:0 auto 20px;border-radius:24px;
+    display:flex;align-items:center;justify-content:center;font-size:1.65rem;color:#c2410c;
+    background:linear-gradient(165deg,#ffedd5,#fff7ed);border:1px dashed rgba(234,88,12,.35);
+  }
+  .dx-empty h3{font-size:1.02rem;font-weight:800;color:var(--text);margin:0 0 8px}
+  .dx-empty p{font-size:.88rem;max-width:380px;margin:0 auto 22px;line-height:1.55}
+  .dx-hint{font-size:.72rem;color:var(--muted);margin-top:14px;text-align:center;grid-column:1/-1}
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-  <div class="period-tabs">
-    <a href="?period=7"  class="ptab {% if period == '7' %}active{% endif %}">7 أيام</a>
-    <a href="?period=30" class="ptab {% if period == '30' or not period %}active{% endif %}">30 يوم</a>
-    <a href="?period=90" class="ptab {% if period == '90' %}active{% endif %}">3 أشهر</a>
-  </div>
-  <a href="{% url 'admin_driver_add' %}" class="btn btn-pri"><i class="fas fa-plus"></i> إضافة طيار</a>
-</div>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">
-  {% for ds in driver_stats %}
-  <div class="driver-card">
-    <div class="driver-av">{{ ds.driver.name|first }}</div>
-    <div style="flex:1">
-      <div style="font-weight:800;font-size:.95rem">{{ ds.driver.name }}</div>
-      <div style="font-size:.8rem;color:var(--muted)">📱 {{ ds.driver.phone }}</div>
-      <div style="display:flex;gap:12px;margin-top:8px">
-        <div style="text-align:center"><div style="font-size:1.1rem;font-weight:900;color:var(--pri)">{{ ds.count }}</div><div style="font-size:.7rem;color:var(--muted)">طلب</div></div>
-        <div style="text-align:center"><div style="font-size:1.1rem;font-weight:900;color:var(--suc)">{{ ds.revenue|floatformat:0 }} ج</div><div style="font-size:.7rem;color:var(--muted)">إيراد</div></div>
-        {% if not ds.driver.is_active %}<span class="badge b-dan">غير نشط</span>{% endif %}
+<div class="dx-toolbar">
+  <div class="dx-toolbar-left">
+    <div class="dx-stats">
+      <div class="dx-stat">
+        <i class="fas fa-motorcycle"></i>
+        <div>
+          <span>عدد الطيارين</span>
+          <strong>{% if driver_stats %}{{ driver_stats|length }}{% else %}0{% endif %}</strong>
+        </div>
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <a href="{% url 'admin_driver_edit' ds.driver.pk %}" class="btn btn-out btn-sm"><i class="fas fa-edit"></i></a>
-      <button class="btn btn-dan btn-sm" onclick="del('/admin-panel/delivery/{{ ds.driver.pk }}/delete/')"><i class="fas fa-trash"></i></button>
+    <div class="dx-tabs" role="tablist" aria-label="فترة الإحصائيات">
+      <a href="?period=7" class="dx-tab {% if period == '7' %}active{% endif %}">٧ أيام</a>
+      <a href="?period=30" class="dx-tab {% if period == '30' or not period %}active{% endif %}">٣٠ يوم</a>
+      <a href="?period=90" class="dx-tab {% if period == '90' %}active{% endif %}">٩٠ يوم</a>
     </div>
   </div>
-  {% empty %}
-  <div style="grid-column:1/-1;text-align:center;padding:50px;color:var(--muted)">مفيش طياري ديليفري</div>
-  {% endfor %}
+  <a href="{% url 'admin_driver_add' %}" class="btn btn-pri dx-add"><i class="fas fa-plus"></i> إضافة طيار</a>
 </div>
+
+{% if driver_stats %}
+<div class="dx-grid">
+  {% for ds in driver_stats %}
+  <div class="dx-card">
+    <div class="dx-av">{{ ds.driver.name|first|upper }}</div>
+    <div class="dx-body">
+      <div class="dx-body-top">
+        <h3>{{ ds.driver.name }}</h3>
+        {% if ds.driver.is_active %}
+        <span class="badge b-suc" style="flex-shrink:0">نشط</span>
+        {% else %}
+        <span class="badge b-dan" style="flex-shrink:0">موقوف</span>
+        {% endif %}
+      </div>
+      <div class="dx-phone"><i class="fas fa-phone"></i> {{ ds.driver.phone }}</div>
+      <div class="dx-metrics">
+        <div class="dx-metric">
+          <strong>{{ ds.count }}</strong>
+          <span>طلبات</span>
+        </div>
+        <div class="dx-metric suc">
+          <strong>{{ ds.revenue|floatformat:0 }}</strong>
+          <span>إيراد (ج)</span>
+        </div>
+      </div>
+    </div>
+    <div class="dx-side">
+      <a href="{% url 'admin_driver_edit' ds.driver.pk %}" class="btn btn-out btn-sm" title="تعديل"><i class="fas fa-pen"></i></a>
+      <button type="button" class="btn btn-dan btn-sm" title="حذف" onclick="dxDel('/admin-panel/delivery/{{ ds.driver.pk }}/delete/')"><i class="fas fa-trash"></i></button>
+    </div>
+  </div>
+  {% endfor %}
+  <p class="dx-hint">الأرقام أعلاه للطلبات بحالة «قيد الانتظار» أو «مكتمل» ضمن الفترة المختارة.</p>
+</div>
+{% else %}
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="dx-empty">
+    <div class="dx-empty-ico"><i class="fas fa-route"></i></div>
+    <h3>لا يوجد طيارين ديليفري</h3>
+    <p>أضف طيارًا لربطه بطلبات التوصيل ومتابعة أداء كل سائق من هذه الصفحة.</p>
+    <a href="{% url 'admin_driver_add' %}" class="btn dx-add" style="border-radius:12px;padding:11px 24px;text-decoration:none;display:inline-flex"><i class="fas fa-plus"></i> إضافة أول طيار</a>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
+
 {% block extra_js %}<script>
-async function del(url){if(!confirm('حذف؟'))return;const r=await fetch(url,{method:'POST',headers:{'X-CSRFToken':csrf()}});if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}}
+async function dxDel(url){
+  if(!confirm('حذف هذا الطيار؟ لا يمكن التراجع.'))return;
+  const r=await fetch(url,{method:'POST',headers:{'X-CSRFToken':csrf()}});
+  if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}
+}
 </script>{% endblock %}

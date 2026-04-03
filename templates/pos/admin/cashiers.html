@@ -2,44 +2,150 @@
 {% block title %}الكاشيرين{% endblock %}
 {% block page_icon %}<i class="fas fa-users"></i>{% endblock %}
 {% block page_title %}إدارة الكاشيرين{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cx-toolbar{
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;
+  }
+  .cx-stats{display:flex;flex-wrap:wrap;gap:12px}
+  .cx-stat{
+    display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:14px;
+    background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);
+    min-width:160px;
+  }
+  .cx-stat i{
+    width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    font-size:.95rem;color:var(--pri-d);
+    background:linear-gradient(145deg,var(--pri-l),rgba(253,248,234,.95));
+    border:1px solid rgba(201,162,39,.18);
+  }
+  .cx-stat div span{display:block;font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .cx-stat div strong{font-size:1.35rem;font-weight:800;color:var(--text);font-family:'Outfit','Cairo',sans-serif;letter-spacing:-.03em;line-height:1}
+  .cx-add.btn{
+    padding:11px 20px;border-radius:12px;font-size:.88rem;
+    box-shadow:0 4px 16px -4px rgba(166,124,26,.4);gap:8px;
+  }
+  .cx-card{
+    background:var(--card);border-radius:var(--radius);border:1px solid var(--border);
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .cx-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl.cx th:first-child,.tbl.cx td:first-child{width:52px;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums}
+  .tbl.cx .cx-usercell{display:flex;align-items:center;gap:12px;min-width:0}
+  .cx-av{
+    width:42px;height:42px;border-radius:14px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;
+    color:#3a3008;
+    background:linear-gradient(145deg,var(--gold-soft),var(--gold));
+    box-shadow:0 3px 12px rgba(201,162,39,.28),inset 0 1px 0 rgba(255,255,255,.45);
+  }
+  .cx-av.muted{
+    background:linear-gradient(145deg,#f1f5f9,#e2e8f0);color:var(--text2);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.8);
+  }
+  .cx-names{min-width:0}
+  .cx-names strong{display:block;font-size:.9rem;font-weight:700;color:var(--text);line-height:1.25}
+  .cx-names span{display:block;font-size:.76rem;color:var(--muted);margin-top:2px;direction:ltr;text-align:right;overflow:hidden;text-overflow:ellipsis}
+  .cx-perm-tags{display:flex;flex-wrap:wrap;gap:5px 6px;max-width:220px}
+  .cx-perm-tags .badge{font-size:.65rem;padding:4px 10px;font-weight:700}
+  .cx-empty{
+    text-align:center;padding:48px 24px 52px;color:var(--text2);
+  }
+  .cx-empty .cx-empty-ico{
+    width:72px;height:72px;margin:0 auto 18px;border-radius:22px;
+    display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:var(--gold-dim);
+    background:linear-gradient(165deg,var(--pri-l),#fff);border:1px dashed rgba(201,162,39,.35);
+  }
+  .cx-empty h3{font-size:1rem;font-weight:800;color:var(--text);margin:0 0 8px}
+  .cx-empty p{font-size:.86rem;max-width:340px;margin:0 auto 20px;line-height:1.55;color:var(--text2)}
+  .cx-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+  .cx-actions .btn{border-radius:10px;min-width:40px;justify-content:center}
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
-  <a href="{% url 'admin_cashier_add' %}" class="btn btn-pri"><i class="fas fa-user-plus"></i> إضافة كاشير</a>
+<div class="cx-toolbar">
+  <div class="cx-stats">
+    <div class="cx-stat">
+      <i class="fas fa-user-check"></i>
+      <div>
+        <span>عدد الكاشيرين</span>
+        <strong>{% if cashiers %}{{ cashiers|length }}{% else %}0{% endif %}</strong>
+      </div>
+    </div>
+  </div>
+  <a href="{% url 'admin_cashier_add' %}" class="btn btn-pri cx-add"><i class="fas fa-user-plus"></i> إضافة كاشير</a>
 </div>
-<div class="card">
-  <table class="tbl">
-    <thead><tr><th>#</th><th>الاسم</th><th>المستخدم</th><th>الهاتف</th><th>الصلاحيات</th><th>آخر دخول</th><th></th></tr></thead>
-    <tbody>
-      {% for u in cashiers %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td><strong>{{ u.get_full_name|default:u.username }}</strong></td>
-        <td style="direction:ltr;text-align:right">{{ u.username }}</td>
-        <td>{{ u.cashier_profile.phone|default:"—" }}</td>
-        <td>
-          {% if u.cashier_profile.can_view_totals %}<span class="badge b-suc" style="margin:1px">إجماليات</span>{% endif %}
-          {% if u.cashier_profile.can_view_history %}<span class="badge b-pri" style="margin:1px">تاريخ</span>{% endif %}
-          {% if u.cashier_profile.can_open_drawer %}<span class="badge b-war" style="margin:1px">درج</span>{% endif %}
-          {% if not u.cashier_profile.can_view_totals and not u.cashier_profile.can_view_history and not u.cashier_profile.can_open_drawer %}<span style="color:var(--muted);font-size:.8rem">أساسي</span>{% endif %}
-        </td>
-        <td style="color:var(--muted)">{{ u.last_login|date:"d/m H:i"|default:"لم يدخل" }}</td>
-        <td>
-          <div style="display:flex;gap:6px">
-            <a href="{% url 'admin_cashier_edit' u.pk %}" class="btn btn-out btn-sm"><i class="fas fa-edit"></i></a>
-            <button class="btn btn-dan btn-sm" onclick="deleteCashier({{ u.pk }})"><i class="fas fa-trash"></i></button>
-          </div>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">مفيش كاشيرين</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+
+<div class="cx-card">
+  {% if cashiers %}
+  <div class="cx-table-wrap">
+    <table class="tbl cx">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>الكاشير</th>
+          <th>الهاتف</th>
+          <th>الصلاحيات</th>
+          <th>آخر دخول</th>
+          <th style="width:120px;text-align:left">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in cashiers %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>
+            <div class="cx-usercell">
+              {% with n=u.get_full_name|default:u.username %}
+              <div class="cx-av{% if not n %} muted{% endif %}">{{ n|first|upper }}</div>
+              <div class="cx-names">
+                <strong>{{ n }}</strong>
+                <span title="{{ u.username }}"><i class="fas fa-at" style="opacity:.5;font-size:.68rem"></i> {{ u.username }}</span>
+              </div>
+              {% endwith %}
+            </div>
+          </td>
+          <td style="font-variant-numeric:tabular-nums">{{ u.cashier_profile.phone|default:"—" }}</td>
+          <td>
+            <div class="cx-perm-tags">
+              {% if u.cashier_profile.can_view_totals %}<span class="badge b-suc">إجماليات</span>{% endif %}
+              {% if u.cashier_profile.can_view_history %}<span class="badge b-pri">تاريخ</span>{% endif %}
+              {% if u.cashier_profile.can_open_drawer %}<span class="badge b-war">درج</span>{% endif %}
+              {% if not u.cashier_profile.can_view_totals and not u.cashier_profile.can_view_history and not u.cashier_profile.can_open_drawer %}
+              <span class="badge b-grey">أساسي</span>
+              {% endif %}
+            </div>
+          </td>
+          <td style="color:var(--text2);font-size:.82rem;font-variant-numeric:tabular-nums">
+            {{ u.last_login|date:"d/m/Y H:i"|default:"لم يدخل بعد" }}
+          </td>
+          <td>
+            <div class="cx-actions">
+              <a href="{% url 'admin_cashier_edit' u.pk %}" class="btn btn-out btn-sm" title="تعديل"><i class="fas fa-pen"></i></a>
+              <button type="button" class="btn btn-dan btn-sm" title="حذف" onclick="deleteCashier({{ u.pk }})"><i class="fas fa-trash"></i></button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="cx-empty">
+    <div class="cx-empty-ico"><i class="fas fa-users-slash"></i></div>
+    <h3>لا يوجد كاشيرين بعد</h3>
+    <p>أضف أول حساب كاشير ليتمكن الفريق من تسجيل الطلبات وإدارة الشيفت من الشاشة المخصصة.</p>
+    <a href="{% url 'admin_cashier_add' %}" class="btn btn-pri" style="border-radius:12px;padding:11px 22px"><i class="fas fa-user-plus"></i> إضافة أول كاشير</a>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
+
 {% block extra_js %}<script>
 async function deleteCashier(pk){
-  if(!confirm('حذف هذا الكاشير؟'))return;
+  if(!confirm('حذف هذا الكاشير؟ لا يمكن التراجع.'))return;
   const r=await fetch(`/admin-panel/cashiers/${pk}/delete/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});
   if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}
 }

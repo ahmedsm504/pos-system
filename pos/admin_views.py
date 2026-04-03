@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from collections import defaultdict
+from types import SimpleNamespace
 
 from django.db.models import (
     Case,
@@ -239,7 +240,17 @@ def cashier_add(request):
             )
             messages.success(request, f'تم إضافة الكاشير {username}')
             return redirect('admin_cashiers')
-    return render(request, 'pos/admin/cashier_form.html', {'title': 'إضافة كاشير'})
+    empty_profile = SimpleNamespace(
+        phone='',
+        can_view_totals=False,
+        can_view_history=False,
+        can_open_drawer=False,
+    )
+    return render(
+        request,
+        'pos/admin/cashier_form.html',
+        {'title': 'إضافة كاشير', 'profile': empty_profile},
+    )
 
 
 @admin_required
@@ -287,7 +298,11 @@ def tables_list(request):
 def table_add(request):
     if request.method == 'POST':
         try:
-            Table.objects.create(number=request.POST['number'], name=request.POST.get('name', ''))
+            Table.objects.create(
+                number=request.POST['number'],
+                name=request.POST.get('name', ''),
+                is_active='is_active' in request.POST,
+            )
             messages.success(request, 'تم إضافة الطاولة')
         except Exception:
             messages.error(request, 'رقم الطاولة موجود بالفعل')
@@ -327,7 +342,11 @@ def waiter_list(request):
 @admin_required
 def waiter_add(request):
     if request.method == 'POST':
-        Waiter.objects.create(name=request.POST['name'], phone=request.POST.get('phone', ''))
+        Waiter.objects.create(
+            name=request.POST['name'],
+            phone=request.POST.get('phone', ''),
+            is_active='is_active' in request.POST,
+        )
         messages.success(request, 'تم إضافة الويتر')
         return redirect('admin_waiters')
     return render(request, 'pos/admin/waiter_form.html', {'title': 'إضافة ويتر'})
@@ -377,7 +396,11 @@ def driver_list(request):
 @admin_required
 def driver_add(request):
     if request.method == 'POST':
-        DeliveryDriver.objects.create(name=request.POST['name'], phone=request.POST['phone'])
+        DeliveryDriver.objects.create(
+            name=request.POST['name'],
+            phone=request.POST['phone'],
+            is_active='is_active' in request.POST,
+        )
         messages.success(request, 'تم إضافة الطيار')
         return redirect('admin_drivers')
     return render(request, 'pos/admin/driver_form.html', {'title': 'إضافة طيار'})
@@ -830,7 +853,57 @@ def order_history_detail(request, order_id):
 #  SHIFTS
 # ══════════════════════════════════════════════════════════════════════════
 
+def _shift_sales_total_for_display(shift):
+    """
+    مفروض المبيعات (نفس منطق إنهاء الشيفت): طلبات مطبوعة + مكتملة منذ بداية الشيفت.
+    """
+    qs = Order.objects.filter(
+        cashier=shift.cashier,
+        created_at__gte=shift.start_time,
+        status__in=['printed', 'completed'],
+    )
+    return sum(Decimal(str(o.total)) for o in qs)
+
+
+def _shift_inventory_total_for_display(shift):
+    t = InventoryEntry.objects.filter(shift=shift).aggregate(s=Sum('total_cost'))['s']
+    return Decimal(t) if t is not None else Decimal('0')
+
+
 @admin_required
 def shifts_list(request):
-    shifts = Shift.objects.select_related('cashier').order_by('-start_time')[:50]
-    return render(request, 'pos/admin/shifts.html', {'shifts': shifts})
+    shifts = (
+        Shift.objects.select_related('cashier')
+        .prefetch_related(
+            Prefetch(
+                'inventory_entries',
+                queryset=InventoryEntry.objects.order_by('date', 'id'),
+            )
+        )
+        .order_by('-start_time')[:50]
+    )
+    rows = []
+    tol = Decimal('0.02')
+    for s in shifts:
+        sales = _shift_sales_total_for_display(s)
+        inv = _shift_inventory_total_for_display(s)
+        recombined = sales + inv
+        stored = s.system_total
+        mismatch = (
+            s.status == 'closed'
+            and stored is not None
+            and abs(recombined - stored) > tol
+        )
+        match_display = (
+            stored if s.status == 'closed' and stored is not None else recombined
+        )
+        rows.append({
+            'shift': s,
+            'sales_total': sales,
+            'inventory_total': inv,
+            'recombined_total': recombined,
+            'match_display': match_display,
+            'stored_mismatch': mismatch,
+            'inventory_entries': list(s.inventory_entries.all()),
+        })
+    return render(request, 'pos/admin/shifts.html', {'shift_rows': rows})
