@@ -7,11 +7,23 @@
   <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;padding:24px;color:#fff;margin-bottom:20px;text-align:center">
     <i class="fas fa-clock" style="font-size:2.5rem;margin-bottom:12px;display:block;opacity:.9"></i>
     <h2 style="font-size:1.2rem;margin-bottom:6px">إنهاء الشيفت</h2>
-    <p style="opacity:.8;font-size:.85rem">نجمّع من السيستم كل طلباتك (مطبوع + مكتمل). <strong>واردات الشيفت</strong> = فلوس خرجت من الدرج لكنها مسجّلة في السيستم، فبيتحسب <strong>مجموع المطابقة = الطلبات + الواردات</strong> ويُقارن بمبلغ الدرج اللي هتعدّه.</p>
+    <p style="opacity:.8;font-size:.85rem">نجمّع من السيستم كل طلباتك (مطبوع + مكتمل). <strong>واردات الشيفت</strong> = فلوس خرجت من الدرج لكنها مسجّلة في السيستم، فبيتحسب <strong>مجموع المطابقة = الطلبات + الواردات</strong> ويُقارن بمبلغ الدرج اللي هتعدّه. بعد التأكيد يُطبَع <strong>تقرير اليوم</strong> على الطابعة الرئيسية ثم <strong>تسجيل خروج تلقائي</strong>.</p>
     {% if shift %}<p style="opacity:.7;font-size:.8rem;margin-top:6px">بدأ: {{ shift.start_time|date:"H:i" }}</p>{% endif %}
   </div>
 
-  <div class="card" id="inputCard">
+  {% if shift and pending_orders_count %}
+  <div class="card" style="margin-bottom:16px;border:2px solid #f59e0b;background:linear-gradient(180deg,#fffbeb,#fef3c7);padding:16px;border-radius:14px">
+    <p style="margin:0;font-weight:800;color:#92400e;font-size:.95rem;line-height:1.5">
+      <i class="fas fa-hourglass-half" style="margin-inline-end:8px"></i>
+      مش ممكن تنهي الشيفت: فيه <strong>{{ pending_orders_count }}</strong> {% if pending_orders_count == 1 %}طلب{% else %}طلبات{% endif %} غير مكتملة (مفتوحة أو قيد الانتظار). أكمل كل الطلبات الأول.
+    </p>
+    <a href="{% url 'cashier_dashboard' %}" class="btn btn-pri" style="width:100%;justify-content:center;margin-top:12px">
+      <i class="fas fa-home"></i> رجوع للطلبات
+    </a>
+  </div>
+  {% endif %}
+
+  <div class="card" id="inputCard" {% if shift and pending_orders_count %}style="opacity:.65" aria-disabled="true"{% endif %}>
     {% if shift and orders_total is not None and inventory_out is not None %}
     <div style="margin-bottom:18px;padding:14px 16px;border-radius:14px;background:linear-gradient(180deg,#f0fdfa,#ecfdf5);border:1px solid #99f6e4;font-size:.8rem;font-weight:700;color:#0f766e;line-height:1.55">
       <div style="font-size:.72rem;opacity:.85;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">من السيستم (قبل ما تعدّ الدرج)</div>
@@ -22,10 +34,10 @@
     {% endif %}
     <div class="fg">
       <label style="font-size:1rem;font-weight:800;margin-bottom:10px">عدّ الدرج واكتب المبلغ اللي عندك فعلاً (ج)</label>
-      <input type="number" id="cashInput" step="0.01" placeholder="0.00" style="font-size:1.5rem;text-align:center;padding:16px;direction:ltr">
+      <input type="number" id="cashInput" step="0.01" placeholder="0.00" style="font-size:1.5rem;text-align:center;padding:16px;direction:ltr" {% if shift and pending_orders_count %}disabled{% endif %}>
     </div>
     <p style="font-size:.74rem;color:var(--muted);font-weight:600;margin:-4px 0 8px;line-height:1.5">بعد الضغط على احسب: <strong>الفرق = الدرج عندك − (مجموع الطلبات + واردات الشيفت)</strong>. موجب = زيادة، سالب = نقص.</p>
-    <button class="btn btn-pri btn-lg" style="width:100%;justify-content:center;margin-top:10px" onclick="submitShift()">
+    <button type="button" class="btn btn-pri btn-lg" style="width:100%;justify-content:center;margin-top:10px" onclick="submitShift()" {% if shift and pending_orders_count %}disabled{% endif %}>
       <i class="fas fa-calculator"></i> احسب الشيفت
     </button>
     <a href="{% url 'cashier_dashboard' %}" class="btn btn-out" style="width:100%;justify-content:center;margin-top:8px">
@@ -63,9 +75,9 @@
         <strong id="diffVal" style="font-size:1.1rem"></strong>
       </div>
     </div>
-    <a href="{% url 'cashier_dashboard' %}" class="btn btn-suc btn-lg" style="width:100%;justify-content:center;margin-top:18px">
-      <i class="fas fa-home"></i> انتهى — رجوع
-    </a>
+    <p id="logoutHint" style="text-align:center;margin-top:18px;font-size:.85rem;font-weight:700;color:var(--muted);line-height:1.5">
+      <i class="fas fa-sign-out-alt" style="opacity:.7"></i> سيتم تسجيل الخروج تلقائياً خلال ثوانٍ بعد طباعة التقرير…
+    </p>
   </div>
 </div>
 {% endblock %}
@@ -88,10 +100,18 @@ async function submitShift(){
     const diffVal=document.getElementById('diffVal');
     const icon=document.getElementById('resultIcon');
     const title=document.getElementById('resultTitle');
-    diffVal.textContent=(diff>=0?'+':'')+diff.toFixed(2)+' ج';
+    let diffTxt;
+    if(diff>0)diffTxt='+'+Number(diff).toFixed(2)+' ج';
+    else if(diff<0)diffTxt='-'+Math.abs(Number(diff)).toFixed(2)+' ج';
+    else diffTxt=Number(diff).toFixed(2)+' ج';
+    diffVal.textContent=diffTxt;
     if(diff===0){diffCard.style.borderColor='var(--suc)';diffCard.style.background='var(--suc-l)';icon.textContent='✅';title.textContent='ممتاز! الحسابات متطابقة'}
     else if(diff>0){diffCard.style.borderColor='var(--pri)';diffCard.style.background='var(--pri-l)';diffVal.style.color='var(--pri)';icon.textContent='💰';title.textContent='فيه زيادة في الدرج'}
     else{diffCard.style.borderColor='var(--dan)';diffCard.style.background='var(--dan-l)';diffVal.style.color='var(--dan)';icon.textContent='⚠️';title.textContent='فيه نقص في الدرج'}
+    if(d.print_success===true)showToast('تم إغلاق الشيفت وإرسال تقرير اليوم للطابعة','suc',2800);
+    else if(d.print_success===false)showToast('تم إغلاق الشيفت — تحقق من تشغيل خدمة الطباعة (لم تُطبع الفاتورة)','war',5000);
+    const logoutUrl=d.logout_url||'{% url "logout" %}';
+    setTimeout(function(){window.location.href=logoutUrl;},2600);
   }else{showToast(d.error||'خطأ','err')}
 }
 </script>{% endblock %}

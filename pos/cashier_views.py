@@ -6,7 +6,9 @@ from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.db.models import Count, Q, Sum
+from django.urls import reverse
 import json, logging
+from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 
@@ -489,14 +491,246 @@ def cashier_inventory_submit(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
-def _shift_orders_total_sum(cashier, shift):
-    """مجموع مبيعات الطلبات = نقد دخل الدرج (مطبوع + مكتمل منذ بداية الشيفت)."""
-    orders = Order.objects.filter(
+def _shift_orders_qs(cashier, shift):
+    """طلبات الشيفت (مطبوع + مكتمل) مع العلاقات للتقارير."""
+    return (
+        Order.objects.filter(
+            cashier=cashier,
+            created_at__gte=shift.start_time,
+            status__in=['printed', 'completed'],
+        )
+        .select_related('waiter', 'table', 'driver')
+        .prefetch_related('items__menu_item__category')
+    )
+
+
+def _shift_incomplete_orders_count(cashier, shift):
+    """مفتوح أو قيد الانتظار — يمنع إغلاق الشيفت حتى تُكمّل الطلبات."""
+    return Order.objects.filter(
         cashier=cashier,
         created_at__gte=shift.start_time,
-        status__in=['printed', 'completed'],
-    )
-    return sum(Decimal(str(o.total)) for o in orders)
+        status__in=['open', 'printed'],
+    ).count()
+
+
+def _shift_orders_total_sum(cashier, shift):
+    """مجموع مبيعات الطلبات = نقد دخل الدرج (مطبوع + مكتمل منذ بداية الشيفت)."""
+    return sum(Decimal(str(o.total)) for o in _shift_orders_qs(cashier, shift))
+
+
+def _fmt_j(m) -> str:
+    return f"{Decimal(str(m)).quantize(Decimal('0.01')):.2f}"
+
+
+def _fmt_shift_diff(diff: Decimal) -> str:
+    d = Decimal(str(diff)).quantize(Decimal('0.01'))
+    if d > 0:
+        return f'+{_fmt_j(d)}'
+    if d < 0:
+        return f'-{_fmt_j(abs(d))}'
+    return _fmt_j(d)
+
+
+def _build_shift_report_lines(
+    shift,
+    cashier_user,
+    orders_list,
+    inventory_entries,
+    cash_input: Decimal,
+    orders_total: Decimal,
+    inventory_total: Decimal,
+    sys_total: Decimal,
+    diff: Decimal,
+):
+    """سطور فاتورة تقرير إنهاء الشيفت للطابعة الرئيسية."""
+    end = shift.end_time or timezone.now()
+    end_local = timezone.localtime(end)
+    start_local = timezone.localtime(shift.start_time)
+    rep_date = end_local.strftime('%Y-%m-%d')
+    rep_time = end_local.strftime('%H:%M')
+    cashier_name = cashier_user.get_full_name() or cashier_user.username
+
+    def row(label, value, bold_val=False):
+        return {
+            'cols': [
+                {'text': str(value), 'width': 0.42, 'align': 'left', 'bold': bold_val},
+                {'text': label, 'width': 0.58, 'align': 'right', 'bold': True},
+            ]
+        }
+
+    lines = [
+        {'spacer': True, 'height': 6},
+        {'text': 'تقارير اليوم — إنهاء الشيفت', 'align': 'center', 'bold': True, 'size': 'xlarge'},
+        {'divider': True, 'divider_style': 'double'},
+        {'text': f'تاريخ التقرير: {rep_date}   الوقت: {rep_time}', 'align': 'center', 'size': 'small'},
+        {'text': f'الشيفت: من {start_local.strftime("%H:%M %Y-%m-%d")} إلى {end_local.strftime("%H:%M %Y-%m-%d")}', 'align': 'center', 'size': 'small'},
+        {'divider': True, 'divider_style': 'double'},
+    ]
+
+    dine = [o for o in orders_list if o.order_type == 'dine_in']
+    deliv = [o for o in orders_list if o.order_type == 'delivery']
+    cnt_d, sum_d = len(dine), sum(Decimal(str(o.total)) for o in dine)
+    cnt_v, sum_v = len(deliv), sum(Decimal(str(o.total)) for o in deliv)
+    cnt_all, sum_all = cnt_d + cnt_v, sum_d + sum_v
+
+    # —— تفاصيل الطلبات (جدول: داخلي / ديليفري) ——
+    lines.append({'text': 'تفاصيل الطلبات', 'align': 'center', 'bold': True})
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    lines.append({
+        'cols': [
+            {'text': '', 'width': 0.26, 'align': 'right'},
+            {'text': 'داخلي', 'width': 0.37, 'align': 'center', 'bold': True},
+            {'text': 'ديليفري', 'width': 0.37, 'align': 'center', 'bold': True},
+        ],
+        'size': 'small',
+        'bold': True,
+    })
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    lines.append({
+        'cols': [
+            {'text': 'عدد الطلبات', 'width': 0.26, 'align': 'right', 'bold': True},
+            {'text': str(cnt_d), 'width': 0.37, 'align': 'center'},
+            {'text': str(cnt_v), 'width': 0.37, 'align': 'center'},
+        ],
+        'size': 'small',
+    })
+    lines.append({
+        'cols': [
+            {'text': 'السعر', 'width': 0.26, 'align': 'right', 'bold': True},
+            {'text': f'{_fmt_j(sum_d)} ج', 'width': 0.37, 'align': 'center'},
+            {'text': f'{_fmt_j(sum_v)} ج', 'width': 0.37, 'align': 'center'},
+        ],
+        'size': 'small',
+    })
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    lines.append({
+        'cols': [
+            {'text': 'الإجمالي', 'width': 0.22, 'align': 'right', 'bold': True},
+            {'text': f'إجمالي الأوردرات: {cnt_all}', 'width': 0.39, 'align': 'center', 'bold': True},
+            {'text': f'إجمالي السعر: {_fmt_j(sum_all)} ج', 'width': 0.39, 'align': 'center', 'bold': True},
+        ],
+        'size': 'small',
+        'bold': True,
+    })
+    lines.append({
+        'text': '(مجموع داخلي + ديليفري)',
+        'align': 'center',
+        'size': 'small',
+    })
+    lines.append({'divider': True, 'divider_style': 'double'})
+
+    # —— الويتر ——
+    lines.append({'text': 'حسب الويتر', 'align': 'center', 'bold': True})
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    by_waiter = defaultdict(lambda: {'name': '', 'count': 0, 'total': Decimal(0)})
+    no_waiter_dine_cnt = 0
+    no_waiter_dine_sum = Decimal(0)
+    for o in orders_list:
+        tot = Decimal(str(o.total))
+        if o.waiter_id:
+            k = o.waiter_id
+            by_waiter[k]['name'] = o.waiter.name
+            by_waiter[k]['count'] += 1
+            by_waiter[k]['total'] += tot
+        elif o.order_type == 'dine_in':
+            no_waiter_dine_cnt += 1
+            no_waiter_dine_sum += tot
+    if by_waiter:
+        for wid in sorted(by_waiter.keys(), key=lambda x: by_waiter[x]['name']):
+            w = by_waiter[wid]
+            lines.append(row(w['name'], f"{w['count']} طلب · {_fmt_j(w['total'])} ج"))
+    else:
+        lines.append({'text': '(لا توجد طلبات مرتبطة بالويتر)', 'align': 'center', 'size': 'small'})
+    if no_waiter_dine_cnt:
+        lines.append(row('داخلي بدون ويتر', f'{no_waiter_dine_cnt} طلب · {_fmt_j(no_waiter_dine_sum)} ج'))
+    lines.append({'divider': True, 'divider_style': 'double'})
+
+    # —— مطبخ / بار / أخرى (بنود) ——
+    kitchen_ids, bar_ids, other_ids = set(), set(), set()
+    kitchen_rev = bar_rev = other_rev = Decimal(0)
+    for o in orders_list:
+        for it in o.items.all():
+            ct = it.menu_item.category.category_type
+            sub = Decimal(str(it.subtotal))
+            if ct == 'food':
+                kitchen_rev += sub
+                kitchen_ids.add(o.id)
+            elif ct == 'drink':
+                bar_rev += sub
+                bar_ids.add(o.id)
+            else:
+                other_rev += sub
+                other_ids.add(o.id)
+
+    lines.append({'text': 'المطبخ والبار (إيرادات حسب نوع الصنف)', 'align': 'center', 'bold': True})
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    lines.append(row('المطبخ — عدد الطلبات', str(len(kitchen_ids))))
+    lines.append(row('المطبخ — إجمالي أصناف الأكل', f'{_fmt_j(kitchen_rev)} ج'))
+    lines.append(row('البار — عدد الطلبات', str(len(bar_ids))))
+    lines.append(row('البار — إجمالي أصناف المشروبات', f'{_fmt_j(bar_rev)} ج'))
+    if other_ids:
+        lines.append(row('أخرى — عدد الطلبات', str(len(other_ids))))
+        lines.append(row('أخرى — الإجمالي', f'{_fmt_j(other_rev)} ج'))
+    sum_kb = kitchen_rev + bar_rev + other_rev
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    lines.append(row('إجمالي بنود (مطبخ+بار+أخرى)', f'{_fmt_j(sum_kb)} ج', bold_val=True))
+    lines.append({'text': '* طلب واحد قد يُحسب في المطبخ والبار معاً إن كان فيه أكل ومشروب', 'align': 'center', 'size': 'small'})
+    lines.append({'divider': True, 'divider_style': 'double'})
+
+    # —— واردات ——
+    lines.append({'text': 'واردات الشيفت (مخزون)', 'align': 'center', 'bold': True})
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    if inventory_entries:
+        for inv in inventory_entries:
+            lines.append({
+                'cols': [
+                    {'text': f'{_fmt_j(inv.total_cost)} ج', 'width': 0.3, 'align': 'left'},
+                    {'text': inv.name[:36] + ('…' if len(inv.name) > 36 else ''), 'width': 0.7, 'align': 'right'},
+                ],
+                'size': 'small',
+            })
+        lines.append(row('إجمالي الواردات', f'{_fmt_j(inventory_total)} ج', bold_val=True))
+    else:
+        lines.append({'text': 'لا توجد واردات مسجّلة', 'align': 'center', 'size': 'small'})
+    lines.append({'divider': True, 'divider_style': 'double'})
+
+    # —— مطابقة الدرج ——
+    lines.append({'text': 'مطابقة الدرج', 'align': 'center', 'bold': True})
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    lines.append(row('مجموع طلبات السيستم', f'{_fmt_j(orders_total)} ج'))
+    lines.append(row('مجموع واردات الشيفت', f'{_fmt_j(inventory_total)} ج'))
+    lines.append(row('مجموع المطابقة', f'{_fmt_j(sys_total)} ج', bold_val=True))
+    lines.append(row('الدرج بعد العدّ', f'{_fmt_j(cash_input)} ج', bold_val=True))
+    lines.append(row('الفرق (زيادة / نقص)', f'{_fmt_shift_diff(diff)} ج', bold_val=True))
+    lines.append({'text': 'موجب = زيادة · سالب = نقص', 'align': 'center', 'size': 'small'})
+    lines.append({'divider': True, 'divider_style': 'double'})
+    lines.append(row('الكاشير', cashier_name, bold_val=True))
+    lines.append({'spacer': True, 'height': 6})
+    lines.append({'text': 'نهاية التقرير — شكراً', 'align': 'center', 'bold': True, 'size': 'small'})
+    lines.append({'spacer': True, 'height': 12})
+
+    return lines
+
+
+def _send_shift_report_to_printer(main_lines) -> bool:
+    """يُرسل التقرير إلى MAIN_PRINTER فقط (لا مطبخ ولا بار)."""
+    if not http_requests:
+        return False
+    try:
+        payload = {
+            'main_lines': main_lines,
+            'kitchen_lines': [],
+            'bar_lines': [],
+            'open_drawer': False,
+            'main_only': True,  # print_service يتجاهل أي مطبخ/بار حتى لو وُجدت
+        }
+        r = http_requests.post(settings.PRINT_SERVICE_URL, json=payload, timeout=12)
+        if r.status_code == 200:
+            return bool(r.json().get('success', False))
+        return False
+    except Exception as e:
+        log.error(f'_send_shift_report_to_printer: {e}')
+        return False
 
 
 def _shift_inventory_total(shift):
@@ -513,9 +747,11 @@ def _shift_inventory_total(shift):
 def end_shift(request):
     shift = Shift.objects.filter(cashier=request.user, status='open').first()
     orders_total = inventory_out = None
+    pending_orders_count = 0
     if shift:
         orders_total = _shift_orders_total_sum(request.user, shift)
         inventory_out = _shift_inventory_total(shift)
+        pending_orders_count = _shift_incomplete_orders_count(request.user, shift)
     return render(
         request,
         'pos/cashier/end_shift.html',
@@ -523,6 +759,7 @@ def end_shift(request):
             'shift': shift,
             'orders_total': orders_total,
             'inventory_out': inventory_out,
+            'pending_orders_count': pending_orders_count,
         },
     )
 
@@ -535,10 +772,20 @@ def submit_shift_end(request):
         if not shift:
             return JsonResponse({'success': False, 'error': 'مفيش شيفت مفتوح'})
 
+        if _shift_incomplete_orders_count(request.user, shift):
+            return JsonResponse({
+                'success': False,
+                'error': 'مش ممكن تنهي الشيفت: فيه طلبات قيد الانتظار أو مفتوحة. اكملها من الشاشة الرئيسية الأول.',
+            })
+
         cash_input = Decimal(request.POST.get('cash_in_drawer', '0'))
 
-        orders_total = _shift_orders_total_sum(request.user, shift)
+        orders_list = list(_shift_orders_qs(request.user, shift).order_by('id'))
+        orders_total = sum(Decimal(str(o.total)) for o in orders_list)
         inventory_total = _shift_inventory_total(shift)
+        inventory_rows = list(
+            InventoryEntry.objects.filter(shift=shift).order_by('id')
+        )
         # مطابقة الدرج: مجمع السيستم = طلبات + واردات الشيفت؛ الفرق = الدرج الفعلي − المجمع
         sys_total = orders_total + inventory_total
         diff = cash_input - sys_total
@@ -551,6 +798,21 @@ def submit_shift_end(request):
         shift.notes = request.POST.get('notes', '')
         shift.save()
 
+        report_lines = _build_shift_report_lines(
+            shift,
+            request.user,
+            orders_list,
+            inventory_rows,
+            cash_input,
+            orders_total,
+            inventory_total,
+            sys_total,
+            diff,
+        )
+        print_success = _send_shift_report_to_printer(report_lines)
+        if not print_success:
+            log.warning('submit_shift_end: فاتورة تقرير الشيفت لم تُطبع (تحقق من print_service)')
+
         return JsonResponse({
             'success': True,
             'orders_total': float(orders_total),
@@ -559,6 +821,8 @@ def submit_shift_end(request):
             'cash_input': float(cash_input),
             'difference': float(diff),
             'status': 'زيادة' if diff > 0 else ('نقص' if diff < 0 else 'متطابق'),
+            'print_success': print_success,
+            'logout_url': request.build_absolute_uri(reverse('logout')),
         })
     except Exception as e:
         log.error(f'submit_shift_end: {e}')

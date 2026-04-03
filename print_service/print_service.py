@@ -446,6 +446,10 @@ def handle_print():
     kitchen_lines = d.get('kitchen_lines', [])
     bar_lines     = d.get('bar_lines',     [])
     open_drawer   = d.get('open_drawer',   False)
+    # تقرير الشيفت وغيره: طباعة الطابعة الرئيسية فقط (لا مطبخ ولا بار)
+    if d.get('main_only'):
+        kitchen_lines = []
+        bar_lines = []
 
     results = {}
 
