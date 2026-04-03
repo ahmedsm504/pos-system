@@ -2,36 +2,148 @@
 {% block title %}سجل الطلبات{% endblock %}
 {% block page_icon %}<i class="fas fa-clock-rotate-left"></i>{% endblock %}
 {% block page_title %}سجل الطلبات{% endblock %}
-{% block extra_css %}<style>
-.orow{background:#fff;border-radius:13px;border:1.5px solid var(--border);display:grid;grid-template-columns:60px 1fr auto auto auto auto;align-items:center;transition:all .18s;cursor:pointer;overflow:hidden;margin-bottom:8px}
-.orow:hover{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
-.orow-id{width:60px;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fafbff;border-left:1.5px solid var(--border);font-weight:900;font-size:.9rem;color:var(--pri)}
-.orow-body{padding:12px 14px}
-.orow-main{font-weight:800;font-size:.88rem;margin-bottom:3px}
-.orow-meta{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-</style>{% endblock %}
+
+{% block extra_css %}
+<style>
+.hist-page{max-width:1100px;margin:0 auto}
+.hist-toolbar{
+  display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 18px;margin-bottom:22px;padding:20px 22px;
+  border-radius:18px;background:linear-gradient(135deg,#fff 0%,#f8fafc 45%,#f5f3ff 100%);
+  border:1px solid var(--border);box-shadow:0 8px 28px rgba(15,23,42,.07);
+}
+.hist-dateblock{flex:1;min-width:min(100%,280px)}
+.hist-dateblock > label{display:block;font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.hist-date-row{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+}
+.hist-date-row .hist-label-mini{font-size:.76rem;font-weight:800;color:var(--text2);margin-inline-end:2px}
+.hist-select{
+  appearance:none;padding:10px 34px 10px 12px;border-radius:12px;border:1.5px solid var(--border);
+  font-size:.88rem;font-weight:700;font-family:inherit;background:#fff;color:var(--text);
+  cursor:pointer;transition:border .18s,box-shadow .18s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:left 12px center;background-size:9px;
+  min-width:0;
+}
+.hist-select:hover{border-color:#c7d2fe}
+.hist-select:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-l)}
+#histDay{ width:4.5rem;text-align:center;padding-inline:10px;background-position:left 8px center }
+#histMonth{ flex:1;min-width:8.5rem }
+#histYear{ width:5.8rem }
+
+.hist-nav-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.hist-nav-btns .btn{border-radius:10px;padding:8px 14px;font-size:.8rem}
+
+.hist-stats{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+.hist-stat-rev{
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;padding:14px 22px;color:#fff;
+  box-shadow:0 8px 24px rgba(79,70,229,.28);min-width:180px;
+}
+.hist-stat-rev .lbl{font-size:.72rem;opacity:.88;font-weight:600;margin-bottom:4px}
+.hist-stat-rev .val{font-size:1.35rem;font-weight:900;letter-spacing:-.03em}
+.hist-stat-count{
+  display:flex;flex-direction:column;justify-content:center;padding:12px 18px;border-radius:14px;
+  background:#fff;border:1px solid var(--border);font-size:.85rem;color:var(--text2);
+}
+.hist-stat-count strong{font-size:1.15rem;color:var(--text);display:block;font-weight:900}
+
+.hist-display-line{
+  margin-top:14px;font-size:.9rem;font-weight:800;color:var(--text);display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.hist-display-line .cal-ico{
+  width:36px;height:36px;border-radius:10px;background:var(--pri-l);color:var(--pri);display:flex;align-items:center;justify-content:center;
+}
+.hist-display-line .muted{font-size:.8rem;font-weight:700;color:var(--muted)}
+
+.orow{
+  background:#fff;border-radius:16px;border:1px solid var(--border);display:grid;
+  grid-template-columns:56px 1fr auto auto auto auto;align-items:center;transition:all .2s;
+  cursor:pointer;overflow:hidden;margin-bottom:10px;box-shadow:0 2px 8px rgba(15,23,42,.04);
+}
+.orow:hover{border-color:#c7d2fe;box-shadow:0 8px 28px rgba(79,70,229,.1)}
+.orow-id{
+  width:56px;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#fafbff,#f1f5f9);border-inline-end:1px solid var(--border);
+  font-weight:900;font-size:.88rem;color:var(--pri);
+}
+.orow-body{padding:14px 16px}
+.orow-main{font-weight:800;font-size:.9rem;margin-bottom:4px;line-height:1.35}
+.orow-meta{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hist-empty{
+  text-align:center;padding:56px 24px;border-radius:18px;border:2px dashed var(--border);
+  background:linear-gradient(180deg,#fafbff,#fff);color:var(--muted);margin-top:8px;
+}
+.hist-empty i{font-size:3rem;display:block;margin-bottom:14px;opacity:.28}
+.hist-empty strong{display:block;font-size:1rem;color:var(--text2);margin-bottom:6px;font-weight:800}
+
+@media (max-width:720px){
+  .orow{grid-template-columns:48px 1fr auto;grid-template-rows:auto auto}
+  .orow-id{grid-row:span 2}
+  .orow > div:nth-child(3),.orow > div:nth-child(4),.orow > div:nth-child(5){grid-column:2/4}
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
-  <input type="date" id="dayPick" value="{{ day }}" class="fg" style="margin:0;padding:8px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:.88rem;font-family:inherit" onchange="location.href='?date='+this.value">
-  <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:11px;padding:10px 20px;color:#fff;font-weight:800">
-    إيراد اليوم: {{ day_revenue|floatformat:2 }} ج
+<div class="hist-page">
+  <div class="hist-toolbar">
+    <div class="hist-dateblock">
+      <label><i class="fas fa-calendar-days" style="color:var(--pri);margin-inline-end:6px"></i> اختيار التاريخ — يوم ثم شهر ثم سنة</label>
+  <div class="hist-date-row" dir="rtl">
+        <span class="hist-label-mini">اليوم</span>
+        <select id="histDay" class="hist-select" aria-label="اليوم">
+          {% for day_n in days_range %}
+          <option value="{{ day_n }}" {% if day_n == selected_date.day %}selected{% endif %}>{{ day_n }}</option>
+          {% endfor %}
+        </select>
+        <span class="hist-label-mini">الشهر</span>
+        <select id="histMonth" class="hist-select" aria-label="الشهر">
+          {% for m_num, m_name in ar_months %}
+          <option value="{{ m_num }}" {% if m_num == selected_date.month %}selected{% endif %}>{{ m_name }}</option>
+          {% endfor %}
+        </select>
+        <span class="hist-label-mini">السنة</span>
+        <select id="histYear" class="hist-select" aria-label="السنة">
+          {% for y in year_options %}
+          <option value="{{ y }}" {% if y == selected_date.year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="hist-display-line">
+        <span class="cal-ico"><i class="fas fa-calendar-check"></i></span>
+        <span>التاريخ المختار: <span class="muted">{{ selected_date.day }} / {{ selected_date.month }} / {{ selected_date.year }}</span></span>
+      </div>
+      <div class="hist-nav-btns">
+        <a href="{% url 'admin_history' %}?date={{ today_iso }}" class="btn btn-out"><i class="fas fa-sun"></i> اليوم</a>
+        <a href="{% url 'admin_history' %}?date={{ prev_date|date:'Y-m-d' }}" class="btn btn-out"><i class="fas fa-chevron-right"></i> اليوم السابق</a>
+        <a href="{% url 'admin_history' %}?date={{ next_date|date:'Y-m-d' }}" class="btn btn-out"><i class="fas fa-chevron-left"></i> اليوم التالي</a>
+      </div>
+    </div>
+    <div class="hist-stats">
+      <div class="hist-stat-rev">
+        <div class="lbl">إيراد اليوم (مكتمل + مطبوع)</div>
+        <div class="val">{{ day_revenue|floatformat:2 }} <span style="font-size:.85rem;font-weight:800">ج</span></div>
+      </div>
+      <div class="hist-stat-count">
+        <span style="font-size:.72rem;font-weight:700;color:var(--muted)">عدد الطلبات</span>
+        <strong>{{ orders|length }}</strong>
+      </div>
+    </div>
   </div>
-  <span style="color:var(--muted);font-size:.85rem">{{ orders.count }} طلب</span>
-</div>
 
 {% for o in orders %}
-<div class="orow" onclick="location.href='{% url 'admin_order_detail' o.id %}'">
-  <div class="orow-id"><span style="font-size:.62rem;color:var(--muted)">#</span><span>{{ o.id }}</span></div>
+<div class="orow" role="link" tabindex="0" onclick="location.href='{% url 'admin_order_detail' o.id %}'" onkeydown="if(event.key==='Enter')location.href='{% url 'admin_order_detail' o.id %}'">
+  <div class="orow-id"><span style="font-size:.6rem;color:var(--muted)">#</span><span>{{ o.id }}</span></div>
   <div class="orow-body">
     <div class="orow-main">
-      {% if o.order_type == 'delivery' %}🛵 {{ o.customer_name|default:"ديليفري" }}{% else %}🪑 {{ o.table|default:"بدون طاولة" }}{% endif %}
+      {% if o.order_type == 'delivery' %}<i class="fas fa-motorcycle" style="color:var(--pri);margin-inline-end:6px"></i> {{ o.customer_name|default:"ديليفري" }}{% else %}<i class="fas fa-chair" style="color:var(--war);margin-inline-end:6px"></i> {{ o.table|default:"بدون طاولة" }}{% endif %}
       {% if o.waiter %} · {{ o.waiter }}{% endif %}
     </div>
     <div class="orow-meta">
-      <span>⏰ {{ o.created_at|time:"H:i" }}</span>
-      <span>👤 {{ o.cashier.username|default:"—" }}</span>
-      <span>📦 {{ o.total_items }} صنف</span>
-      {% if o.order_type == 'delivery' and o.driver %}<span>🏍️ {{ o.driver }}</span>{% endif %}
+      <span><i class="fas fa-clock" style="margin-inline-end:4px;opacity:.75"></i> {{ o.created_at|time:"H:i" }}</span>
+      <span><i class="fas fa-user" style="margin-inline-end:4px;opacity:.75"></i> {{ o.cashier.username|default:"—" }}</span>
+      <span><i class="fas fa-box" style="margin-inline-end:4px;opacity:.75"></i> {{ o.total_items }} صنف</span>
+      {% if o.order_type == 'delivery' and o.driver %}<span><i class="fas fa-motorcycle" style="margin-inline-end:4px;opacity:.75"></i> {{ o.driver }}</span>{% endif %}
     </div>
   </div>
   <div style="padding:0 10px">
@@ -40,10 +152,69 @@
     {% elif o.status == 'completed' %}<span class="badge b-suc">مكتمل</span>
     {% else %}<span class="badge b-dan">ملغي</span>{% endif %}
   </div>
-  <div style="padding:0 10px;font-weight:800;font-size:.92rem">{{ o.total|floatformat:2 }} ج</div>
-  <div style="padding:0 16px 0 10px"><a href="{% url 'admin_order_detail' o.id %}" class="btn btn-out btn-sm" onclick="event.stopPropagation()"><i class="fas fa-eye"></i></a></div>
+  <div style="padding:0 10px;font-weight:900;font-size:.95rem;color:var(--text)">{{ o.total|floatformat:2 }} ج</div>
+  <div style="padding:0 14px 0 10px"><a href="{% url 'admin_order_detail' o.id %}" class="btn btn-out btn-sm" onclick="event.stopPropagation()"><i class="fas fa-eye"></i></a></div>
 </div>
 {% empty %}
-<div style="text-align:center;padding:60px;color:var(--muted)"><i class="fas fa-receipt" style="font-size:3rem;display:block;margin-bottom:12px;opacity:.3"></i>مفيش طلبات في هذا اليوم</div>
+<div class="hist-empty">
+  <i class="fas fa-receipt"></i>
+  <strong>لا توجد طلبات في هذا اليوم</strong>
+  غيّر التاريخ من الأعلى أو جرّب يوماً آخر.
+</div>
 {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const dayEl=document.getElementById('histDay');
+  const monthEl=document.getElementById('histMonth');
+  const yearEl=document.getElementById('histYear');
+  if(!dayEl||!monthEl||!yearEl)return;
+
+  function pad(n){return (n<10?'0':'')+n;}
+  function daysInMonth(y,m){return new Date(y,m,0).getDate();}
+
+  function fillDays(){
+    const y=parseInt(yearEl.value,10);
+    const m=parseInt(monthEl.value,10);
+    const max=daysInMonth(y,m);
+    let d=parseInt(dayEl.value,10);
+    if(!isFinite(d))d=1;
+    d=Math.min(Math.max(1,d),max);
+    dayEl.innerHTML='';
+    for(let i=1;i<=max;i++){
+      const opt=document.createElement('option');
+      opt.value=String(i);
+      opt.textContent=String(i);
+      dayEl.appendChild(opt);
+    }
+    dayEl.value=String(d);
+  }
+
+  function go(){
+    const y=parseInt(yearEl.value,10);
+    const m=parseInt(monthEl.value,10);
+    let d=parseInt(dayEl.value,10);
+    const max=daysInMonth(y,m);
+    if(!isFinite(d)||d<1)d=1;
+    if(d>max)d=max;
+    const iso=y+'-'+pad(m)+'-'+pad(d);
+    if(location.search.replace(/^\?/,'')==='date='+iso)return;
+    location.href='{% url "admin_history" %}?date='+iso;
+  }
+
+  function onMonthYearChange(){
+    fillDays();
+    go();
+  }
+
+  monthEl.addEventListener('change',onMonthYearChange);
+  yearEl.addEventListener('change',onMonthYearChange);
+  dayEl.addEventListener('change',go);
+
+  fillDays();
+})();
+</script>
 {% endblock %}

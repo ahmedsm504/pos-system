@@ -2,69 +2,198 @@
 {% block title %}الرئيسية{% endblock %}
 {% block page_icon %}<i class="fas fa-home"></i>{% endblock %}
 {% block page_title %}مرحباً، {{ request.user.get_full_name|default:request.user.username }}{% endblock %}
+
 {% block extra_css %}<style>
-.quick{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
-.qc{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:16px 18px;text-decoration:none;color:var(--text);display:flex;align-items:center;gap:12px;transition:all .2s}
-.qc:hover{border-color:var(--pri);box-shadow:0 4px 18px rgba(79,70,229,.12)}
-.qc-ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;transition:transform .2s}
-.qc:hover .qc-ic{transform:scale(1.1)}
-.orow{background:#fff;border-radius:12px;border:1.5px solid var(--border);display:grid;grid-template-columns:55px 1fr auto auto auto;align-items:center;transition:all .18s;cursor:pointer;overflow:hidden;margin-bottom:8px}
-.orow:hover{border-color:var(--suc);box-shadow:0 0 0 3px var(--suc-l)}
-.orow-id{width:55px;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fafbff;border-left:1.5px solid var(--border);font-weight:900;color:var(--suc);font-size:.9rem}
-.orow-body{padding:11px 13px}
-.orow-main{font-weight:800;font-size:.87rem;margin-bottom:3px}
-.orow-meta{font-size:.71rem;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.dash{max-width:960px;margin:0 auto}
+.dash-hero{
+  position:relative;overflow:hidden;border-radius:22px;padding:22px 24px 24px;margin-bottom:22px;
+  background:linear-gradient(135deg,#0f172a 0%,#1e293b 45%,#334155 100%);
+  color:#fff;box-shadow:0 20px 50px -20px rgba(15,23,42,.55),0 0 0 1px rgba(255,255,255,.06) inset;
+}
+.dash-hero::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(80% 120% at 100% -20%,rgba(201,162,39,.35),transparent 55%),
+    radial-gradient(60% 80% at 0% 100%,rgba(16,185,129,.12),transparent 45%);
+}
+.dash-hero-in{position:relative;z-index:1}
+.dash-hello{font-size:1.15rem;font-weight:900;margin:0 0 6px;letter-spacing:-.02em}
+.dash-sub{margin:0;font-size:.84rem;opacity:.82;font-weight:600;line-height:1.5}
+.dash-sub i{color:#fbbf24;margin-inline-end:6px}
+
+.dash-kpis{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;
+}
+@media(max-width:780px){.dash-kpis{grid-template-columns:1fr}}
+.dash-kpi{
+  position:relative;border-radius:18px;padding:18px 18px 16px;text-decoration:none;color:inherit;
+  border:1px solid rgba(255,255,255,.12);overflow:hidden;cursor:default;
+  transition:transform .22s var(--ease-out),box-shadow .22s;
+  display:flex;flex-direction:column;gap:4px;min-height:108px;
+}
+a.dash-kpi{cursor:pointer}
+a.dash-kpi:hover{transform:translateY(-3px);box-shadow:0 16px 40px -16px rgba(0,0,0,.25)}
+.dash-kpi--g{
+  background:linear-gradient(145deg,#059669 0%,#0d9488 50%,#0f766e 100%);
+  color:#fff;box-shadow:0 8px 28px -8px rgba(5,150,105,.45);
+}
+.dash-kpi--o{
+  background:linear-gradient(145deg,#ea580c 0%,#f97316 45%,#fb923c 100%);
+  color:#fff;box-shadow:0 8px 28px -8px rgba(234,88,12,.4);
+}
+.dash-kpi--v{
+  background:linear-gradient(145deg,#4f46e5 0%,#6366f1 50%,#7c3aed 100%);
+  color:#fff;box-shadow:0 8px 28px -8px rgba(79,70,229,.4);
+}
+.dash-kpi-ic{
+  width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:1.05rem;margin-bottom:4px;background:rgba(255,255,255,.2);
+}
+.dash-kpi-val{font-size:1.85rem;font-weight:900;line-height:1.1;font-family:'Outfit','Cairo',sans-serif;letter-spacing:-.03em}
+.dash-kpi-lbl{font-size:.78rem;font-weight:700;opacity:.9}
+
+.dash-quick{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
+@media(max-width:640px){.dash-quick{grid-template-columns:1fr}}
+.dash-q{
+  display:flex;align-items:center;gap:14px;padding:18px 18px;border-radius:18px;text-decoration:none;color:var(--text);
+  background:linear-gradient(180deg,#fff 0%,#faf8f4 100%);
+  border:1px solid var(--border);
+  box-shadow:0 2px 12px -4px rgba(15,23,42,.06),0 0 0 1px rgba(255,255,255,.8) inset;
+  transition:all .22s var(--ease-out);
+}
+.dash-q:hover{
+  border-color:rgba(201,162,39,.5);box-shadow:0 12px 36px -12px rgba(201,162,39,.22);transform:translateY(-2px);
+}
+.dash-q-ic{
+  width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;flex-shrink:0;color:#fff;
+}
+.dash-q-ic--n{background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 6px 18px -4px rgba(16,185,129,.45)}
+.dash-q-ic--l{background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 6px 18px -4px rgba(99,102,241,.4)}
+.dash-q-t strong{display:block;font-size:.95rem;font-weight:900;margin-bottom:3px}
+.dash-q-t span{font-size:.76rem;color:var(--muted);font-weight:600}
+
+.dash-card{
+  background:#fff;border-radius:20px;border:1px solid var(--border);
+  padding:18px 18px 16px;
+  box-shadow:0 2px 16px -6px rgba(15,23,42,.08);
+}
+.dash-card-hd{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;
+}
+.dash-card-hd h3{margin:0;font-size:.95rem;font-weight:900;display:flex;align-items:center;gap:8px;color:var(--text)}
+.dash-card-hd h3 i{color:#ef4444;opacity:.9}
+
+.d-orow{
+  display:grid;grid-template-columns:54px 1fr auto auto auto 44px;align-items:stretch;
+  background:linear-gradient(180deg,#fff,#fcfcfd);border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  cursor:pointer;transition:all .2s var(--ease-out);margin-bottom:10px;
+  box-shadow:0 1px 3px rgba(15,23,42,.04);
+}
+.d-orow:last-child{margin-bottom:0}
+.d-orow:hover{
+  border-color:rgba(16,185,129,.4);box-shadow:0 8px 24px -10px rgba(16,185,129,.2),0 0 0 1px rgba(16,185,129,.1);
+}
+.d-oid{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  background:linear-gradient(180deg,#ecfdf5,#d1fae5);border-inline-end:1px solid rgba(16,185,129,.2);
+  font-weight:900;font-size:.88rem;color:#047857;
+}
+.d-oid span{font-size:.58rem;color:#059669;font-weight:800;opacity:.85}
+.d-ob{padding:12px 14px;min-width:0}
+.d-ot{font-weight:800;font-size:.86rem;margin-bottom:4px;line-height:1.35;color:var(--text)}
+.d-om{display:flex;flex-wrap:wrap;gap:10px;font-size:.71rem;color:var(--muted);font-weight:600}
+.d-ost{align-self:center;padding:0 6px}
+.d-osu{align-self:center;padding:0 10px;font-weight:900;font-size:.86rem;font-family:'Outfit','Cairo',sans-serif;direction:ltr}
+.d-oa{display:flex;align-items:center;justify-content:center;padding:0 10px;border-inline-start:1px solid var(--border);background:#f8fafc}
+.d-oa .btn{border-radius:10px}
+@media(max-width:720px){
+  .d-orow{grid-template-columns:48px 1fr 48px;grid-template-rows:auto auto}
+  .d-oid{grid-row:1/3}
+  .d-ob{grid-column:2;grid-row:1}
+  .d-ost{grid-column:2;grid-row:2;justify-self:start;margin:6px 12px 10px}
+  .d-osu{display:none}
+  .d-oa{grid-column:3;grid-row:1/3;align-self:stretch}
+}
 </style>{% endblock %}
+
 {% block content %}
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px">
-  <div style="background:linear-gradient(135deg,#10b981,#0891b2);border-radius:14px;padding:18px 20px;color:#fff">
-    <i class="fas fa-receipt" style="font-size:1.5rem;opacity:.8;display:block;margin-bottom:8px"></i>
-    <div style="font-size:1.8rem;font-weight:900">{{ orders_count }}</div>
-    <div style="font-size:.8rem;opacity:.8">طلبات اليوم</div>
-  </div>
-  <div style="background:linear-gradient(135deg,#f59e0b,#ef4444);border-radius:14px;padding:18px 20px;color:#fff">
-    <i class="fas fa-fire" style="font-size:1.5rem;opacity:.8;display:block;margin-bottom:8px"></i>
-    <div style="font-size:1.8rem;font-weight:900">{{ active_orders.count }}</div>
-    <div style="font-size:.8rem;opacity:.8">طلبات نشطة</div>
-  </div>
-  <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;padding:18px 20px;color:#fff;cursor:pointer" onclick="location.href='{% url 'cashier_end_shift' %}'">
-    <i class="fas fa-clock" style="font-size:1.5rem;opacity:.8;display:block;margin-bottom:8px"></i>
-    <div style="font-size:1rem;font-weight:800">إنهاء الشيفت</div>
-    <div style="font-size:.75rem;opacity:.8">احسب الفلوس</div>
-  </div>
-</div>
-
-<div class="quick">
-  <a href="{% url 'cashier_new_order' %}" class="qc">
-    <div class="qc-ic" style="background:linear-gradient(135deg,#10b981,#0891b2);color:#fff;box-shadow:0 4px 12px rgba(16,185,129,.3)"><i class="fas fa-plus"></i></div>
-    <div><strong style="display:block;font-size:.93rem">طلب جديد</strong><span style="font-size:.77rem;color:var(--muted)">فتح شاشة الكاشير</span></div>
-  </a>
-  <a href="{% url 'cashier_orders' %}" class="qc">
-    <div class="qc-ic" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;box-shadow:0 4px 12px rgba(79,70,229,.3)"><i class="fas fa-list"></i></div>
-    <div><strong style="display:block;font-size:.93rem">طلبات اليوم</strong><span style="font-size:.77rem;color:var(--muted)">عرض وإدارة الطلبات</span></div>
-  </a>
-</div>
-
-{% if active_orders %}
-<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-    <span style="font-weight:800;font-size:.92rem"><i class="fas fa-fire" style="color:var(--dan);margin-left:6px"></i>الطلبات النشطة</span>
-    <a href="{% url 'cashier_orders' %}" class="btn btn-ghost btn-sm">الكل <i class="fas fa-arrow-left"></i></a>
-  </div>
-  {% for o in active_orders %}
-  <div class="orow" onclick="location.href='{% url 'cashier_order_detail' o.id %}'">
-    <div class="orow-id"><span style="font-size:.6rem;color:var(--muted)">#</span>{{ o.id }}</div>
-    <div class="orow-body">
-      <div class="orow-main">{% if o.order_type == 'delivery' %}🛵 {{ o.customer_name|default:"ديليفري" }}{% else %}🪑 {{ o.table|default:"بدون طاولة" }}{% endif %}{% if o.waiter %} · {{ o.waiter }}{% endif %}</div>
-      <div class="orow-meta"><span>⏰ {{ o.created_at|time:"H:i" }}</span><span>📦 {{ o.total_items }} صنف</span><span>💰 {{ o.total|floatformat:2 }} ج</span></div>
+<div class="dash">
+  <div class="dash-hero">
+    <div class="dash-hero-in">
+      <p class="dash-hello">أهلاً، {{ request.user.get_full_name|default:request.user.username }}</p>
+      <p class="dash-sub"><i class="fas fa-bolt"></i> لوحة سريعة لشغل اليوم — طلبات، نشاط، وإنهاء الشيفت</p>
     </div>
-    <div style="padding:0 8px">
-      {% if o.status == 'printed' %}<span class="badge b-pri">انتظار</span>{% else %}<span class="badge b-war">مفتوح</span>{% endif %}
-    </div>
-    <div style="padding:0 8px;font-weight:800">{{ o.total|floatformat:0 }} ج</div>
-    <div style="padding:0 14px 0 8px"><a href="{% url 'cashier_order_detail' o.id %}" class="btn btn-suc btn-sm" onclick="event.stopPropagation()"><i class="fas fa-eye"></i></a></div>
   </div>
-  {% endfor %}
+
+  <div class="dash-kpis">
+    <div class="dash-kpi dash-kpi--g">
+      <div class="dash-kpi-ic"><i class="fas fa-receipt"></i></div>
+      <div class="dash-kpi-val">{{ orders_count }}</div>
+      <div class="dash-kpi-lbl">طلبات مسجّلة اليوم</div>
+    </div>
+    <div class="dash-kpi dash-kpi--o">
+      <div class="dash-kpi-ic"><i class="fas fa-fire-flame-curved"></i></div>
+      <div class="dash-kpi-val">{{ active_orders.count }}</div>
+      <div class="dash-kpi-lbl">طلبات نشطة (مفتوح / انتظار)</div>
+    </div>
+    <a href="{% url 'cashier_end_shift' %}" class="dash-kpi dash-kpi--v">
+      <div class="dash-kpi-ic"><i class="fas fa-clock"></i></div>
+      <div class="dash-kpi-val" style="font-size:1rem;line-height:1.35;padding-top:4px">إنهاء الشيفت</div>
+      <div class="dash-kpi-lbl">حصر الفلوس وإغلاق الوردية</div>
+    </a>
+  </div>
+
+  <div class="dash-quick">
+    <a href="{% url 'cashier_new_order' %}" class="dash-q">
+      <div class="dash-q-ic dash-q-ic--n"><i class="fas fa-plus"></i></div>
+      <div class="dash-q-t">
+        <strong>طلب جديد</strong>
+        <span>فتح شاشة الكاشير وإضافة أصناف</span>
+      </div>
+    </a>
+    <a href="{% url 'cashier_orders' %}" class="dash-q">
+      <div class="dash-q-ic dash-q-ic--l"><i class="fas fa-list-ul"></i></div>
+      <div class="dash-q-t">
+        <strong>طلبات اليوم</strong>
+        <span>عرض كل الطلبات مع فلترة داخلي / ديليفري</span>
+      </div>
+    </a>
+  </div>
+
+  {% if active_orders %}
+  <div class="dash-card">
+    <div class="dash-card-hd">
+      <h3><i class="fas fa-fire-flame-curved"></i> الطلبات النشطة</h3>
+      <a href="{% url 'cashier_orders' %}" class="btn btn-ghost btn-sm">كل الطلبات <i class="fas fa-arrow-left"></i></a>
+    </div>
+    {% for o in active_orders %}
+    <div class="d-orow" onclick="location.href='{% url 'cashier_order_detail' o.id %}'">
+      <div class="d-oid"><span>#</span>{{ o.id }}</div>
+      <div class="d-ob">
+        <div class="d-ot">
+          {% if o.order_type == 'delivery' %}🛵 {{ o.customer_name|default:"ديليفري" }}{% else %}🪑 {{ o.table|default:"بدون طاولة" }}{% endif %}{% if o.waiter %} · {{ o.waiter }}{% endif %}
+        </div>
+        <div class="d-om">
+          <span><i class="fas fa-clock" style="opacity:.6"></i> {{ o.created_at|time:"H:i" }}</span>
+          <span><i class="fas fa-box" style="opacity:.6"></i> {{ o.total_items }} صنف</span>
+          <span><i class="fas fa-coins" style="opacity:.6"></i> {{ o.total|floatformat:2 }} ج</span>
+        </div>
+      </div>
+      <div class="d-ost">
+        {% if o.status == 'printed' %}<span class="badge b-pri">انتظار</span>{% else %}<span class="badge b-war">مفتوح</span>{% endif %}
+      </div>
+      <div class="d-osu">{{ o.total|floatformat:0 }} ج</div>
+      <div class="d-oa"><a href="{% url 'cashier_order_detail' o.id %}" class="btn btn-suc btn-sm" onclick="event.stopPropagation()"><i class="fas fa-eye"></i></a></div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="dash-card" style="text-align:center;padding:36px 20px">
+    <i class="fas fa-mug-hot" style="font-size:2.5rem;color:var(--gold);opacity:.35;display:block;margin-bottom:12px"></i>
+    <p style="margin:0;font-weight:800;font-size:1rem;color:var(--text2)">مفيش طلبات نشطة دلوقتي</p>
+    <p style="margin:8px 0 18px;font-size:.82rem;color:var(--muted)">ابدأ بطلب جديد أو راجع طلبات اليوم</p>
+    <a href="{% url 'cashier_new_order' %}" class="btn btn-suc"><i class="fas fa-plus"></i> طلب جديد</a>
+  </div>
+  {% endif %}
 </div>
-{% endif %}
 {% endblock %}

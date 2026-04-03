@@ -5,6 +5,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.db.models import Count, Q
 import json, logging
 from datetime import date
 from decimal import Decimal
@@ -105,11 +106,17 @@ def orders_list(request):
     today = date.today()
     orders = Order.objects.filter(
         cashier=request.user, created_at__date=today
-    ).select_related('table').order_by('-created_at')
+    ).select_related('table', 'waiter').order_by('-created_at')
+    order_stats = orders.aggregate(
+        total=Count('id'),
+        dine_in=Count('id', filter=Q(order_type='dine_in')),
+        delivery=Count('id', filter=Q(order_type='delivery')),
+    )
     profile = get_profile(request.user)
     return render(request, 'pos/cashier/orders_list.html', {
-        'orders':  orders,
-        'profile': profile,
+        'orders':       orders,
+        'order_stats':  order_stats,
+        'profile':      profile,
     })
 
 
@@ -129,17 +136,18 @@ def preview_order(request):
         preview_items = []
         total = 0
         for item_data in items_data:
-            mi  = get_object_or_404(MenuItem, id=item_data['id'])
+            mi  = get_object_or_404(MenuItem, id=int(item_data['id']))
             qty = int(item_data.get('quantity', 1))
             sub = mi.price * qty
             total += sub
+            note = (item_data.get('notes') or '')[:200]
             preview_items.append({
                 'name':     mi.name,
                 'qty':      qty,
                 'price':    float(mi.price),
                 'subtotal': float(sub),
                 'cat_type': mi.category.category_type,
-                'notes':    item_data.get('notes', ''),
+                'notes':    note,
             })
 
         table_label = 'بدون طاولة'
@@ -198,13 +206,14 @@ def create_order(request):
         )
 
         for item_data in items_data:
-            mi = get_object_or_404(MenuItem, id=item_data['id'])
+            mi = get_object_or_404(MenuItem, id=int(item_data['id']))
+            note = (item_data.get('notes') or '')[:200]
             OrderItem.objects.create(
                 order=order,
                 menu_item=mi,
                 quantity=int(item_data.get('quantity', 1)),
                 price=mi.price,
-                notes=item_data.get('notes', ''),
+                notes=note,
             )
 
         print_ok = _send_to_printer(order, open_drawer=False)

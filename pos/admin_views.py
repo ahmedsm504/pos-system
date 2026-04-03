@@ -2,8 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.http import JsonResponse
-from django.db.models import Sum, Count, Q
+from django.db.models import Case, IntegerField, Sum, Count, Q, When
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.contrib import messages
 import json
 from datetime import date, timedelta
@@ -16,6 +17,31 @@ from .models import (Category, MenuItem, Table, Waiter, DeliveryDriver,
 def admin_required(view_func):
     decorated = login_required(user_passes_test(lambda u: u.is_staff)(view_func))
     return decorated
+
+
+def _item_form_categories():
+    return (
+        Category.objects.filter(is_active=True)
+        .annotate(
+            _type_sort=Case(
+                When(category_type='food', then=0),
+                When(category_type='drink', then=1),
+                default=2,
+                output_field=IntegerField(),
+            )
+        )
+        .order_by('_type_sort', 'order', 'name')
+    )
+
+
+def _item_form_category_groups():
+    """أكل ثم مشروبات ثم أخرى — لقوائم optgroup في نموذج المنتج."""
+    order = [('food', 'أكل'), ('drink', 'مشروبات'), ('other', 'أخرى')]
+    buckets = {code: [] for code, _ in order}
+    for c in _item_form_categories():
+        key = c.category_type if c.category_type in buckets else 'other'
+        buckets[key].append(c)
+    return [(code, label, buckets[code]) for code, label in order]
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -55,8 +81,28 @@ def dashboard(request):
 
 @admin_required
 def menu_list(request):
-    categories = Category.objects.prefetch_related('items').all()
-    return render(request, 'pos/admin/menu.html', {'categories': categories})
+    categories = list(
+        Category.objects.prefetch_related('items').order_by('order', 'name')
+    )
+    menu_stats = {
+        'all': {'categories': 0, 'items': 0},
+        'food': {'categories': 0, 'items': 0},
+        'drink': {'categories': 0, 'items': 0},
+        'other': {'categories': 0, 'items': 0},
+    }
+    for c in categories:
+        n_items = len(c.items.all())
+        menu_stats['all']['categories'] += 1
+        menu_stats['all']['items'] += n_items
+        t = c.category_type
+        if t in menu_stats:
+            menu_stats[t]['categories'] += 1
+            menu_stats[t]['items'] += n_items
+    return render(
+        request,
+        'pos/admin/menu.html',
+        {'categories': categories, 'menu_stats': menu_stats},
+    )
 
 
 @admin_required
@@ -97,7 +143,6 @@ def category_delete(request, pk):
 
 @admin_required
 def item_add(request):
-    categories = Category.objects.filter(is_active=True)
     if request.method == 'POST':
         MenuItem.objects.create(
             category_id=request.POST['category'],
@@ -108,13 +153,16 @@ def item_add(request):
         )
         messages.success(request, 'تم إضافة المنتج')
         return redirect('admin_menu')
-    return render(request, 'pos/admin/item_form.html', {'title': 'إضافة منتج', 'categories': categories})
+    return render(
+        request,
+        'pos/admin/item_form.html',
+        {'title': 'إضافة منتج', 'category_groups': _item_form_category_groups()},
+    )
 
 
 @admin_required
 def item_edit(request, pk):
     item = get_object_or_404(MenuItem, pk=pk)
-    categories = Category.objects.filter(is_active=True)
     if request.method == 'POST':
         item.category_id  = request.POST['category']
         item.name         = request.POST['name']
@@ -125,7 +173,15 @@ def item_edit(request, pk):
         item.save()
         messages.success(request, 'تم تعديل المنتج')
         return redirect('admin_menu')
-    return render(request, 'pos/admin/item_form.html', {'title': 'تعديل منتج', 'obj': item, 'categories': categories})
+    return render(
+        request,
+        'pos/admin/item_form.html',
+        {
+            'title': 'تعديل منتج',
+            'obj': item,
+            'category_groups': _item_form_category_groups(),
+        },
+    )
 
 
 @admin_required
@@ -337,32 +393,107 @@ def driver_delete(request, pk):
 #  INVENTORY
 # ══════════════════════════════════════════════════════════════════════════
 
+_AR_MONTHS = (
+    (1, 'يناير'),
+    (2, 'فبراير'),
+    (3, 'مارس'),
+    (4, 'أبريل'),
+    (5, 'مايو'),
+    (6, 'يونيو'),
+    (7, 'يوليو'),
+    (8, 'أغسطس'),
+    (9, 'سبتمبر'),
+    (10, 'أكتوبر'),
+    (11, 'نوفمبر'),
+    (12, 'ديسمبر'),
+)
+
+
 @admin_required
 def inventory_list(request):
-    start = request.GET.get('start', str(date.today().replace(day=1)))
-    end   = request.GET.get('end',   str(date.today()))
-    entries = InventoryEntry.objects.filter(date__range=[start, end]).select_related('added_by')
-    total_cost = entries.aggregate(t=Sum('total_cost'))['t'] or 0
-    return render(request, 'pos/admin/inventory.html', {
-        'entries': entries, 'total_cost': total_cost, 'start': start, 'end': end,
-    })
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+    raw_start = (request.GET.get('start') or '').strip()
+    raw_end = (request.GET.get('end') or '').strip()
+
+    start_d = parse_date(raw_start) if raw_start else None
+    end_d = parse_date(raw_end) if raw_end else None
+
+    if raw_start and start_d is None:
+        messages.warning(request, 'تاريخ البداية غير صالح. تم استخدام أول الشهر الحالي.')
+        start_d = month_start
+    elif start_d is None:
+        start_d = month_start
+
+    if raw_end and end_d is None:
+        messages.warning(request, 'تاريخ النهاية غير صالح. تم استخدام اليوم.')
+        end_d = today
+    elif end_d is None:
+        end_d = today
+
+    if start_d > end_d:
+        start_d, end_d = end_d, start_d
+
+    qs = (
+        InventoryEntry.objects.filter(date__range=[start_d, end_d])
+        .select_related('added_by')
+        .order_by('-date', '-id')
+    )
+    total_cost = qs.aggregate(t=Sum('total_cost'))['t'] or 0
+    entries = list(qs)
+    year_now = today.year
+    year_options = list(range(year_now - 4, year_now + 2))
+    week_start = today - timedelta(days=today.weekday())
+    thirty_back = today - timedelta(days=29)
+
+    return render(
+        request,
+        'pos/admin/inventory.html',
+        {
+            'entries': entries,
+            'total_cost': total_cost,
+            'start_date': start_d,
+            'end_date': end_d,
+            'ar_months': _AR_MONTHS,
+            'year_options': year_options,
+            'days_range': list(range(1, 32)),
+            'today_iso': today.strftime('%Y-%m-%d'),
+            'month_start_iso': month_start.strftime('%Y-%m-%d'),
+            'week_start_iso': week_start.strftime('%Y-%m-%d'),
+            'thirty_back_iso': thirty_back.strftime('%Y-%m-%d'),
+        },
+    )
 
 
 @admin_required
 def inventory_add(request):
+    today = timezone.localdate()
     if request.method == 'POST':
+        raw_d = (request.POST.get('date') or '').strip()
+        entry_date = parse_date(raw_d) if raw_d else today
+        if raw_d and entry_date is None:
+            entry_date = today
         InventoryEntry.objects.create(
             name=request.POST['name'],
             quantity=request.POST['quantity'],
             unit=request.POST.get('unit', ''),
             total_cost=request.POST['total_cost'],
-            date=request.POST.get('date', date.today()),
+            date=entry_date,
             notes=request.POST.get('notes', ''),
             added_by=request.user,
         )
         messages.success(request, 'تم إضافة الوارد')
         return redirect('admin_inventory')
-    return render(request, 'pos/admin/inventory_form.html', {'today': date.today()})
+    return render(
+        request,
+        'pos/admin/inventory_form.html',
+        {
+            'today': today,
+            'ar_months': _AR_MONTHS,
+            'year_options': list(range(today.year - 4, today.year + 2)),
+            'days_range': list(range(1, 32)),
+        },
+    )
 
 
 @admin_required
@@ -453,17 +584,41 @@ def reports(request):
 
 @admin_required
 def history(request):
-    day = request.GET.get('date', str(date.today()))
-    orders = (Order.objects
-              .filter(created_at__date=day)
-              .select_related('cashier','table','waiter','driver')
-              .prefetch_related('items__menu_item')
-              .order_by('-created_at'))
+    today = timezone.localdate()
+    raw = (request.GET.get('date') or '').strip()
+    selected = parse_date(raw) if raw else None
+    if raw and selected is None:
+        messages.warning(request, 'صيغة التاريخ غير صالحة. تم عرض تاريخ اليوم.')
+        selected = today
+    elif selected is None:
+        selected = today
 
-    day_revenue = sum(o.total for o in orders.filter(status__in=['printed','completed']))
-    return render(request, 'pos/admin/history.html', {
-        'orders': orders, 'day': day, 'day_revenue': day_revenue,
-    })
+    orders = list(
+        Order.objects.filter(created_at__date=selected)
+        .select_related('cashier', 'table', 'waiter', 'driver')
+        .prefetch_related('items__menu_item')
+        .order_by('-created_at')
+    )
+    day_revenue = sum(
+        o.total for o in orders if o.status in ('printed', 'completed')
+    )
+    year_now = today.year
+    year_options = list(range(year_now - 4, year_now + 2))
+    return render(
+        request,
+        'pos/admin/history.html',
+        {
+            'orders': orders,
+            'selected_date': selected,
+            'day_revenue': day_revenue,
+            'ar_months': _AR_MONTHS,
+            'year_options': year_options,
+            'days_range': list(range(1, 32)),
+            'today_iso': today.strftime('%Y-%m-%d'),
+            'prev_date': selected - timedelta(days=1),
+            'next_date': selected + timedelta(days=1),
+        },
+    )
 
 
 @admin_required

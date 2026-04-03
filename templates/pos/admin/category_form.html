@@ -1,26 +1,305 @@
 {% extends 'pos/admin/base.html' %}
+{% load l10n %}
 {% block title %}{{ title }}{% endblock %}
 {% block page_icon %}<i class="fas fa-tags"></i>{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.cat-form-page{max-width:980px;margin:0 auto;--cf-food:#ea580c;--cf-food-bg:#fff7ed;--cf-drink:#0284c7;--cf-drink-bg:#ecfeff;--cf-other:#6366f1;--cf-other-bg:#eef2ff}
+.cat-form-hero{
+  display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;
+  margin-bottom:22px;padding:22px 24px;border-radius:18px;
+  background:linear-gradient(135deg,#fff 0%,#f1f5f9 55%,#faf5ff 100%);
+  border:1px solid var(--border);box-shadow:0 8px 32px rgba(99,102,241,.08);
+  position:relative;overflow:hidden;
+}
+.cat-form-hero::before{
+  content:'';position:absolute;inset-inline-end:0;top:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,#6366f1,#4f46e5);
+  border-start-end-radius:4px;border-end-end-radius:4px;
+}
+.cat-form-hero h1{font-size:1.12rem;font-weight:900;color:var(--text);margin:0 0 6px;letter-spacing:-.02em}
+.cat-form-hero p{font-size:.82rem;color:var(--text2);margin:0;line-height:1.55;max-width:440px}
+.cat-form-back{
+  display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:12px;
+  font-size:.82rem;font-weight:700;text-decoration:none;color:var(--text2);
+  background:#fff;border:1px solid var(--border);transition:all .18s;
+}
+.cat-form-back:hover{border-color:var(--pri);color:var(--pri);box-shadow:0 4px 16px rgba(79,70,229,.1)}
+.cat-form-back i{font-size:.75rem;opacity:.85}
+
+.cat-form-grid{display:grid;grid-template-columns:1fr minmax(260px,288px);gap:20px;align-items:start}
+@media (max-width:880px){.cat-form-grid{grid-template-columns:1fr}}
+
+.cat-panel{
+  background:#fff;border-radius:var(--radius);padding:22px 24px 26px;
+  box-shadow:var(--shadow);border:1px solid var(--border);
+}
+.form-section{margin-bottom:22px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.form-section:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.form-section-h{
+  font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;
+  margin-bottom:14px;display:flex;align-items:center;gap:8px;
+}
+.form-section-h i{color:var(--pri);font-size:.8rem}
+
+.cf-fg{margin-bottom:16px}
+.cf-fg:last-child{margin-bottom:0}
+.cf-fg > label{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-size:.8rem;font-weight:800;color:var(--text2);margin-bottom:7px;
+}
+.cf-hint{font-size:.68rem;font-weight:600;color:var(--muted)}
+.cf-fg input,.cf-fg select{
+  width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:.88rem;
+  font-family:inherit;background:#fafbff;transition:border .18s,box-shadow .18s,background .18s;
+}
+.cf-fg input:hover,.cf-fg select:hover{background:#fff}
+.cf-fg input:focus,.cf-fg select:focus{
+  outline:none;border-color:var(--pri);background:#fff;box-shadow:0 0 0 4px var(--pri-l);
+}
+
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:620px){.type-grid{grid-template-columns:1fr}}
+.type-card{
+  position:relative;display:block;cursor:pointer;margin:0;border-radius:14px;padding:0;border:2px solid var(--border);
+  background:#fafbff;transition:border-color .2s,box-shadow .2s,background .2s,transform .15s;
+}
+.type-card:hover{border-color:#c7d2fe;background:#fff;box-shadow:0 6px 18px rgba(79,70,229,.08)}
+.type-card input{
+  position:absolute;opacity:0;width:0;height:0;pointer-events:none;
+}
+.type-card-inner{padding:16px 14px;text-align:center}
+.type-card .ico{
+  width:44px;height:44px;margin:0 auto 10px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:1.05rem;transition:transform .2s;
+}
+.type-card[data-t="food"] .ico{background:var(--cf-food-bg);color:var(--cf-food)}
+.type-card[data-t="drink"] .ico{background:var(--cf-drink-bg);color:var(--cf-drink)}
+.type-card[data-t="other"] .ico{background:var(--cf-other-bg);color:var(--cf-other)}
+.type-card strong{display:block;font-size:.88rem;font-weight:800;color:var(--text);margin-bottom:4px}
+.type-card span{font-size:.68rem;color:var(--muted);line-height:1.35;display:block}
+.type-card:has(input:checked){
+  border-color:var(--pri);background:#fff;box-shadow:0 0 0 3px var(--pri-l),0 10px 28px rgba(79,70,229,.12);
+}
+.type-card:has(input:checked) .ico{transform:scale(1.06)}
+.type-card:focus-within{outline:2px solid var(--pri);outline-offset:2px}
+
+.cf-row2{display:grid;grid-template-columns:1fr 140px;gap:16px;align-items:end}
+@media (max-width:520px){.cf-row2{grid-template-columns:1fr}}
+
+.cf-select-wrap{position:relative}
+.cf-select-wrap select{appearance:none;padding-inline-end:40px;cursor:pointer}
+
+.avail-row{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:16px 18px;border-radius:14px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);
+  border:1px solid var(--border);
+}
+.avail-row-txt strong{display:block;font-size:.9rem;font-weight:800;color:var(--text);margin-bottom:4px}
+.avail-row-txt span{font-size:.75rem;color:var(--muted);line-height:1.45}
+.avail-switch{position:relative;width:52px;height:30px;flex-shrink:0}
+.avail-switch input{opacity:0;width:0;height:0;position:absolute}
+.avail-switch .track{
+  position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .22s;
+}
+.avail-switch .track::after{
+  content:'';position:absolute;width:24px;height:24px;inset-inline-start:3px;top:3px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12);transition:inset-inline-start .22s ease;
+}
+.avail-switch input:checked + .track{background:linear-gradient(135deg,#10b981,#059669)}
+.avail-switch input:checked + .track::after{inset-inline-start:calc(100% - 27px)}
+
+.cat-form-actions{
+  display:flex;flex-wrap:wrap;gap:12px;margin-top:26px;padding-top:22px;border-top:1px solid var(--border);
+}
+.cat-form-actions .btn{min-height:46px;padding-inline:22px;border-radius:12px;font-weight:800}
+.cat-form-actions .btn-pri{flex:1;justify-content:center;min-width:160px;box-shadow:0 6px 20px rgba(79,70,229,.25)}
+.cat-form-actions .btn-out{flex:1;justify-content:center;min-width:120px}
+
+.cat-aside{position:sticky;top:calc(var(--th) + 16px)}
+.preview-card{
+  background:#fff;border-radius:var(--radius);padding:20px;border:1px solid var(--border);
+  box-shadow:var(--shadow);margin-bottom:14px;
+}
+.preview-card-h{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+.preview-badge{
+  display:flex;align-items:center;gap:12px;padding:16px 18px;border-radius:14px;border:1.5px solid var(--border);
+  background:linear-gradient(160deg,#fafbff,#fff);
+}
+.preview-badge .pb-ico{
+  width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;
+}
+.preview-badge.food .pb-ico{background:var(--cf-food-bg);color:var(--cf-food)}
+.preview-badge.drink .pb-ico{background:var(--cf-drink-bg);color:var(--cf-drink)}
+.preview-badge.other .pb-ico{background:var(--cf-other-bg);color:var(--cf-other)}
+.preview-badge .pb-txt strong{display:block;font-size:.92rem;font-weight:900;color:var(--text)}
+.preview-badge .pb-txt span{font-size:.74rem;color:var(--muted);margin-top:4px;display:block}
+
+.tip-card{
+  border-radius:14px;padding:16px 18px;font-size:.78rem;line-height:1.55;color:var(--text2);
+  background:linear-gradient(135deg,#f5f3ff 0%,#fff 100);border:1px solid #ddd6fe;
+}
+.tip-card strong{display:flex;align-items:center;gap:8px;color:var(--pri-d);font-size:.8rem;margin-bottom:8px}
+.tip-card strong i{color:var(--pri)}
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="max-width:500px">
-<div class="card">
-  <form method="post">{% csrf_token %}
-    <div class="fg"><label>اسم التصنيف *</label><input name="name" value="{{ obj.name|default:'' }}" required></div>
-    <div class="fg"><label>النوع *</label>
-      <select name="category_type">
-        <option value="food" {% if obj.category_type == 'food' %}selected{% endif %}>أكل</option>
-        <option value="drink" {% if obj.category_type == 'drink' %}selected{% endif %}>مشروبات</option>
-        <option value="other" {% if obj.category_type == 'other' %}selected{% endif %}>أخرى</option>
-      </select>
+<div class="cat-form-page">
+  <header class="cat-form-hero">
+    <div>
+      <h1>{{ title }}</h1>
+      {% if obj %}
+      <p>عدّل اسم التصنيف، النوع الأساسي (أكل / مشروبات)، والترتيب. التصنيفات غير النشطة لا تظهر في طلبات الكاشير الجديدة.</p>
+      {% else %}
+      <p>أنشئ تصنيفاً فرعياً تحت أحد الأنواع الرئيسية حتى تربط به المنتجات في المنيو.</p>
+      {% endif %}
     </div>
-    <div class="fg"><label>الترتيب</label><input name="order" type="number" value="{{ obj.order|default:0 }}"></div>
-    {% if obj %}<div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="is_active" {% if obj.is_active %}checked{% endif %}> نشط</label></div>{% endif %}
-    <div style="display:flex;gap:10px;margin-top:20px">
-      <a href="{% url 'admin_menu' %}" class="btn btn-out" style="flex:1;justify-content:center">إلغاء</a>
-      <button type="submit" class="btn btn-pri" style="flex:2;justify-content:center"><i class="fas fa-save"></i> حفظ</button>
+    <a href="{% url 'admin_menu' %}" class="cat-form-back"><i class="fas fa-arrow-right"></i> العودة للمنيو</a>
+  </header>
+
+  <div class="cat-form-grid">
+    <div class="cat-panel">
+      <form method="post" id="categoryForm">{% csrf_token %}
+
+        <div class="form-section">
+          <div class="form-section-h"><i class="fas fa-folder-tree"></i> البيانات الأساسية</div>
+          <div class="cf-row2">
+            <div class="cf-fg" style="margin-bottom:0">
+              <label for="catName">اسم التصنيف</label>
+              <input id="catName" name="name" type="text" value="{{ obj.name|default:'' }}" required autocomplete="off" placeholder="مثال: سندوتشات، عصائر طازجة">
+            </div>
+            <div class="cf-fg" style="margin-bottom:0">
+              <label for="catOrder">الترتيب <span class="cf-hint">رقم أصغر = أعلى</span></label>
+              <input id="catOrder" name="order" type="number" min="0" value="{% if obj %}{{ obj.order|unlocalize }}{% else %}0{% endif %}">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-h"><i class="fas fa-shapes"></i> النوع الأساسي</div>
+          <p class="cf-hint" style="margin:-6px 0 14px">يحدد المجموعة في المنيو والعروض (أكل، مشروبات، أو أخرى).</p>
+          <div class="type-grid" id="typeGrid">
+            <label class="type-card" data-t="food">
+              <input type="radio" name="category_type" value="food" required {% if not obj or obj.category_type == 'food' %}checked{% endif %}>
+              <div class="type-card-inner">
+                <div class="ico"><i class="fas fa-drumstick-bite"></i></div>
+                <strong>أكل</strong>
+                <span>وجبات، مقبلات، حلويات…</span>
+              </div>
+            </label>
+            <label class="type-card" data-t="drink">
+              <input type="radio" name="category_type" value="drink" {% if obj.category_type == 'drink' %}checked{% endif %}>
+              <div class="type-card-inner">
+                <div class="ico"><i class="fas fa-mug-hot"></i></div>
+                <strong>مشروبات</strong>
+                <span>ساخن، بارد، عصائر…</span>
+              </div>
+            </label>
+            <label class="type-card" data-t="other">
+              <input type="radio" name="category_type" value="other" {% if obj.category_type == 'other' %}checked{% endif %}>
+              <div class="type-card-inner">
+                <div class="ico"><i class="fas fa-box-open"></i></div>
+                <strong>أخرى</strong>
+                <span>إضافات، عروض مختلطة…</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {% if obj %}
+        <div class="form-section">
+          <div class="form-section-h"><i class="fas fa-eye"></i> الظهور في نقطة البيع</div>
+          <div class="cf-fg" style="margin:0">
+            <label class="avail-row" style="cursor:default;margin:0">
+              <div class="avail-row-txt">
+                <strong>التصنيف نشط</strong>
+                <span>إيقاف التفعيل يخفي التصنيف والمنتجات التابعة من شاشة الطلب للكاشير.</span>
+              </div>
+              <span class="avail-switch">
+                <input type="checkbox" name="is_active" id="catActive" {% if obj.is_active %}checked{% endif %}>
+                <span class="track" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="cat-form-actions">
+          <a href="{% url 'admin_menu' %}" class="btn btn-out">إلغاء</a>
+          <button type="submit" class="btn btn-pri"><i class="fas fa-check"></i> {% if obj %}حفظ التعديلات{% else %}إضافة التصنيف{% endif %}</button>
+        </div>
+      </form>
     </div>
-  </form>
+
+    <aside class="cat-aside">
+      <div class="preview-card">
+        <div class="preview-card-h">معاينة النوع</div>
+        <div class="preview-badge food" id="catPreviewBadge" data-current="food">
+          <div class="pb-ico"><i class="fas fa-drumstick-bite"></i></div>
+          <div class="pb-txt">
+            <strong id="catPreviewName">{% if obj %}{{ obj.name }}{% else %}اسم التصنيف{% endif %}</strong>
+            <span id="catPreviewTypeLabel">تصنيف ضمن <b>أكل</b></span>
+          </div>
+        </div>
+      </div>
+      <div class="tip-card">
+        <strong><i class="fas fa-wand-magic-sparkles"></i> تنظيم ذكي</strong>
+        رتّب التصنيفات برقم ترتيب متسق (10، 20، 30…) ليسهّل إدراج عناصر جديدة بينها لاحقاً دون إعادة ترقيم كل القائمة.
+      </div>
+    </aside>
+  </div>
 </div>
-</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const form=document.getElementById('categoryForm');
+  const nameEl=document.getElementById('catName');
+  const radios=[...document.querySelectorAll('input[name="category_type"]')];
+  const badge=document.getElementById('catPreviewBadge');
+  const pvName=document.getElementById('catPreviewName');
+  const pvType=document.getElementById('catPreviewTypeLabel');
+
+  const TYPE_META={
+    food:{cls:'food',icon:'fa-drumstick-bite',label:'أكل'},
+    drink:{cls:'drink',icon:'fa-mug-hot',label:'مشروبات'},
+    other:{cls:'other',icon:'fa-box-open',label:'أخرى'}
+  };
+
+  function selectedType(){
+    const r=radios.find(x=>x.checked);
+    return r?r.value:'food';
+  }
+
+  function syncPreview(){
+    if(nameEl&&pvName){
+      const t=nameEl.value.trim();
+      pvName.textContent=t||'اسم التصنيف';
+    }
+    const t=selectedType();
+    const m=TYPE_META[t]||TYPE_META.other;
+    if(badge){
+      badge.classList.remove('food','drink','other');
+      badge.classList.add(m.cls);
+      badge.dataset.current=t;
+      const ico=badge.querySelector('.pb-ico');
+      if(ico)ico.innerHTML='<i class="fas '+m.icon+'"></i>';
+    }
+    if(pvType)pvType.innerHTML='تصنيف ضمن <b>'+m.label+'</b>';
+  }
+
+  nameEl&&nameEl.addEventListener('input',syncPreview);
+  radios.forEach(r=>r.addEventListener('change',syncPreview));
+  syncPreview();
+
+  form&&form.addEventListener('submit',function(){
+    const btn=form.querySelector('button[type="submit"]');
+    if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> جاري الحفظ…';}
+  });
+})();
+</script>
 {% endblock %}

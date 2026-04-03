@@ -4,94 +4,302 @@
 {% block page_title %}المنيو{% endblock %}
 
 {% block extra_css %}<style>
-.menu-layout{display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:start}
-.cat-list{display:flex;flex-direction:column;gap:8px}
-.cat-row{background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:13px 15px;display:flex;align-items:center;gap:10px;transition:all .18s}
-.cat-row:hover{border-color:var(--pri-l)}
-.cat-badge{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
-.cat-food{background:var(--war-l);color:#92400e}.cat-drink{background:#dbeafe;color:#1e40af}.cat-other{background:var(--pri-l);color:#3730a3}
-.cat-name{flex:1;font-weight:700;font-size:.9rem}
-.cat-count{font-size:.75rem;color:var(--muted);margin-top:1px}
-.cat-actions{display:flex;gap:4px}
+.menu-page{
+  --accent-food:#ea580c;--accent-food-bg:#fff7ed;
+  --accent-drink:#0284c7;--accent-drink-bg:#ecfeff;
+  --accent-other:#6366f1;--accent-other-bg:#eef2ff;
+  --surface:#ffffff;--surface-2:#f8fafc;--hairline:rgba(15,23,42,.06);
+}
+.menu-toolbar{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;
+  margin-bottom:22px;padding:18px 20px;border-radius:16px;
+  background:linear-gradient(135deg,var(--surface) 0%,#f1f5f9 100%);
+  border:1px solid var(--border);box-shadow:0 4px 24px rgba(15,23,42,.06);
+}
+.menu-toolbar-actions{display:flex;flex-wrap:wrap;gap:10px}
+.type-switch{
+  display:inline-flex;padding:4px;border-radius:12px;background:var(--surface-2);
+  border:1px solid var(--hairline);gap:4px;flex-wrap:wrap;
+}
+.type-tab{
+  appearance:none;border:none;cursor:pointer;font-family:inherit;
+  display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;
+  font-size:.82rem;font-weight:700;color:var(--text2);background:transparent;
+  transition:color .2s,background .2s,box-shadow .2s,transform .15s;
+}
+.type-tab:hover{color:var(--text);background:rgba(255,255,255,.85)}
+.type-tab.active{
+  background:var(--surface);color:var(--pri);box-shadow:0 2px 12px rgba(79,70,229,.15);
+}
+.type-tab .tt-ico{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem}
+.type-tab[data-filter="all"] .tt-ico{background:var(--pri-l);color:var(--pri-d)}
+.type-tab[data-filter="food"] .tt-ico{background:var(--accent-food-bg);color:var(--accent-food)}
+.type-tab[data-filter="drink"] .tt-ico{background:var(--accent-drink-bg);color:var(--accent-drink)}
+.type-tab[data-filter="other"] .tt-ico{background:var(--accent-other-bg);color:var(--accent-other)}
+.type-tab .tt-count{
+  font-size:.68rem;font-weight:800;color:var(--muted);background:var(--bg);
+  padding:2px 8px;border-radius:999px;min-width:1.4em;text-align:center
+}
+.type-tab.active .tt-count{color:var(--pri);background:var(--pri-l)}
 
-.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
-.item-card{background:#fff;border-radius:12px;border:1.5px solid var(--border);padding:14px 15px;transition:all .18s}
-.item-card:hover{border-color:var(--pri);box-shadow:0 4px 14px rgba(79,70,229,.1)}
-.item-card.unavail{opacity:.55}
-.item-name{font-weight:800;font-size:.9rem;margin-bottom:5px}
-.item-price{font-size:1rem;font-weight:900;color:var(--pri)}
-.item-cat{font-size:.72rem;color:var(--muted);margin-top:3px}
-.item-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.menu-layout{
+  display:grid;grid-template-columns:minmax(260px,300px) 1fr;gap:20px;align-items:start
+}
+@media (max-width:960px){
+  .menu-layout{grid-template-columns:1fr}
+}
+
+.menu-side .card,.menu-main .card{margin-bottom:0}
+.menu-side-hint{font-size:.72rem;color:var(--muted);margin-top:10px;line-height:1.5;padding:0 2px}
+
+.cat-list{display:flex;flex-direction:column;gap:10px;max-height:min(70vh,640px);overflow-y:auto;padding-inline-end:4px}
+.cat-list::-webkit-scrollbar{width:6px}
+.cat-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+.cat-row{
+  background:var(--surface);border-radius:14px;border:1px solid var(--border);
+  padding:14px 14px 14px 16px;display:flex;align-items:center;gap:12px;
+  transition:border-color .2s,box-shadow .2s,transform .15s;
+  border-inline-end:3px solid transparent;
+}
+.cat-row:hover{border-color:#c7d2fe;box-shadow:0 6px 20px rgba(79,70,229,.08)}
+.cat-row[data-primary-type="food"]{border-inline-end-color:var(--accent-food)}
+.cat-row[data-primary-type="drink"]{border-inline-end-color:var(--accent-drink)}
+.cat-row[data-primary-type="other"]{border-inline-end-color:var(--accent-other)}
+.cat-row.menu-filter-hidden{display:none!important}
+
+.cat-badge{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:.88rem;flex-shrink:0}
+.cat-food{background:var(--accent-food-bg);color:var(--accent-food)}
+.cat-drink{background:var(--accent-drink-bg);color:var(--accent-drink)}
+.cat-other{background:var(--accent-other-bg);color:var(--accent-other)}
+.cat-name{flex:1;font-weight:800;font-size:.9rem;color:var(--text);letter-spacing:-.02em}
+.cat-meta{font-size:.72rem;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cat-pill{font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:999px;text-transform:none;letter-spacing:0}
+.p-food{background:var(--accent-food-bg);color:var(--accent-food)}
+.p-drink{background:var(--accent-drink-bg);color:var(--accent-drink)}
+.p-other{background:var(--accent-other-bg);color:var(--accent-other)}
+.cat-count-dir{opacity:.85}
+.cat-actions{display:flex;gap:6px;flex-shrink:0}
+
+.menu-main-hdr{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.menu-main-hdr h2{font-size:.95rem;font-weight:800;margin:0;display:flex;align-items:center;gap:8px}
+.menu-main-hdr h2 i{color:var(--pri);font-size:.9rem}
+.menu-subtitle{font-size:.78rem;color:var(--muted);font-weight:600;margin-top:4px}
+.menu-live-chip{
+  display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
+  font-size:.72rem;font-weight:700;background:var(--pri-l);color:var(--pri-d)
+}
+
+.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.menu-cat-block{margin-bottom:28px}
+.menu-cat-block:last-child{margin-bottom:4px}
+.menu-cat-block.menu-filter-hidden{display:none!important}
+
+.cat-section-hdr{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)
+}
+.cat-section-title{font-size:.85rem;font-weight:800;color:var(--text);display:flex;align-items:center;gap:10px}
+.cat-section-title .mini-type{font-size:.65rem;font-weight:800;padding:3px 10px;border-radius:999px}
+.cat-section-count{font-size:.72rem;color:var(--muted);font-weight:700}
+
+.item-card{
+  background:var(--surface);border-radius:14px;border:1px solid var(--border);
+  padding:16px 16px 14px;position:relative;overflow:hidden;
+  transition:border-color .2s,box-shadow .25s,transform .18s;
+}
+.item-card::before{
+  content:'';position:absolute;inset-inline:0;top:0;height:3px;opacity:.9;
+  background:var(--pri);transition:opacity .2s;
+}
+.item-card[data-primary-type="food"]::before{background:linear-gradient(90deg,var(--accent-food),#fb923c)}
+.item-card[data-primary-type="drink"]::before{background:linear-gradient(90deg,var(--accent-drink),#38bdf8)}
+.item-card[data-primary-type="other"]::before{background:linear-gradient(90deg,var(--accent-other),#818cf8)}
+.item-card:hover{
+  border-color:#c7d2fe;box-shadow:0 12px 32px rgba(79,70,229,.1);transform:translateY(-2px)
+}
+.item-card.unavail{opacity:.58;filter:grayscale(.25)}
+.item-card.unavail:hover{transform:none}
+.item-name{font-weight:800;font-size:.92rem;margin-bottom:6px;color:var(--text);line-height:1.35}
+.item-price{
+  font-size:1.05rem;font-weight:900;letter-spacing:-.03em;
+  background:linear-gradient(135deg,var(--pri),#7c3aed);-webkit-background-clip:text;background-clip:text;
+  color:transparent;
+}
+.item-cat{font-size:.72rem;color:var(--muted);margin-top:8px;min-height:1.2em;display:flex;align-items:center;gap:6px}
+.item-actions{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+
+.menu-empty{
+  text-align:center;padding:48px 24px;color:var(--muted);border:2px dashed var(--border);
+  border-radius:16px;background:var(--surface-2);display:none
+}
+.menu-empty.show{display:block}
+.menu-empty i{font-size:2rem;margin-bottom:12px;opacity:.45;display:block}
+.menu-empty strong{display:block;font-size:.95rem;color:var(--text2);margin-bottom:6px}
 </style>{% endblock %}
 
 {% block content %}
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-  <div></div>
-  <div style="display:flex;gap:10px">
-    <a href="{% url 'admin_cat_add' %}" class="btn btn-out"><i class="fas fa-folder-plus"></i> تصنيف جديد</a>
-    <a href="{% url 'admin_item_add' %}" class="btn btn-pri"><i class="fas fa-plus"></i> منتج جديد</a>
+{{ menu_stats|json_script:"menu-stats-data" }}
+<div class="menu-page" id="menuAdminPage">
+  <div class="menu-toolbar">
+    <div class="type-switch" role="tablist" aria-label="تصفية حسب النوع الأساسي">
+      <button type="button" class="type-tab active" data-filter="all" role="tab" aria-selected="true" id="tab-all">
+        <span class="tt-ico"><i class="fas fa-layer-group"></i></span>
+        <span>الكل</span>
+        <span class="tt-count" data-stat="all-cats">{{ menu_stats.all.categories }}</span>
+      </button>
+      <button type="button" class="type-tab" data-filter="food" role="tab" aria-selected="false" id="tab-food">
+        <span class="tt-ico"><i class="fas fa-drumstick-bite"></i></span>
+        <span>أكل</span>
+        <span class="tt-count" data-stat="food-cats">{{ menu_stats.food.categories }}</span>
+      </button>
+      <button type="button" class="type-tab" data-filter="drink" role="tab" aria-selected="false" id="tab-drink">
+        <span class="tt-ico"><i class="fas fa-mug-hot"></i></span>
+        <span>مشروبات</span>
+        <span class="tt-count" data-stat="drink-cats">{{ menu_stats.drink.categories }}</span>
+      </button>
+      <button type="button" class="type-tab" data-filter="other" role="tab" aria-selected="false" id="tab-other">
+        <span class="tt-ico"><i class="fas fa-box-open"></i></span>
+        <span>أخرى</span>
+        <span class="tt-count" data-stat="other-cats">{{ menu_stats.other.categories }}</span>
+      </button>
+    </div>
+    <div class="menu-toolbar-actions">
+      <a href="{% url 'admin_cat_add' %}" class="btn btn-out"><i class="fas fa-folder-plus"></i> تصنيف جديد</a>
+      <a href="{% url 'admin_item_add' %}" class="btn btn-pri"><i class="fas fa-plus"></i> منتج جديد</a>
+    </div>
   </div>
-</div>
 
-<div class="menu-layout">
-  <!-- Categories -->
-  <div>
-    <div class="card" style="margin-bottom:0">
-      <div class="card-hdr"><span><i class="fas fa-tags"></i>التصنيفات</span></div>
-      <div class="cat-list">
+  <div class="menu-layout">
+    <div class="menu-side">
+      <div class="card">
+        <div class="card-hdr"><span><i class="fas fa-tags"></i> التصنيفات الفرعية</span></div>
+        <p class="menu-side-hint">اختَر نوعاً من الأعلى لعرض تصنيفات الأكل أو المشروبات أو الكل. كل صف يمكن تعديله أو حذفه من الأزرار على اليمين.</p>
+        <div class="cat-list" id="adminCatList">
         {% for cat in categories %}
-        <div class="cat-row">
+        <div class="cat-row" data-primary-type="{{ cat.category_type }}">
           <div class="cat-badge cat-{{ cat.category_type }}">
             {% if cat.category_type == 'food' %}<i class="fas fa-drumstick-bite"></i>
             {% elif cat.category_type == 'drink' %}<i class="fas fa-mug-hot"></i>
-            {% else %}<i class="fas fa-box"></i>{% endif %}
+            {% else %}<i class="fas fa-box-open"></i>{% endif %}
           </div>
-          <div style="flex:1">
+          <div style="flex:1;min-width:0">
             <div class="cat-name">{{ cat.name }}</div>
-            <div class="cat-count">{{ cat.items.count }} منتج {% if not cat.is_active %}· (غير نشط){% endif %}</div>
+            <div class="cat-meta">
+              {% if cat.category_type == 'food' %}<span class="cat-pill p-food">أكل</span>
+              {% elif cat.category_type == 'drink' %}<span class="cat-pill p-drink">مشروبات</span>
+              {% else %}<span class="cat-pill p-other">أخرى</span>{% endif %}
+              <span class="cat-count-dir">{{ cat.items.all|length }} منتج</span>
+              {% if not cat.is_active %}<span class="badge b-war">غير نشط</span>{% endif %}
+            </div>
           </div>
           <div class="cat-actions">
-            <a href="{% url 'admin_cat_edit' cat.pk %}" class="btn btn-out btn-sm"><i class="fas fa-edit"></i></a>
-            <button class="btn btn-dan btn-sm" onclick="deleteCat({{ cat.pk }})"><i class="fas fa-trash"></i></button>
+            <a href="{% url 'admin_cat_edit' cat.pk %}" class="btn btn-out btn-sm" title="تعديل"><i class="fas fa-edit"></i></a>
+            <button type="button" class="btn btn-dan btn-sm" onclick="deleteCat({{ cat.pk }})" title="حذف"><i class="fas fa-trash"></i></button>
           </div>
         </div>
         {% empty %}
-        <p style="color:var(--muted);text-align:center;padding:20px">مفيش تصنيفات</p>
+        <p style="color:var(--muted);text-align:center;padding:24px 12px">مفيش تصنيفات بعد. أضف تصنيفاً من الزر أعلاه.</p>
         {% endfor %}
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Items -->
-  <div class="card">
-    <div class="card-hdr"><span><i class="fas fa-burger"></i>المنتجات ({{ categories|length }} تصنيف)</span></div>
-    {% for cat in categories %}
-    <div style="margin-bottom:20px">
-      <div style="font-size:.8rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">
-        {{ cat.name }}
-      </div>
-      <div class="items-grid">
-        {% for item in cat.items.all %}
-        <div class="item-card {% if not item.is_available %}unavail{% endif %}">
-          <div class="item-name">{{ item.name }}</div>
-          <div class="item-price">{{ item.price }} ج</div>
-          <div class="item-cat">{% if not item.is_available %}⚠️ غير متاح{% endif %}</div>
-          <div class="item-actions">
-            <a href="{% url 'admin_item_edit' item.pk %}" class="btn btn-out btn-sm" style="flex:1;justify-content:center"><i class="fas fa-edit"></i> تعديل</a>
-            <button class="btn btn-dan btn-sm" onclick="deleteItem({{ item.pk }})"><i class="fas fa-trash"></i></button>
+    <div class="menu-main">
+      <div class="card">
+        <div class="menu-main-hdr">
+          <div>
+            <h2><i class="fas fa-burger"></i> المنتجات</h2>
+            <p class="menu-subtitle" id="menuProductsSubtitle">كل التصنيفات والمنتجات</p>
+          </div>
+          <span class="menu-live-chip" id="menuProductsChip"><i class="fas fa-database"></i> <span id="menuProductsChipText">{{ menu_stats.all.categories }} تصنيف · {{ menu_stats.all.items }} منتج</span></span>
+        </div>
+
+        <div class="menu-empty" id="menuEmptyState">
+          <i class="fas fa-filter-circle-xmark"></i>
+          <strong>لا يوجد محتوى لهذا النوع</strong>
+          غيّر التبويب إلى «الكل» أو أضف تصنيفات ومنتجات جديدة.
+        </div>
+
+        {% for cat in categories %}
+        <div class="menu-cat-block" data-primary-type="{{ cat.category_type }}">
+          <div class="cat-section-hdr">
+            <div class="cat-section-title">
+              {{ cat.name }}
+              {% if cat.category_type == 'food' %}<span class="mini-type p-food">أكل</span>
+              {% elif cat.category_type == 'drink' %}<span class="mini-type p-drink">مشروبات</span>
+              {% else %}<span class="mini-type p-other">أخرى</span>{% endif %}
+            </div>
+            <span class="cat-section-count">{{ cat.items.all|length }} منتج</span>
+          </div>
+          <div class="items-grid">
+            {% for item in cat.items.all %}
+            <div class="item-card {% if not item.is_available %}unavail{% endif %}" data-primary-type="{{ cat.category_type }}">
+              <div class="item-name">{{ item.name }}</div>
+              <div class="item-price">{{ item.price }} ج</div>
+              <div class="item-cat">
+                {% if not item.is_available %}<span class="badge b-war" style="font-size:.65rem"><i class="fas fa-ban"></i> غير متاح</span>
+                {% else %}<span class="badge b-suc" style="font-size:.65rem"><i class="fas fa-check"></i> متاح</span>{% endif %}
+              </div>
+              <div class="item-actions">
+                <a href="{% url 'admin_item_edit' item.pk %}" class="btn btn-out btn-sm" style="flex:1;justify-content:center"><i class="fas fa-pen"></i> تعديل</a>
+                <button type="button" class="btn btn-dan btn-sm" onclick="deleteItem({{ item.pk }})"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+            {% empty %}
+            <p style="color:var(--muted);font-size:.82rem;grid-column:1/-1">لا توجد منتجات في «{{ cat.name }}».</p>
+            {% endfor %}
           </div>
         </div>
         {% empty %}
-        <p style="color:var(--muted);font-size:.82rem">مفيش منتجات في هذا التصنيف</p>
+        <p style="color:var(--muted);text-align:center;padding:32px">مفيش منتجات. أضف تصنيفاً ثم منتجات.</p>
         {% endfor %}
       </div>
     </div>
-    {% endfor %}
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}<script>
+(function(){
+  const statsEl=document.getElementById('menu-stats-data');
+  const STATS=statsEl?JSON.parse(statsEl.textContent):{};
+  const tabs=[...document.querySelectorAll('.type-tab')];
+  const rows=[...document.querySelectorAll('.cat-row[data-primary-type]')];
+  const blocks=[...document.querySelectorAll('.menu-cat-block[data-primary-type]')];
+  const subtitle=document.getElementById('menuProductsSubtitle');
+  const chipText=document.getElementById('menuProductsChipText');
+  const emptyEl=document.getElementById('menuEmptyState');
+
+  const LABELS={all:'كل التصنيفات والمنتجات',food:'تصنيفات ومنتجات الأكل فقط',drink:'تصنيفات المشروبات فقط',other:'تصنيفات أخرى'};
+
+  function applyFilter(filter){
+    const f=filter||'all';
+    rows.forEach(el=>{el.classList.toggle('menu-filter-hidden',f!=='all'&&el.dataset.primaryType!==f)});
+    blocks.forEach(el=>{el.classList.toggle('menu-filter-hidden',f!=='all'&&el.dataset.primaryType!==f)});
+    tabs.forEach(t=>{
+      const on=t.dataset.filter===f;
+      t.classList.toggle('active',on);
+      t.setAttribute('aria-selected',on?'true':'false');
+    });
+    if(subtitle)subtitle.textContent=LABELS[f]||LABELS.all;
+    const st=(STATS[f])||STATS.all||{categories:0,items:0};
+    if(chipText)chipText.textContent=st.categories+' تصنيف · '+st.items+' منتج';
+    const anyBlock=blocks.some(b=>!b.classList.contains('menu-filter-hidden'));
+    if(emptyEl)emptyEl.classList.toggle('show',blocks.length>0&&!anyBlock);
+    try{history.replaceState(null,'','#'+f);}catch(e){}
+  }
+
+  tabs.forEach(t=>t.addEventListener('click',()=>applyFilter(t.dataset.filter)));
+  let initial='all';
+  if(location.hash&&/^#(all|food|drink|other)$/.test(location.hash))initial=location.hash.slice(1);
+  applyFilter(initial);
+  window.addEventListener('hashchange',()=>{
+    const h=location.hash.slice(1);
+    if(/^(all|food|drink|other)$/.test(h))applyFilter(h);
+  });
+})();
+
 async function deleteCat(pk){
   if(!confirm('حذف التصنيف وكل منتجاته؟'))return;
   const r=await fetch(`/admin-panel/menu/category/${pk}/delete/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});

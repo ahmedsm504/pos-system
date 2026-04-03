@@ -2,23 +2,205 @@
 {% block title %}إضافة وارد{% endblock %}
 {% block page_icon %}<i class="fas fa-boxes-stacked"></i>{% endblock %}
 {% block page_title %}إضافة وارد مخزون{% endblock %}
+
+{% block extra_css %}
+<style>
+.invf-page{max-width:920px;margin:0 auto}
+.invf-hero{
+  display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px;
+  margin-bottom:22px;padding:22px 24px;border-radius:18px;
+  background:linear-gradient(135deg,#fff 0%,#f0fdfa 50%,#ecfdf5 100%);
+  border:1px solid var(--border);box-shadow:0 8px 28px rgba(13,148,136,.1);
+  position:relative;overflow:hidden;
+}
+.invf-hero::before{
+  content:'';position:absolute;inset-inline-end:0;top:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,#0f766e,#14b8a6);border-start-end-radius:4px;border-end-end-radius:4px;
+}
+.invf-hero h1{font-size:1.08rem;font-weight:900;margin:0 0 6px;color:var(--text)}
+.invf-hero p{font-size:.82rem;color:var(--text2);margin:0;max-width:460px;line-height:1.55}
+.invf-back{
+  display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:12px;font-size:.82rem;
+  font-weight:700;text-decoration:none;color:var(--text2);background:#fff;border:1px solid var(--border);transition:all .18s;
+}
+.invf-back:hover{border-color:#0d9488;color:#0f766e}
+
+.invf-grid{display:grid;grid-template-columns:1fr minmax(240px,280px);gap:20px;align-items:start}
+@media (max-width:900px){.invf-grid{grid-template-columns:1fr}}
+
+.invf-panel{
+  background:#fff;border-radius:var(--radius);padding:22px 24px 26px;border:1px solid var(--border);box-shadow:var(--shadow);
+}
+.invf-sec{margin-bottom:22px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.invf-sec:last-of-type{border:none;margin:0;padding:0}
+.invf-sech{font-size:.72rem;font-weight:800;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.invf-sech i{color:#0d9488}
+
+.invf-fg{margin-bottom:16px}
+.invf-fg>label{display:block;font-size:.8rem;font-weight:800;color:var(--text2);margin-bottom:7px}
+.invf-hint{font-size:.68rem;font-weight:600;color:var(--muted)}
+.invf-fg input,.invf-fg textarea{
+  width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:.88rem;font-family:inherit;
+  background:#fafbff;transition:border .18s,box-shadow .18s;
+}
+.invf-fg input:focus,.invf-fg textarea:focus{outline:none;border-color:#0d9488;box-shadow:0 0 0 3px rgba(13,148,136,.12);background:#fff}
+.invf-fg textarea{resize:vertical;min-height:88px}
+.invf-row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:520px){.invf-row2{grid-template-columns:1fr}}
+
+.invf-date-box{
+  background:linear-gradient(135deg,#f8fafc,#f0fdfa);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:4px;
+}
+.invf-date-box>span{display:block;font-size:.76rem;font-weight:800;color:var(--text2);margin-bottom:10px}
+.invf-drow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.invf-dlbl{font-size:.74rem;font-weight:700;color:var(--text2)}
+.invf-dsel{
+  appearance:none;padding:9px 30px 9px 10px;border-radius:10px;border:1.5px solid var(--border);font-size:.84rem;font-weight:700;
+  font-family:inherit;background:#fff;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:left 9px center;background-size:8px;
+}
+.invf-dsel:focus{outline:none;border-color:#0d9488}
+.invf-dsel.inv-d{width:4rem}
+.invf-dsel.inv-m{flex:1;min-width:7rem}
+.invf-dsel.inv-y{width:5.4rem}
+
+.invf-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}
+.invf-actions .btn{min-height:46px;border-radius:12px;font-weight:800;padding-inline:22px}
+.invf-actions .btn-pri{flex:1;justify-content:center;box-shadow:0 6px 20px rgba(15,118,110,.22)}
+
+.invf-aside{position:sticky;top:calc(var(--th) + 16px)}
+.invf-tip{
+  border-radius:14px;padding:16px 18px;font-size:.78rem;line-height:1.55;color:var(--text2);
+  background:linear-gradient(135deg,#ecfdf5,#fff);border:1px solid #99f6e4;
+}
+.invf-tip strong{display:flex;align-items:center;gap:8px;color:#0f766e;font-size:.8rem;margin-bottom:8px}
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="max-width:520px"><div class="card">
-  <form method="post">{% csrf_token %}
-    <div class="fg"><label>اسم الصنف *</label><input name="name" required placeholder="مثال: زيت، دقيق، قهوة..."></div>
-    <div class="fg-row">
-      <div class="fg"><label>الكمية *</label><input name="quantity" type="number" step="0.01" required placeholder="0"></div>
-      <div class="fg"><label>الوحدة</label><input name="unit" placeholder="كيلو، لتر، علبة..."></div>
+<div class="invf-page">
+  <header class="invf-hero">
+    <div>
+      <h1>إضافة وارد مخزون</h1>
+      <p>سجّل مشتريات المطبخ أو المخزن بالكمية والتكلفة وتاريخ الوارد. يُستخدم في التقارير وحساب صافي الربح.</p>
     </div>
-    <div class="fg-row">
-      <div class="fg"><label>التكلفة الإجمالية (ج) *</label><input name="total_cost" type="number" step="0.01" required placeholder="0.00"></div>
-      <div class="fg"><label>التاريخ *</label><input name="date" type="date" value="{{ today }}" required></div>
+    <a href="{% url 'admin_inventory' %}" class="invf-back"><i class="fas fa-arrow-right"></i> رجوع للمخزون</a>
+  </header>
+
+  <div class="invf-grid">
+    <div class="invf-panel">
+      <form method="post" id="invAddForm">{% csrf_token %}
+        <input type="hidden" name="date" id="invIsoDate" value="{{ today|date:'Y-m-d' }}" required>
+
+        <div class="invf-sec">
+          <div class="invf-sech"><i class="fas fa-cube"></i> بيانات الصنف</div>
+          <div class="invf-fg">
+            <label for="invName">اسم الصنف</label>
+            <input id="invName" name="name" required placeholder="زيت، دقيق، قهوة، لحوم…">
+          </div>
+          <div class="invf-row2">
+            <div class="invf-fg">
+              <label for="invQty">الكمية <span class="invf-hint">رقم عشري مسموح</span></label>
+              <input id="invQty" name="quantity" type="number" step="0.01" min="0" required placeholder="0">
+            </div>
+            <div class="invf-fg">
+              <label for="invUnit">الوحدة <span class="invf-hint">اختياري</span></label>
+              <input id="invUnit" name="unit" placeholder="كيلو، لتر، علبة…">
+            </div>
+          </div>
+        </div>
+
+        <div class="invf-sec">
+          <div class="invf-sech"><i class="fas fa-coins"></i> التكلفة والتاريخ</div>
+          <div class="invf-fg">
+            <label for="invCost">التكلفة الإجمالية (ج)</label>
+            <input id="invCost" name="total_cost" type="number" step="0.01" min="0" required placeholder="0.00">
+          </div>
+          <div class="invf-date-box">
+            <span><i class="fas fa-calendar-days" style="color:#0d9488;margin-inline-end:6px"></i> تاريخ الوارد — يوم / شهر / سنة</span>
+            <div class="invf-drow" dir="rtl">
+              <span class="invf-dlbl">اليوم</span>
+              <select id="iDay" class="invf-dsel inv-d" aria-label="اليوم">{% for day_n in days_range %}
+                <option value="{{ day_n }}" {% if day_n == today.day %}selected{% endif %}>{{ day_n }}</option>{% endfor %}
+              </select>
+              <span class="invf-dlbl">الشهر</span>
+              <select id="iMonth" class="invf-dsel inv-m" aria-label="الشهر">{% for m_num, m_name in ar_months %}
+                <option value="{{ m_num }}" {% if m_num == today.month %}selected{% endif %}>{{ m_name }}</option>{% endfor %}
+              </select>
+              <span class="invf-dlbl">السنة</span>
+              <select id="iYear" class="invf-dsel inv-y" aria-label="السنة">{% for y in year_options %}
+                <option value="{{ y }}" {% if y == today.year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="invf-sec">
+          <div class="invf-sech"><i class="fas fa-note-sticky"></i> ملاحظات</div>
+          <div class="invf-fg" style="margin:0">
+            <label for="invNotes" class="invf-hint" style="display:block;margin-bottom:7px">اختياري</label>
+            <textarea id="invNotes" name="notes" placeholder="مورد، رقم فاتورة…"></textarea>
+          </div>
+        </div>
+
+        <div class="invf-actions">
+          <a href="{% url 'admin_inventory' %}" class="btn btn-out">إلغاء</a>
+          <button type="submit" class="btn btn-pri" style="background:linear-gradient(135deg,#0f766e,#14b8a6);border:none"><i class="fas fa-check"></i> حفظ الوارد</button>
+        </div>
+      </form>
     </div>
-    <div class="fg"><label>ملاحظات</label><textarea name="notes" placeholder="أي ملاحظات إضافية..."></textarea></div>
-    <div style="display:flex;gap:10px;margin-top:20px">
-      <a href="{% url 'admin_inventory' %}" class="btn btn-out" style="flex:1;justify-content:center">إلغاء</a>
-      <button type="submit" class="btn btn-pri" style="flex:2;justify-content:center"><i class="fas fa-save"></i> حفظ</button>
-    </div>
-  </form>
-</div></div>
+    <aside class="invf-aside">
+      <div class="invf-tip">
+        <strong><i class="fas fa-circle-info"></i> تنبيه</strong>
+        التكلفة الإجمالية هي ما دفعته فعلياً للكمية المعروضة (وليس سعر الوحدة فقط، إلا إذا كانت الكمية = 1). دقة التواريخ تُحسّن تقارير الأرباح والمصروفات.
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const form=document.getElementById('invAddForm');
+  const iso=document.getElementById('invIsoDate');
+  const dEl=document.getElementById('iDay'), mEl=document.getElementById('iMonth'), yEl=document.getElementById('iYear');
+  if(!form||!iso||!dEl||!mEl||!yEl)return;
+
+  function pad(n){return (n<10?'0':'')+n;}
+  function daysInMonth(y,m){return new Date(y,m,0).getDate();}
+  function fillDays(){
+    const y=parseInt(yEl.value,10), m=parseInt(mEl.value,10);
+    const max=daysInMonth(y,m);
+    let d=parseInt(dEl.value,10);
+    if(!isFinite(d))d=1;
+    d=Math.min(Math.max(1,d),max);
+    dEl.innerHTML='';
+    for(let i=1;i<=max;i++){
+      const o=document.createElement('option');o.value=String(i);o.textContent=String(i);dEl.appendChild(o);
+    }
+    dEl.value=String(d);
+  }
+  function syncIso(){
+    const y=parseInt(yEl.value,10), m=parseInt(mEl.value,10);
+    let d=parseInt(dEl.value,10);
+    const max=daysInMonth(y,m);
+    if(!isFinite(d)||d<1)d=1;
+    if(d>max)d=max;
+    iso.value=y+'-'+pad(m)+'-'+pad(d);
+  }
+  function onChange(){fillDays();syncIso();}
+  [mEl,yEl].forEach(function(el){ el.addEventListener('change', onChange); });
+  dEl.addEventListener('change', syncIso);
+  fillDays();
+  syncIso();
+
+  form.addEventListener('submit',function(){
+    syncIso();
+    const btn=form.querySelector('button[type="submit"]');
+    if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> جاري الحفظ…';}
+  });
+})();
+</script>
 {% endblock %}

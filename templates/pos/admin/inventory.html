@@ -1,48 +1,261 @@
 {% extends 'pos/admin/base.html' %}
-{% block title %}المخزون{% endblock %}
+{% block title %}المخزون والواردات{% endblock %}
 {% block page_icon %}<i class="fas fa-boxes-stacked"></i>{% endblock %}
 {% block page_title %}المخزون والواردات{% endblock %}
-{% block content %}
-<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
-  <form method="get" style="display:flex;gap:8px;align-items:center">
-    <input type="date" name="start" value="{{ start }}" class="fg" style="margin:0;padding:7px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.83rem;font-family:inherit">
-    <span style="color:var(--muted)">—</span>
-    <input type="date" name="end" value="{{ end }}" class="fg" style="margin:0;padding:7px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:.83rem;font-family:inherit">
-    <button type="submit" class="btn btn-out"><i class="fas fa-search"></i> فلتر</button>
-  </form>
-  <a href="{% url 'admin_inventory_add' %}" class="btn btn-pri"><i class="fas fa-plus"></i> إضافة وارد</a>
-</div>
 
-<div style="background:linear-gradient(135deg,#ef4444,#b91c1c);border-radius:14px;padding:16px 22px;margin-bottom:18px;display:flex;align-items:center;gap:14px;color:#fff">
-  <i class="fas fa-boxes-stacked" style="font-size:1.8rem;opacity:.8"></i>
-  <div>
-    <div style="font-size:.78rem;opacity:.8">إجمالي التكاليف في الفترة</div>
-    <div style="font-size:1.6rem;font-weight:900">{{ total_cost|floatformat:2 }} ج</div>
+{% block extra_css %}
+<style>
+.inv-page{max-width:1180px;margin:0 auto}
+.inv-toolbar{
+  margin-bottom:20px;padding:20px 22px;border-radius:18px;
+  background:linear-gradient(135deg,#fff 0%,#f0fdfa 42%,#ecfdf5 100%);
+  border:1px solid var(--border);box-shadow:0 8px 28px rgba(15,118,110,.08);
+}
+.inv-toolbar-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:18px}
+.inv-toolbar-top h2{font-size:1rem;font-weight:900;margin:0 0 6px;color:var(--text);letter-spacing:-.02em}
+.inv-toolbar-top p{font-size:.8rem;color:var(--text2);margin:0;max-width:420px;line-height:1.5}
+
+.inv-range-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:16px 20px;margin-bottom:14px;
+}
+@media (max-width:780px){.inv-range-grid{grid-template-columns:1fr}}
+
+.inv-range-box{
+  background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px 16px;
+  box-shadow:0 2px 10px rgba(15,23,42,.04);
+}
+.inv-range-box h3{
+  font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+  margin:0 0 10px;display:flex;align-items:center;gap:8px;
+}
+.inv-range-box h3 i{color:#0d9488;font-size:.78rem}
+
+.inv-date-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.inv-lbl{font-size:.76rem;font-weight:800;color:var(--text2)}
+.inv-sel{
+  appearance:none;padding:9px 32px 9px 11px;border-radius:11px;border:1.5px solid var(--border);
+  font-size:.84rem;font-weight:700;font-family:inherit;background:#fafbff;color:var(--text);
+  cursor:pointer;transition:border .18s,box-shadow .18s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:left 10px center;background-size:8px;
+}
+.inv-sel:focus{outline:none;border-color:#0d9488;box-shadow:0 0 0 3px rgba(13,148,136,.15)}
+.inv-sel.inv-d{width:4.2rem;text-align:center;padding-inline:8px}
+.inv-sel.inv-m{flex:1;min-width:7.5rem}
+.inv-sel.inv-y{width:5.6rem}
+
+.inv-range-hint{font-size:.78rem;font-weight:700;color:var(--text);margin-top:10px}
+.inv-range-hint .muted{color:var(--muted);font-weight:600}
+
+.inv-presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.inv-presets a{
+  display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;font-size:.78rem;
+  font-weight:700;text-decoration:none;border:1.5px solid var(--border);color:var(--text2);background:#fff;
+  transition:all .18s;
+}
+.inv-presets a:hover{border-color:#0d9488;color:#0f766e;background:#f0fdfa}
+
+.inv-actions-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+.inv-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.inv-kpi-main{
+  border-radius:16px;padding:18px 22px;color:#fff;
+  background:linear-gradient(135deg,#0f766e,#14b8a6);box-shadow:0 10px 32px rgba(15,118,110,.28);
+}
+.inv-kpi-main .kpi-lbl{font-size:.74rem;opacity:.88;font-weight:600;margin-bottom:6px}
+.inv-kpi-main .kpi-val{font-size:1.45rem;font-weight:900;letter-spacing:-.03em}
+.inv-kpi-side{
+  border-radius:16px;padding:16px 20px;background:#fff;border:1px solid var(--border);
+  box-shadow:var(--shadow);display:flex;flex-direction:column;justify-content:center;
+}
+.inv-kpi-side .kpi-lbl{font-size:.72rem;color:var(--muted);font-weight:700}
+.inv-kpi-side .kpi-val{font-size:1.25rem;font-weight:900;color:var(--text);margin-top:4px}
+
+.inv-table-wrap{
+  background:#fff;border-radius:var(--radius);border:1px solid var(--border);
+  box-shadow:var(--shadow);overflow:hidden;
+}
+.inv-table-wrap .tbl{margin:0}
+.inv-table-wrap .tbl th{background:linear-gradient(180deg,#f8fafc,#f1f5f9);font-size:.68rem;padding:11px 14px}
+.inv-table-wrap .tbl td{padding:13px 14px;font-size:.85rem}
+.inv-table-wrap .tbl tbody tr{transition:background .15s}
+.inv-table-wrap .tbl tbody tr:hover td{background:#f8fafc}
+.inv-name{font-weight:800;color:var(--text)}
+.inv-cost{font-weight:900;color:#0f766e}
+.inv-datecell{font-variant-numeric:tabular-nums;color:var(--text2);font-weight:600}
+
+.inv-empty{
+  text-align:center;padding:48px 20px;color:var(--muted);
+}
+.inv-empty i{font-size:2.8rem;display:block;margin-bottom:12px;opacity:.3}
+.inv-empty strong{display:block;font-size:1rem;color:var(--text2);font-weight:800;margin-bottom:6px}
+
+@media (max-width:640px){
+  .inv-table-wrap{overflow-x:auto}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="inv-page">
+  <div class="inv-toolbar">
+    <div class="inv-toolbar-top">
+      <div>
+        <h2><i class="fas fa-filter" style="color:#0d9488;margin-inline-end:8px"></i> نطاق التاريخ</h2>
+        <p>اختر <strong>من</strong> و<strong>إلى</strong>: يوم ثم شهر ثم سنة لكل منهما. التواريخ تُرسل للسيرفر بصيغة آمنة (يوم-شهر-سنة).</p>
+      </div>
+      <div class="inv-actions-top">
+        <a href="{% url 'admin_inventory_add' %}" class="btn btn-pri" style="border-radius:12px;padding:11px 18px;font-weight:800">
+          <i class="fas fa-plus"></i> إضافة وارد
+        </a>
+      </div>
+    </div>
+
+    <div class="inv-range-grid">
+      <div class="inv-range-box">
+        <h3><i class="fas fa-play"></i> من تاريخ</h3>
+        <div class="inv-date-row" dir="rtl">
+          <span class="inv-lbl">اليوم</span>
+          <select id="sDay" class="inv-sel inv-d" aria-label="بداية اليوم">{% for day_n in days_range %}
+            <option value="{{ day_n }}" {% if day_n == start_date.day %}selected{% endif %}>{{ day_n }}</option>{% endfor %}
+          </select>
+          <span class="inv-lbl">الشهر</span>
+          <select id="sMonth" class="inv-sel inv-m" aria-label="بداية الشهر">{% for m_num, m_name in ar_months %}
+            <option value="{{ m_num }}" {% if m_num == start_date.month %}selected{% endif %}>{{ m_name }}</option>{% endfor %}
+          </select>
+          <span class="inv-lbl">السنة</span>
+          <select id="sYear" class="inv-sel inv-y" aria-label="بداية السنة">{% for y in year_options %}
+            <option value="{{ y }}" {% if y == start_date.year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="inv-range-hint">البداية: <span class="muted">{{ start_date.day }} / {{ start_date.month }} / {{ start_date.year }}</span></div>
+      </div>
+      <div class="inv-range-box">
+        <h3><i class="fas fa-stop"></i> إلى تاريخ</h3>
+        <div class="inv-date-row" dir="rtl">
+          <span class="inv-lbl">اليوم</span>
+          <select id="eDay" class="inv-sel inv-d" aria-label="نهاية اليوم">{% for day_n in days_range %}
+            <option value="{{ day_n }}" {% if day_n == end_date.day %}selected{% endif %}>{{ day_n }}</option>{% endfor %}
+          </select>
+          <span class="inv-lbl">الشهر</span>
+          <select id="eMonth" class="inv-sel inv-m" aria-label="نهاية الشهر">{% for m_num, m_name in ar_months %}
+            <option value="{{ m_num }}" {% if m_num == end_date.month %}selected{% endif %}>{{ m_name }}</option>{% endfor %}
+          </select>
+          <span class="inv-lbl">السنة</span>
+          <select id="eYear" class="inv-sel inv-y" aria-label="نهاية السنة">{% for y in year_options %}
+            <option value="{{ y }}" {% if y == end_date.year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="inv-range-hint">النهاية: <span class="muted">{{ end_date.day }} / {{ end_date.month }} / {{ end_date.year }}</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between">
+      <div class="inv-presets" style="margin:0">
+        <a href="{% url 'admin_inventory' %}?start={{ month_start_iso }}&end={{ today_iso }}"><i class="fas fa-calendar-week"></i> هذا الشهر</a>
+        <a href="{% url 'admin_inventory' %}?start={{ week_start_iso }}&end={{ today_iso }}"><i class="fas fa-calendar-day"></i> هذا الأسبوع</a>
+        <a href="{% url 'admin_inventory' %}?start={{ thirty_back_iso }}&end={{ today_iso }}"><i class="fas fa-arrow-rotate-left"></i> آخر 30 يوماً</a>
+      </div>
+      <button type="button" class="btn btn-pri" id="invApplyRange" style="border-radius:12px;padding:11px 22px;font-weight:800;background:linear-gradient(135deg,#0f766e,#14b8a6);border:none;box-shadow:0 6px 20px rgba(15,118,110,.25)">
+        <i class="fas fa-filter"></i> تطبيق الفترة
+      </button>
+    </div>
+  </div>
+
+  <div class="inv-kpis">
+    <div class="inv-kpi-main">
+      <div class="kpi-lbl">إجمالي تكلفة الواردات في النطاق</div>
+      <div class="kpi-val">{{ total_cost|floatformat:2 }} <span style="font-size:.9rem;font-weight:800">ج</span></div>
+    </div>
+    <div class="inv-kpi-side">
+      <div class="kpi-lbl">عدد حركات الوارد</div>
+      <div class="kpi-val">{{ entries|length }}</div>
+    </div>
+  </div>
+
+  <div class="inv-table-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>التاريخ</th><th>الصنف</th><th>الكمية</th><th>الوحدة</th><th>التكلفة</th><th>سجّلها</th><th>ملاحظات</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="inv-datecell">{{ e.date.day }} / {{ e.date.month }} / {{ e.date.year }}</td>
+          <td><span class="inv-name">{{ e.name }}</span></td>
+          <td style="font-variant-numeric:tabular-nums">{{ e.quantity|floatformat:2 }}</td>
+          <td style="color:var(--muted)">{{ e.unit|default:"—" }}</td>
+          <td><span class="inv-cost">{{ e.total_cost|floatformat:2 }} ج</span></td>
+          <td style="font-size:.82rem">{{ e.added_by.username|default:"—" }}</td>
+          <td style="font-size:.78rem;color:var(--muted);max-width:200px">{{ e.notes|truncatechars:40|default:"—" }}</td>
+          <td><button type="button" class="btn btn-dan btn-sm" onclick="delInv({{ e.pk }})" title="حذف"><i class="fas fa-trash"></i></button></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8"><div class="inv-empty"><i class="fas fa-box-open"></i><strong>لا توجد واردات في هذا النطاق</strong>جرّب توسيع الفترة أو إضافة وارد جديد.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
-
-<div class="card">
-  <table class="tbl">
-    <thead><tr><th>التاريخ</th><th>الصنف</th><th>الكمية</th><th>الوحدة</th><th>التكلفة</th><th>أضافه</th><th>ملاحظات</th><th></th></tr></thead>
-    <tbody>
-      {% for e in entries %}
-      <tr>
-        <td style="color:var(--muted);font-size:.8rem">{{ e.date|date:"Y/m/d" }}</td>
-        <td><strong>{{ e.name }}</strong></td>
-        <td>{{ e.quantity|floatformat:2 }}</td>
-        <td>{{ e.unit|default:"—" }}</td>
-        <td><strong style="color:var(--dan)">{{ e.total_cost|floatformat:2 }} ج</strong></td>
-        <td>{{ e.added_by.username|default:"—" }}</td>
-        <td style="font-size:.8rem;color:var(--muted)">{{ e.notes|truncatechars:30|default:"—" }}</td>
-        <td><button class="btn btn-dan btn-sm" onclick="delInv({{ e.pk }})"><i class="fas fa-trash"></i></button></td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px">مفيش واردات في هذه الفترة</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
 {% endblock %}
-{% block extra_js %}<script>
-async function delInv(pk){if(!confirm('حذف هذا الوارد؟'))return;const r=await fetch(`/admin-panel/inventory/${pk}/delete/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(()=>location.reload(),800)}}
-</script>{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  function pad(n){return (n<10?'0':'')+n;}
+  function daysInMonth(y,m){return new Date(y,m,0).getDate();}
+  function fillDays(dayEl,monthEl,yearEl){
+    const y=parseInt(yearEl.value,10), m=parseInt(monthEl.value,10);
+    const max=daysInMonth(y,m);
+    let d=parseInt(dayEl.value,10);
+    if(!isFinite(d))d=1;
+    d=Math.min(Math.max(1,d),max);
+    dayEl.innerHTML='';
+    for(let i=1;i<=max;i++){
+      const o=document.createElement('option');
+      o.value=String(i); o.textContent=String(i); dayEl.appendChild(o);
+    }
+    dayEl.value=String(d);
+  }
+  function isoFrom(dayEl,monthEl,yearEl){
+    const y=parseInt(yearEl.value,10), m=parseInt(monthEl.value,10);
+    let d=parseInt(dayEl.value,10);
+    const max=daysInMonth(y,m);
+    if(!isFinite(d)||d<1)d=1;
+    if(d>max)d=max;
+    return y+'-'+pad(m)+'-'+pad(d);
+  }
+  function applyRange(){
+    const sD=document.getElementById('sDay'), sM=document.getElementById('sMonth'), sY=document.getElementById('sYear');
+    const eD=document.getElementById('eDay'), eM=document.getElementById('eMonth'), eY=document.getElementById('eYear');
+    if(!sD||!eD)return;
+    let s=isoFrom(sD,sM,sY), e=isoFrom(eD,eM,eY);
+    if(s>e){ const t=s; s=e; e=t; }
+    const base='{% url "admin_inventory" %}';
+    const q='?start='+encodeURIComponent(s)+'&end='+encodeURIComponent(e);
+    location.href=base+q;
+  }
+  const sD=document.getElementById('sDay'), sM=document.getElementById('sMonth'), sY=document.getElementById('sYear');
+  const eD=document.getElementById('eDay'), eM=document.getElementById('eMonth'), eY=document.getElementById('eYear');
+  if(!sD||!sM||!sY||!eD||!eM||!eY)return;
+
+  function syncDayMenus(){
+    fillDays(sD,sM,sY);
+    fillDays(eD,eM,eY);
+  }
+  [sD,sM,sY,eD,eM,eY].forEach(function(el){ el.addEventListener('change', syncDayMenus); });
+  syncDayMenus();
+
+  const applyBtn=document.getElementById('invApplyRange');
+  if(applyBtn){applyBtn.addEventListener('click',function(){ syncDayMenus(); applyRange(); });}
+})();
+
+async function delInv(pk){
+  if(!confirm('حذف هذا الوارد؟'))return;
+  const r=await fetch('/admin-panel/inventory/'+pk+'/delete/',{method:'POST',headers:{'X-CSRFToken':csrf()}});
+  if((await r.json()).success){showToast('تم الحذف','suc');setTimeout(function(){location.reload();},800);}
+}
+</script>
+{% endblock %}

@@ -1,29 +1,305 @@
 {% extends 'pos/admin/base.html' %}
+{% load l10n %}
 {% block title %}{{ title }}{% endblock %}
 {% block page_icon %}<i class="fas fa-burger"></i>{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.item-form-page{
+  --if-accent:#4f46e5;--if-accent2:#7c3aed;
+  max-width:1040px;margin:0 auto;
+}
+.item-form-hero{
+  display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;
+  margin-bottom:22px;padding:22px 24px;border-radius:18px;
+  background:linear-gradient(135deg,#fff 0%,#f1f5f9 50%,#eef2ff 100%);
+  border:1px solid var(--border);box-shadow:0 8px 32px rgba(79,70,229,.08);
+  position:relative;overflow:hidden;
+}
+.item-form-hero::before{
+  content:'';position:absolute;inset-inline-end:0;top:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,var(--if-accent),var(--if-accent2));
+  border-start-end-radius:4px;border-end-end-radius:4px;
+}
+.item-form-hero-txt h1{font-size:1.15rem;font-weight:900;color:var(--text);margin:0 0 6px;letter-spacing:-.02em}
+.item-form-hero-txt p{font-size:.82rem;color:var(--text2);margin:0;line-height:1.55;max-width:420px}
+.item-form-back{
+  display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:12px;
+  font-size:.82rem;font-weight:700;text-decoration:none;color:var(--text2);
+  background:#fff;border:1px solid var(--border);transition:all .18s;
+}
+.item-form-back:hover{border-color:var(--pri);color:var(--pri);box-shadow:0 4px 16px rgba(79,70,229,.1)}
+.item-form-back i{font-size:.75rem;opacity:.85}
+
+.item-form-grid{display:grid;grid-template-columns:1fr minmax(260px,300px);gap:20px;align-items:start}
+@media (max-width:900px){.item-form-grid{grid-template-columns:1fr}}
+
+.form-panel{
+  background:#fff;border-radius:var(--radius);padding:22px 24px 26px;
+  box-shadow:var(--shadow);border:1px solid var(--border);
+}
+.form-section{margin-bottom:22px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.form-section:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.form-section-h{
+  font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;
+  margin-bottom:14px;display:flex;align-items:center;gap:8px;
+}
+.form-section-h i{color:var(--pri);font-size:.8rem}
+
+.if-fg{margin-bottom:16px}
+.if-fg:last-child{margin-bottom:0}
+.if-fg > label{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-size:.8rem;font-weight:800;color:var(--text2);margin-bottom:7px;
+}
+.if-fg .if-hint{font-size:.68rem;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
+.if-fg input,.if-fg select,.if-fg textarea{
+  width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:.88rem;
+  font-family:inherit;background:#fafbff;transition:border .18s,box-shadow .18s,background .18s;
+}
+.if-fg input:hover,.if-fg select:hover,.if-fg textarea:hover{background:#fff}
+.if-fg input:focus,.if-fg select:focus,.if-fg textarea:focus{
+  outline:none;border-color:var(--pri);background:#fff;box-shadow:0 0 0 4px var(--pri-l);
+}
+.if-fg textarea{resize:vertical;min-height:100px;line-height:1.5}
+
+.if-select-wrap{position:relative}
+.if-select-wrap select{appearance:none;padding-inline-end:40px;cursor:pointer}
+.if-select-wrap::after{
+  content:'\f078';font-family:'Font Awesome 6 Free';font-weight:900;
+  position:absolute;inset-inline-end:14px;top:50%;transform:translateY(-50%);
+  font-size:.65rem;color:var(--muted);pointer-events:none;
+}
+
+.if-row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:520px){.if-row2{grid-template-columns:1fr}}
+
+.if-price-wrap{display:flex;align-items:stretch;gap:0;border-radius:12px;overflow:hidden;border:1.5px solid var(--border);background:#fafbff;transition:box-shadow .18s}
+.if-price-wrap:focus-within{border-color:var(--pri);box-shadow:0 0 0 4px var(--pri-l);background:#fff}
+.if-price-wrap input{
+  border:none!important;box-shadow:none!important;border-radius:0!important;flex:1;min-width:0;
+  background:transparent!important;padding-inline-start:14px;
+}
+.if-price-suffix{
+  display:flex;align-items:center;padding:0 14px;font-weight:900;font-size:.85rem;
+  background:linear-gradient(135deg,var(--pri-l),#fff);color:var(--pri-d);border-inline-start:1px solid var(--border);
+}
+
+.avail-row{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:16px 18px;border-radius:14px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);
+  border:1px solid var(--border);
+}
+.avail-row-txt strong{display:block;font-size:.9rem;font-weight:800;color:var(--text);margin-bottom:4px}
+.avail-row-txt span{font-size:.75rem;color:var(--muted);line-height:1.45}
+
+.avail-switch{position:relative;width:52px;height:30px;flex-shrink:0}
+.avail-switch input{opacity:0;width:0;height:0;position:absolute}
+.avail-switch .track{
+  position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .22s;
+}
+.avail-switch .track::after{
+  content:'';position:absolute;width:24px;height:24px;inset-inline-start:3px;top:3px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12);
+  transition:inset-inline-start .22s ease,box-shadow .22s;
+}
+.avail-switch input:checked + .track{background:linear-gradient(135deg,#10b981,#059669)}
+.avail-switch input:checked + .track::after{inset-inline-start:calc(100% - 27px)}
+
+.item-form-actions{
+  display:flex;flex-wrap:wrap;gap:12px;margin-top:26px;padding-top:22px;border-top:1px solid var(--border);
+}
+.item-form-actions .btn{min-height:46px;padding-inline:22px;border-radius:12px;font-weight:800}
+.item-form-actions .btn-pri{flex:1;justify-content:center;min-width:160px;box-shadow:0 6px 20px rgba(79,70,229,.25)}
+.item-form-actions .btn-out{flex:1;justify-content:center;min-width:120px}
+
+.form-aside{position:sticky;top:calc(var(--th) + 16px)}
+.preview-card{
+  background:#fff;border-radius:var(--radius);padding:20px 20px 22px;border:1px solid var(--border);
+  box-shadow:var(--shadow);margin-bottom:14px;
+}
+.preview-card-h{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+.preview-mock{
+  border-radius:16px;padding:18px 18px 16px;border:1.5px solid var(--border);
+  background:linear-gradient(160deg,#fafbff 0%,#fff 100%);
+  position:relative;overflow:hidden;
+}
+.preview-mock::before{
+  content:'';position:absolute;inset-inline:0;top:0;height:3px;
+  background:linear-gradient(90deg,var(--if-accent),var(--if-accent2));
+}
+.preview-mock-name{font-weight:900;font-size:.95rem;color:var(--text);margin-bottom:8px;line-height:1.35}
+.preview-mock-price{
+  font-size:1.25rem;font-weight:900;letter-spacing:-.03em;
+  background:linear-gradient(135deg,var(--if-accent),var(--if-accent2));-webkit-background-clip:text;background-clip:text;
+  color:transparent;
+}
+.preview-mock-meta{font-size:.72rem;color:var(--muted);margin-top:10px;font-weight:600}
+
+.tip-card{
+  border-radius:14px;padding:16px 18px;font-size:.78rem;line-height:1.55;color:var(--text2);
+  background:linear-gradient(135deg,#eef2ff 0%,#fff 100%);border:1px solid #e0e7ff;
+}
+.tip-card strong{display:flex;align-items:center;gap:8px;color:var(--pri-d);font-size:.8rem;margin-bottom:8px}
+.tip-card strong i{color:var(--pri)}
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="max-width:520px">
-<div class="card">
-  <form method="post">{% csrf_token %}
-    <div class="fg"><label>التصنيف *</label>
-      <select name="category" required>
-        <option value="">اختر تصنيف</option>
-        {% for cat in categories %}<option value="{{ cat.pk }}" {% if obj.category_id == cat.pk %}selected{% endif %}>{{ cat.name }}</option>{% endfor %}
-      </select>
+<div class="item-form-page">
+  <header class="item-form-hero">
+    <div class="item-form-hero-txt">
+      <h1>{{ title }}</h1>
+      {% if obj %}
+      <p>حدّث اسم المنتج، السعر، التصنيف، والوصف. التعديل يظهر مباشرة في المنيو وبنقطة البيع بعد الحفظ.</p>
+      {% else %}
+      <p>أضف منتجاً جديداً واربطه بتصنيف فرعي، حدّد السعر والترتيب. يمكنك إضافة وصف اختياري للطاقم أو الطباعة.</p>
+      {% endif %}
     </div>
-    <div class="fg"><label>اسم المنتج *</label><input name="name" value="{{ obj.name|default:'' }}" required></div>
-    <div class="fg-row">
-      <div class="fg"><label>السعر *</label><input name="price" type="number" step="0.01" value="{{ obj.price|default:'' }}" required></div>
-      <div class="fg"><label>الترتيب</label><input name="order" type="number" value="{{ obj.order|default:0 }}"></div>
+    <a href="{% url 'admin_menu' %}" class="item-form-back"><i class="fas fa-arrow-right"></i> العودة للمنيو</a>
+  </header>
+
+  <div class="item-form-grid">
+    <div class="form-panel">
+      <form method="post" id="itemProductForm">{% csrf_token %}
+
+        <div class="form-section">
+          <div class="form-section-h"><i class="fas fa-circle-info"></i> البيانات الأساسية</div>
+          <div class="if-fg">
+            <label>التصنيف <span class="if-hint">مجمّع حسب الأكل والمشروبات</span></label>
+            <div class="if-select-wrap">
+              <select name="category" required aria-required="true">
+                <option value="">اختر تصنيفاً…</option>
+                {% for type_code, type_label, cats in category_groups %}
+                  {% if cats %}
+                <optgroup label="{{ type_label }}">
+                  {% for cat in cats %}
+                  <option value="{{ cat.pk }}" {% if obj and obj.category_id == cat.pk %}selected{% endif %}>{{ cat.name }}</option>
+                  {% endfor %}
+                </optgroup>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="if-fg">
+            <label for="itemName">اسم المنتج</label>
+            <input id="itemName" name="name" type="text" value="{{ obj.name|default:'' }}" required autocomplete="off" placeholder="مثال: برجر لحم كلاسيك">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-h"><i class="fas fa-tags"></i> التسعير والظهور</div>
+          <div class="if-row2">
+            <div class="if-fg">
+              <label for="itemPrice">سعر البيع</label>
+              <div class="if-price-wrap">
+                <input id="itemPrice" name="price" type="number" step="0.01" min="0" inputmode="decimal" value="{% if obj %}{{ obj.price|unlocalize }}{% endif %}" data-price-fallback="{% if obj %}{{ obj.price|unlocalize }}{% endif %}" required placeholder="0.00">
+                <span class="if-price-suffix">ج</span>
+              </div>
+            </div>
+            <div class="if-fg">
+              <label for="itemOrder">ترتيب العرض <span class="if-hint">رقم أصغر = يظهر أولاً</span></label>
+              <input id="itemOrder" name="order" type="number" min="0" value="{{ obj.order|default:0 }}">
+            </div>
+          </div>
+          {% if obj %}
+          <div class="if-fg" style="margin-top:8px">
+            <label class="avail-row" style="cursor:default;margin:0">
+              <div class="avail-row-txt">
+                <strong>متاح للطلب</strong>
+                <span>إذا أُلغي التفعيل، لن يظهر المنتج للكاشير في الطلبات الجديدة.</span>
+              </div>
+              <span class="avail-switch">
+                <input type="checkbox" name="is_available" id="itemAvailable" {% if obj.is_available %}checked{% endif %}>
+                <span class="track" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-h"><i class="fas fa-align-right"></i> الوصف <span class="if-hint" style="font-weight:600;margin-inline-start:auto">اختياري</span></div>
+          <div class="if-fg">
+            <textarea id="itemDesc" name="description" aria-label="وصف المنتج" placeholder="مكوّنات، حجم، مذكرة للمطبخ…">{{ obj.description|default:'' }}</textarea>
+          </div>
+        </div>
+
+        <div class="item-form-actions">
+          <a href="{% url 'admin_menu' %}" class="btn btn-out">إلغاء</a>
+          <button type="submit" class="btn btn-pri"><i class="fas fa-check"></i> {% if obj %}حفظ التغييرات{% else %}إضافة المنتج{% endif %}</button>
+        </div>
+      </form>
     </div>
-    <div class="fg"><label>الوصف</label><textarea name="description">{{ obj.description|default:'' }}</textarea></div>
-    {% if obj %}<div class="fg"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="is_available" {% if obj.is_available %}checked{% endif %}> متاح للطلب</label></div>{% endif %}
-    <div style="display:flex;gap:10px;margin-top:20px">
-      <a href="{% url 'admin_menu' %}" class="btn btn-out" style="flex:1;justify-content:center">إلغاء</a>
-      <button type="submit" class="btn btn-pri" style="flex:2;justify-content:center"><i class="fas fa-save"></i> حفظ</button>
-    </div>
-  </form>
+
+    <aside class="form-aside">
+      <div class="preview-card">
+        <div class="preview-card-h">معاينة سريعة</div>
+        <div class="preview-mock">
+          <div class="preview-mock-name" id="previewName">{% if obj %}{{ obj.name }}{% else %}اسم المنتج{% endif %}</div>
+          <div class="preview-mock-price" id="previewPrice">{% if obj %}{{ obj.price|unlocalize }} ج{% else %}٠ ج{% endif %}</div>
+          <div class="preview-mock-meta" id="previewMeta">كما يظهر تقريباً في بطاقة المنيو</div>
+        </div>
+      </div>
+      <div class="tip-card">
+        <strong><i class="fas fa-lightbulb"></i> نصيحة</strong>
+        استخدم ترتيباً واضحاً للقائمة (مثلاً الأكثر مبيعاً أعلى). السعر بخانتين عشريتين يكفي لمعظم الأطباق والمشروبات.
+      </div>
+    </aside>
+  </div>
 </div>
-</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const form=document.getElementById('itemProductForm');
+  if(!form)return;
+  const nameEl=document.getElementById('itemName');
+  const priceEl=document.getElementById('itemPrice');
+  const pvN=document.getElementById('previewName');
+  const pvP=document.getElementById('previewPrice');
+  function toAsciiNumberString(str){
+    if(str==null||str==='')return'';
+    let s=String(str).trim().replace(/٫/g,'.').replace(/\u066B/g,'.').replace(/,/g,'.').replace(/٬/g,'');
+    const ar='٠١٢٣٤٥٦٧٨٩', fa='۰۱۲۳۴۵۶۷۸۹';
+    for(let i=0;i<10;i++){
+      s=s.split(ar[i]).join(String(i));
+      s=s.split(fa[i]).join(String(i));
+    }
+    return s.replace(/[^\d.\-]/g,'');
+  }
+  function fmtPrice(rawStr){
+    const n=parseFloat(rawStr);
+    if(!isFinite(n)||n<0)return'٠ ج';
+    const s=n.toLocaleString('ar-EG',{minimumFractionDigits:0,maximumFractionDigits:2});
+    return s+' ج';
+  }
+  let priceFieldTouched=false;
+  function sync(){
+    if(nameEl&&pvN){
+      const t=nameEl.value.trim();
+      pvN.textContent=t||'اسم المنتج';
+    }
+    if(priceEl&&pvP){
+      let raw=toAsciiNumberString(priceEl.value);
+      if(!raw&&!priceFieldTouched){
+        const fb=priceEl.getAttribute('data-price-fallback')||'';
+        raw=toAsciiNumberString(fb);
+      }
+      pvP.textContent=fmtPrice(raw);
+    }
+  }
+  nameEl&&nameEl.addEventListener('input',sync);
+  priceEl&&priceEl.addEventListener('input',function(){priceFieldTouched=true;sync();});
+  priceEl&&priceEl.addEventListener('blur',function(){if(String(priceEl.value).trim()==='')priceFieldTouched=true;});
+  sync();
+  form.addEventListener('submit',function(){
+    const btn=form.querySelector('button[type="submit"]');
+    if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> جاري الحفظ…';}
+  });
+})();
+</script>
 {% endblock %}

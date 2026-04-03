@@ -2,36 +2,201 @@
 {% block title %}طلبات اليوم{% endblock %}
 {% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
 {% block page_title %}طلبات اليوم{% endblock %}
+
+{% block extra_css %}<style>
+.od-wrap{max-width:920px;margin:0 auto}
+.od-head{
+  display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;
+  margin-bottom:20px;
+}
+.od-head-t h2{margin:0;font-size:1.35rem;font-weight:900;letter-spacing:-.02em;color:var(--text)}
+.od-head-t p{margin:6px 0 0;font-size:.82rem;color:var(--muted);font-weight:600}
+.od-filter{
+  display:flex;flex-wrap:wrap;gap:8px;padding:5px;
+  background:linear-gradient(180deg,#fff,#f8fafc);
+  border:1px solid var(--border);border-radius:999px;
+  box-shadow:0 2px 12px -4px rgba(15,23,42,.08),inset 0 1px 0 #fff;
+}
+.od-tab{
+  border:none;cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:800;
+  padding:10px 16px;border-radius:999px;color:var(--text2);
+  background:transparent;transition:all .2s var(--ease-out);white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.od-tab:hover{color:var(--gold-dim);background:rgba(201,162,39,.08)}
+.od-tab.active{
+  background:linear-gradient(135deg,var(--gold-soft),var(--gold));
+  color:#2d2608;box-shadow:0 4px 14px -3px rgba(201,162,39,.45);
+}
+.od-tab .od-c{
+  min-width:1.35rem;height:22px;padding:0 7px;border-radius:999px;
+  font-size:.65rem;font-weight:900;display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(15,23,42,.08);color:var(--text2);
+}
+.od-tab.active .od-c{background:rgba(45,38,8,.12);color:#2d2608}
+
+.od-list{display:flex;flex-direction:column;gap:10px}
+.od-row{
+  display:grid;grid-template-columns:54px 1fr auto auto auto 44px;align-items:stretch;
+  background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  cursor:pointer;transition:box-shadow .22s var(--ease-out),border-color .2s,transform .2s var(--ease-out);
+  box-shadow:0 1px 3px rgba(15,23,42,.04),0 4px 20px -8px rgba(15,23,42,.08);
+}
+.od-row:hover{
+  border-color:rgba(201,162,39,.45);box-shadow:0 8px 28px -10px rgba(201,162,39,.2),0 0 0 1px rgba(201,162,39,.12);
+  transform:translateY(-1px);
+}
+.od-id{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  background:linear-gradient(180deg,#faf8f4,#f5f2eb);
+  border-inline-end:1px solid var(--border);font-weight:900;font-size:.88rem;color:var(--gold-dim);
+}
+.od-id span{font-size:.58rem;color:var(--muted);font-weight:800}
+.od-body{padding:13px 14px;min-width:0}
+.od-title{font-weight:800;font-size:.88rem;color:var(--text);margin-bottom:5px;line-height:1.35}
+.od-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:.72rem;color:var(--muted);font-weight:600}
+.od-meta span{display:inline-flex;align-items:center;gap:5px}
+.od-type{
+  align-self:center;padding:5px 10px;border-radius:999px;font-size:.65rem;font-weight:800;white-space:nowrap;
+  margin-inline-end:4px;
+}
+.od-type--in{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.od-type--out{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+.od-st{align-self:center;padding:0 6px}
+.od-sum{
+  align-self:center;padding:0 10px;font-weight:900;font-size:.88rem;color:var(--text);
+  font-family:'Outfit','Cairo',sans-serif;direction:ltr;text-align:left;
+}
+.od-act{
+  display:flex;align-items:center;justify-content:center;padding:0 10px;
+  border-inline-start:1px solid var(--border);background:#fafbff;
+}
+.od-act .btn{border-radius:10px}
+.od-empty{
+  text-align:center;padding:56px 24px;color:var(--muted);border-radius:20px;
+  border:2px dashed var(--border);background:linear-gradient(180deg,#fff,#f8fafc);
+}
+.od-empty i{font-size:2.8rem;display:block;margin-bottom:14px;opacity:.22;color:var(--gold)}
+.od-empty p{font-weight:700;font-size:.95rem;color:var(--text2);margin-bottom:6px}
+.od-empty span{font-size:.8rem;display:block;margin-bottom:16px}
+@media(max-width:720px){
+  .od-row{
+    grid-template-columns:46px 1fr auto;
+    grid-template-rows:auto auto auto;
+  }
+  .od-id{grid-row:1/4;grid-column:1}
+  .od-body{grid-column:2/4;grid-row:1}
+  .od-type{grid-column:2;grid-row:2;align-self:center;margin-inline-start:12px;margin-bottom:4px;justify-self:start}
+  .od-st{grid-column:2;grid-row:3;align-self:center;margin:0 12px 10px;justify-self:start}
+  .od-sum{grid-column:3;grid-row:2;align-self:center;padding:0 10px;font-size:.82rem}
+  .od-act{grid-column:3;grid-row:1/4;align-self:stretch;border-inline-start:1px solid var(--border)}
+  .od-filter{width:100%;justify-content:center;border-radius:16px}
+  .od-tab{flex:1;justify-content:center;padding:9px 10px;font-size:.72rem}
+}
+</style>{% endblock %}
+
 {% block content %}
-<div class="card">
-  {% for o in orders %}
-  <div style="background:#fff;border-radius:12px;border:1.5px solid var(--border);display:grid;grid-template-columns:55px 1fr auto auto auto;align-items:center;transition:all .18s;cursor:pointer;overflow:hidden;margin-bottom:8px" onclick="location.href='{% url 'cashier_order_detail' o.id %}'">
-    <div style="width:55px;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fafbff;border-left:1.5px solid var(--border);font-weight:900;color:var(--pri);font-size:.9rem">
-      <span style="font-size:.6rem;color:var(--muted)">#</span>{{ o.id }}
+<div class="od-wrap">
+  <div class="od-head">
+    <div class="od-head-t">
+      <h2>طلبات اليوم</h2>
+      <p>كل الطلبات اللي سجّلتها النهاردة — فلترة سريعة حسب نوع الطلب</p>
     </div>
-    <div style="padding:11px 13px">
-      <div style="font-weight:800;font-size:.88rem;margin-bottom:3px">{% if o.order_type == 'delivery' %}🛵 {{ o.customer_name|default:"ديليفري" }}{% else %}🪑 {{ o.table|default:"بدون طاولة" }}{% endif %}</div>
-      <div style="font-size:.71rem;color:var(--muted);display:flex;gap:8px">
-        <span>⏰ {{ o.created_at|time:"H:i" }}</span><span>📦 {{ o.total_items }} صنف</span>
+    <div class="od-filter" role="tablist" aria-label="تصفية الطلبات">
+      <button type="button" class="od-tab active" data-filter="all" role="tab" aria-selected="true">
+        الكل <span class="od-c">{{ order_stats.total }}</span>
+      </button>
+      <button type="button" class="od-tab" data-filter="dine_in" role="tab" aria-selected="false">
+        داخلي <span class="od-c">{{ order_stats.dine_in }}</span>
+      </button>
+      <button type="button" class="od-tab" data-filter="delivery" role="tab" aria-selected="false">
+        ديليفري <span class="od-c">{{ order_stats.delivery }}</span>
+      </button>
+    </div>
+  </div>
+
+  {% if orders %}
+  <div class="od-list" id="odList">
+    {% for o in orders %}
+    <div class="od-row" data-order-type="{{ o.order_type }}" onclick="location.href='{% url 'cashier_order_detail' o.id %}'">
+      <div class="od-id"><span>#</span>{{ o.id }}</div>
+      <div class="od-body">
+        <div class="od-title">
+          {% if o.order_type == 'delivery' %}
+            🛵 {{ o.customer_name|default:"ديليفري" }}
+          {% else %}
+            🪑 {{ o.table|default:"بدون طاولة" }}{% if o.waiter %} · {{ o.waiter }}{% endif %}
+          {% endif %}
+        </div>
+        <div class="od-meta">
+          <span><i class="fas fa-clock" style="opacity:.65"></i> {{ o.created_at|time:"H:i" }}</span>
+          <span><i class="fas fa-box" style="opacity:.65"></i> {{ o.total_items }} صنف</span>
+        </div>
+      </div>
+      {% if o.order_type == 'delivery' %}
+        <span class="od-type od-type--out">ديليفري</span>
+      {% else %}
+        <span class="od-type od-type--in">داخلي</span>
+      {% endif %}
+      <div class="od-st">
+        {% if o.status == 'open' %}<span class="badge b-war">مفتوح</span>
+        {% elif o.status == 'printed' %}<span class="badge b-pri">انتظار</span>
+        {% elif o.status == 'completed' %}<span class="badge b-suc">مكتمل</span>
+        {% else %}<span class="badge b-dan">ملغي</span>{% endif %}
+      </div>
+      <div class="od-sum">{{ o.total|floatformat:2 }} ج</div>
+      <div class="od-act" onclick="event.stopPropagation()">
+        <a href="{% url 'cashier_order_detail' o.id %}" class="btn btn-out btn-sm"><i class="fas fa-eye"></i></a>
       </div>
     </div>
-    <div style="padding:0 8px">
-      {% if o.status == 'open' %}<span class="badge b-war">مفتوح</span>
-      {% elif o.status == 'printed' %}<span class="badge b-pri">انتظار</span>
-      {% elif o.status == 'completed' %}<span class="badge b-suc">مكتمل</span>
-      {% else %}<span class="badge b-dan">ملغي</span>{% endif %}
-    </div>
-    <div style="padding:0 8px;font-weight:800;font-size:.9rem">{{ o.total|floatformat:2 }} ج</div>
-    <div style="padding:0 14px 0 8px" onclick="event.stopPropagation()">
-      <a href="{% url 'cashier_order_detail' o.id %}" class="btn btn-out btn-sm"><i class="fas fa-eye"></i></a>
-    </div>
+    {% endfor %}
   </div>
-  {% empty %}
-  <div style="text-align:center;padding:50px;color:var(--muted)">
-    <i class="fas fa-receipt" style="font-size:2.5rem;display:block;margin-bottom:10px;opacity:.3"></i>
+  <div class="od-empty" id="odEmptyFilter" style="display:none">
+    <i class="fas fa-filter-circle-xmark"></i>
+    <p>مفيش طلبات بهذا النوع</p>
+    <span>جرّب «الكل» أو نوع تاني من الفلاتر</span>
+    <button type="button" class="btn btn-pri btn-sm" onclick="document.querySelector('.od-tab[data-filter=all]').click()">عرض الكل</button>
+  </div>
+  {% else %}
+  <div class="od-empty">
+    <i class="fas fa-receipt"></i>
     <p>مفيش طلبات اليوم</p>
-    <a href="{% url 'cashier_new_order' %}" class="btn btn-suc" style="margin-top:14px"><i class="fas fa-plus"></i> طلب جديد</a>
+    <span>ابدأ بأول طلب من شاشة الكاشير</span>
+    <a href="{% url 'cashier_new_order' %}" class="btn btn-suc"><i class="fas fa-plus"></i> طلب جديد</a>
   </div>
-  {% endfor %}
+  {% endif %}
 </div>
 {% endblock %}
+
+{% block extra_js %}<script>
+(function(){
+  const list=document.getElementById('odList');
+  if(!list)return;
+  const rows=[...list.querySelectorAll('.od-row')];
+  const emptyF=document.getElementById('odEmptyFilter');
+  const tabs=[...document.querySelectorAll('.od-tab')];
+  let current='all';
+  function apply(){
+    let n=0;
+    rows.forEach(r=>{
+      const t=r.getAttribute('data-order-type');
+      const show=current==='all'||t===current;
+      r.style.display=show?'':'none';
+      if(show)n++;
+    });
+    if(emptyF)emptyF.style.display=(current!=='all'&&n===0)?'block':'none';
+    list.style.display=n===0&&current!=='all'?'none':'flex';
+  }
+  tabs.forEach(tab=>{
+    tab.addEventListener('click',function(){
+      current=this.getAttribute('data-filter')||'all';
+      tabs.forEach(x=>{
+        const on=x===this;
+        x.classList.toggle('active',on);
+        x.setAttribute('aria-selected',on?'true':'false');
+      });
+      apply();
+    });
+  });
+})();
+</script>{% endblock %}
