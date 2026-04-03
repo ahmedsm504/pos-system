@@ -24,8 +24,21 @@ import json
 from datetime import date, timedelta
 from decimal import Decimal
 
-from .models import (Category, MenuItem, Table, Waiter, DeliveryDriver,
-                     Order, OrderItem, InventoryEntry, Shift, CashierProfile)
+from .models import (
+    Category,
+    CategoryAddon,
+    DrinkOptionPreset,
+    MenuItem,
+    MenuItemSize,
+    Table,
+    Waiter,
+    DeliveryDriver,
+    Order,
+    OrderItem,
+    InventoryEntry,
+    Shift,
+    CashierProfile,
+)
 
 
 def admin_required(view_func):
@@ -93,10 +106,62 @@ def dashboard(request):
 #  MENU
 # ══════════════════════════════════════════════════════════════════════════
 
-@admin_required
+def _save_category_extras(cat, request):
+    cat.addons.all().delete()
+    addon_names = request.POST.getlist('addon_name')
+    addon_prices = request.POST.getlist('addon_price')
+    for i, name in enumerate(addon_names):
+        name = (name or '').strip()
+        if not name:
+            continue
+        raw_p = addon_prices[i] if i < len(addon_prices) else '0'
+        try:
+            p = Decimal(str(raw_p).replace(',', '.'))
+        except Exception:
+            p = Decimal('0')
+        CategoryAddon.objects.create(category=cat, name=name, price=p, order=i)
+    cat.drink_presets.all().delete()
+    for i, lab in enumerate(request.POST.getlist('drink_preset_label')):
+        lab = (lab or '').strip()
+        if not lab:
+            continue
+        DrinkOptionPreset.objects.create(category=cat, label=lab, order=i)
+
+
+def _save_item_sizes(item, request):
+    item.sizes.all().delete()
+    size_names = request.POST.getlist('size_name')
+    size_prices = request.POST.getlist('size_price')
+    for i, name in enumerate(size_names):
+        name = (name or '').strip()
+        if not name:
+            continue
+        raw_p = size_prices[i] if i < len(size_prices) else '0'
+        try:
+            p = Decimal(str(raw_p).replace(',', '.'))
+        except Exception:
+            p = Decimal('0')
+        MenuItemSize.objects.create(menu_item=item, name=name, price=p, order=i)
+
+
 def menu_list(request):
     categories = list(
-        Category.objects.prefetch_related('items').order_by('order', 'name')
+        Category.objects.order_by('order', 'name').prefetch_related(
+            Prefetch(
+                'addons',
+                queryset=CategoryAddon.objects.order_by('order', 'id'),
+            ),
+            Prefetch(
+                'drink_presets',
+                queryset=DrinkOptionPreset.objects.order_by('order', 'id'),
+            ),
+            Prefetch(
+                'items',
+                queryset=MenuItem.objects.order_by('order', 'name').prefetch_related(
+                    Prefetch('sizes', queryset=MenuItemSize.objects.order_by('order', 'id')),
+                ),
+            ),
+        )
     )
     menu_stats = {
         'all': {'categories': 0, 'items': 0},
@@ -122,11 +187,15 @@ def menu_list(request):
 @admin_required
 def category_add(request):
     if request.method == 'POST':
-        Category.objects.create(
+        cat = Category.objects.create(
             name=request.POST['name'],
             category_type=request.POST['category_type'],
             order=request.POST.get('order', 0),
+            enable_sizes='enable_sizes' in request.POST,
+            enable_addons='enable_addons' in request.POST,
+            enable_drink_options='enable_drink_options' in request.POST,
         )
+        _save_category_extras(cat, request)
         messages.success(request, 'تم إضافة التصنيف')
         return redirect('admin_menu')
     return render(request, 'pos/admin/category_form.html', {'title': 'إضافة تصنيف'})
@@ -134,13 +203,20 @@ def category_add(request):
 
 @admin_required
 def category_edit(request, pk):
-    cat = get_object_or_404(Category, pk=pk)
+    cat = get_object_or_404(
+        Category.objects.prefetch_related('addons', 'drink_presets'),
+        pk=pk,
+    )
     if request.method == 'POST':
         cat.name = request.POST['name']
         cat.category_type = request.POST['category_type']
         cat.order = request.POST.get('order', 0)
         cat.is_active = 'is_active' in request.POST
+        cat.enable_sizes = 'enable_sizes' in request.POST
+        cat.enable_addons = 'enable_addons' in request.POST
+        cat.enable_drink_options = 'enable_drink_options' in request.POST
         cat.save()
+        _save_category_extras(cat, request)
         messages.success(request, 'تم تعديل التصنيف')
         return redirect('admin_menu')
     return render(request, 'pos/admin/category_form.html', {'title': 'تعديل تصنيف', 'obj': cat})
@@ -158,25 +234,30 @@ def category_delete(request, pk):
 @admin_required
 def item_add(request):
     if request.method == 'POST':
-        MenuItem.objects.create(
+        item = MenuItem.objects.create(
             category_id=request.POST['category'],
             name=request.POST['name'],
             price=request.POST['price'],
             order=request.POST.get('order', 0),
             description=request.POST.get('description', ''),
         )
+        _save_item_sizes(item, request)
         messages.success(request, 'تم إضافة المنتج')
         return redirect('admin_menu')
     return render(
         request,
         'pos/admin/item_form.html',
-        {'title': 'إضافة منتج', 'category_groups': _item_form_category_groups()},
+        {
+            'title': 'إضافة منتج',
+            'category_groups': _item_form_category_groups(),
+            'existing_sizes': [],
+        },
     )
 
 
 @admin_required
 def item_edit(request, pk):
-    item = get_object_or_404(MenuItem, pk=pk)
+    item = get_object_or_404(MenuItem.objects.prefetch_related('sizes'), pk=pk)
     if request.method == 'POST':
         item.category_id  = request.POST['category']
         item.name         = request.POST['name']
@@ -185,6 +266,7 @@ def item_edit(request, pk):
         item.description  = request.POST.get('description', '')
         item.is_available = 'is_available' in request.POST
         item.save()
+        _save_item_sizes(item, request)
         messages.success(request, 'تم تعديل المنتج')
         return redirect('admin_menu')
     return render(
@@ -194,6 +276,7 @@ def item_edit(request, pk):
             'title': 'تعديل منتج',
             'obj': item,
             'category_groups': _item_form_category_groups(),
+            'existing_sizes': list(item.sizes.all().order_by('order', 'id')),
         },
     )
 

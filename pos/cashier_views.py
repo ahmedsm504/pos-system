@@ -5,13 +5,14 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.db.models import Count, Q, Sum
+from django.db import transaction
+from django.db.models import Count, Prefetch, Q, Sum
 from django.urls import reverse
-import json, logging
+import json
+import logging
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal
-
 try:
     import requests as http_requests
 except ImportError:
@@ -19,8 +20,30 @@ except ImportError:
 
 log = logging.getLogger(__name__)
 
-from .models import (Category, MenuItem, Table, Waiter, DeliveryDriver,
-                     Order, OrderItem, Shift, CashierProfile, InventoryEntry)
+from .models import (
+    Category,
+    MenuItem,
+    MenuItemSize,
+    Table,
+    Waiter,
+    DeliveryDriver,
+    Order,
+    OrderItem,
+    Shift,
+    CashierProfile,
+    InventoryEntry,
+    CategoryAddon,
+    DrinkOptionPreset,
+)
+from .menu_helpers import (
+    apply_meta_to_order_item,
+    compute_order_item_unit_price,
+    menu_catalog_payload,
+    merge_key_from_oi,
+    merge_key_from_payload,
+    order_item_display_name,
+    order_item_print_notes,
+)
 
 
 # ── Decorators ────────────────────────────────────────────────────────────────
@@ -69,18 +92,49 @@ def dashboard(request):
 #  NEW ORDER
 # ══════════════════════════════════════════════════════════════════════════
 
+def _cashier_menu_queryset():
+    return (
+        Category.objects.filter(is_active=True)
+        .order_by('order', 'name')
+        .prefetch_related(
+            Prefetch(
+                'addons',
+                queryset=CategoryAddon.objects.filter(is_active=True).order_by('order', 'id'),
+            ),
+            Prefetch(
+                'drink_presets',
+                queryset=DrinkOptionPreset.objects.order_by('order', 'id'),
+            ),
+            Prefetch(
+                'items',
+                queryset=MenuItem.objects.filter(is_available=True)
+                .order_by('order', 'name')
+                .prefetch_related(
+                    Prefetch('sizes', queryset=MenuItemSize.objects.order_by('order', 'id')),
+                ),
+            ),
+        )
+    )
+
+
 @cashier_required
 def new_order(request):
-    categories = Category.objects.filter(is_active=True).prefetch_related('items')
-    tables      = Table.objects.filter(is_active=True)
-    waiters     = Waiter.objects.filter(is_active=True)
-    drivers     = DeliveryDriver.objects.filter(is_active=True)
-    return render(request, 'pos/cashier/new_order.html', {
-        'categories': categories,
-        'tables':     tables,
-        'waiters':    waiters,
-        'drivers':    drivers,
-    })
+    categories = _cashier_menu_queryset()
+    catalog = menu_catalog_payload(categories)
+    tables = Table.objects.filter(is_active=True)
+    waiters = Waiter.objects.filter(is_active=True)
+    drivers = DeliveryDriver.objects.filter(is_active=True)
+    return render(
+        request,
+        'pos/cashier/new_order.html',
+        {
+            'categories': categories,
+            'menu_catalog': catalog,
+            'tables': tables,
+            'waiters': waiters,
+            'drivers': drivers,
+        },
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -91,16 +145,26 @@ def new_order(request):
 def order_detail(request, order_id):
     order = get_object_or_404(
         Order.objects.select_related('table', 'waiter', 'driver')
-                     .prefetch_related('items__menu_item__category'),
-        id=order_id, cashier=request.user
+        .prefetch_related(
+            'items__menu_item__category',
+            'items__selected_size',
+        ),
+        id=order_id,
+        cashier=request.user,
     )
-    categories = Category.objects.filter(is_active=True).prefetch_related('items')
+    categories = _cashier_menu_queryset()
+    catalog = menu_catalog_payload(categories)
     profile = get_profile(request.user)
-    return render(request, 'pos/cashier/order_detail.html', {
-        'order':      order,
-        'categories': categories,
-        'profile':    profile,
-    })
+    return render(
+        request,
+        'pos/cashier/order_detail.html',
+        {
+            'order': order,
+            'categories': categories,
+            'menu_catalog': catalog,
+            'profile': profile,
+        },
+    )
 
 
 @cashier_required
@@ -136,20 +200,35 @@ def preview_order(request):
             return JsonResponse({'success': False, 'error': 'اضف منتجات اولا'})
 
         preview_items = []
-        total = 0
+        total = Decimal('0')
         for item_data in items_data:
-            mi  = get_object_or_404(MenuItem, id=int(item_data['id']))
+            mi = get_object_or_404(MenuItem, id=int(item_data['id']))
             qty = int(item_data.get('quantity', 1))
-            sub = mi.price * qty
+            try:
+                unit, meta = compute_order_item_unit_price(mi, item_data)
+            except ValueError as err:
+                return JsonResponse({'success': False, 'error': str(err)})
+            sub = unit * qty
             total += sub
             note = (item_data.get('notes') or '')[:200]
+            name_display = mi.name
+            if meta.get('size_label'):
+                name_display = f'{mi.name} ({meta["size_label"]})'
+            line_parts = []
+            if meta.get('drink_detail'):
+                line_parts.append(meta['drink_detail'])
+            for a in (meta.get('extras_json') or {}).get('addons', []):
+                line_parts.append(f'+ {a.get("name", "")}')
+            if note:
+                line_parts.append(note)
+            line_note = ' · '.join(line_parts)
             preview_items.append({
-                'name':     mi.name,
-                'qty':      qty,
-                'price':    float(mi.price),
+                'name': name_display,
+                'qty': qty,
+                'price': float(unit),
                 'subtotal': float(sub),
                 'cat_type': mi.category.category_type,
-                'notes':    note,
+                'notes': line_note,
             })
 
         table_label = 'بدون طاولة'
@@ -162,7 +241,7 @@ def preview_order(request):
         return JsonResponse({
             'success':       True,
             'items':         preview_items,
-            'total':         float(total),
+            'total':         float(total.quantize(Decimal('0.01'))),
             'table':         table_label,
             'order_type':    data.get('order_type', 'dine_in'),
             'customer_name': data.get('customer_name', ''),
@@ -194,29 +273,47 @@ def create_order(request):
             if not data.get('customer_phone') or not data.get('customer_address'):
                 return JsonResponse({'success': False, 'error': 'رقم الهاتف والعنوان مطلوبان للديليفري'})
 
-        order = Order.objects.create(
-            cashier=request.user,
-            order_type=order_type,
-            status='open',
-            notes=data.get('notes', ''),
-            table_id=data.get('table_id') or None,
-            waiter_id=data.get('waiter_id') or None,
-            driver_id=data.get('driver_id') or None,
-            customer_name=data.get('customer_name', ''),
-            customer_phone=data.get('customer_phone', ''),
-            customer_address=data.get('customer_address', ''),
-        )
-
-        for item_data in items_data:
-            mi = get_object_or_404(MenuItem, id=int(item_data['id']))
-            note = (item_data.get('notes') or '')[:200]
-            OrderItem.objects.create(
-                order=order,
-                menu_item=mi,
-                quantity=int(item_data.get('quantity', 1)),
-                price=mi.price,
-                notes=note,
+        with transaction.atomic():
+            order = Order.objects.create(
+                cashier=request.user,
+                order_type=order_type,
+                status='open',
+                notes=data.get('notes', ''),
+                table_id=data.get('table_id') or None,
+                waiter_id=data.get('waiter_id') or None,
+                driver_id=data.get('driver_id') or None,
+                customer_name=data.get('customer_name', ''),
+                customer_phone=data.get('customer_phone', ''),
+                customer_address=data.get('customer_address', ''),
             )
+
+            for item_data in items_data:
+                mi = get_object_or_404(MenuItem, id=int(item_data['id']))
+                qty = int(item_data.get('quantity', 1))
+                note = (item_data.get('notes') or '')[:200]
+                try:
+                    unit, meta = compute_order_item_unit_price(mi, item_data)
+                except ValueError as err:
+                    raise ValueError(str(err)) from err
+                mk = merge_key_from_payload(mi, item_data, meta)
+                existing = None
+                for oi in order.items.all():
+                    if merge_key_from_oi(oi) == mk:
+                        existing = oi
+                        break
+                if existing:
+                    existing.quantity += qty
+                    existing.save()
+                else:
+                    oi = OrderItem(
+                        order=order,
+                        menu_item=mi,
+                        quantity=qty,
+                        price=unit,
+                        notes=note,
+                    )
+                    apply_meta_to_order_item(oi, meta)
+                    oi.save()
 
         print_ok = _send_to_printer(order, open_drawer=False)
 
@@ -225,6 +322,8 @@ def create_order(request):
         order.save()
 
         return JsonResponse({'success': True, 'order_id': order.id, 'print_success': print_ok})
+    except ValueError as err:
+        return JsonResponse({'success': False, 'error': str(err)})
     except Exception as e:
         log.error(f'create_order: {e}')
         return JsonResponse({'success': False, 'error': str(e)})
@@ -243,18 +342,40 @@ def add_item(request, order_id):
             return JsonResponse({'success': False, 'error': 'لا يمكن التعديل على هذا الطلب'})
 
         data = json.loads(request.body)
-        mi   = get_object_or_404(MenuItem, id=data['menu_item_id'])
-        qty  = int(data.get('quantity', 1))
-
-        existing = order.items.filter(menu_item=mi).first()
+        mi = get_object_or_404(MenuItem, id=data['menu_item_id'])
+        qty = int(data.get('quantity', 1))
+        note = (data.get('notes') or '')[:200]
+        payload = {
+            'id': mi.id,
+            'size_id': data.get('size_id'),
+            'addon_ids': data.get('addon_ids') or [],
+            'drink_preset_ids': data.get('drink_preset_ids') or [],
+            'drink_custom': data.get('drink_custom') or '',
+            'notes': note,
+        }
+        try:
+            unit, meta = compute_order_item_unit_price(mi, payload)
+        except ValueError as err:
+            return JsonResponse({'success': False, 'error': str(err)})
+        mk = merge_key_from_payload(mi, payload, meta)
+        existing = None
+        for oi in order.items.all():
+            if merge_key_from_oi(oi) == mk:
+                existing = oi
+                break
         if existing:
             existing.quantity += qty
             existing.save()
         else:
-            OrderItem.objects.create(
-                order=order, menu_item=mi, quantity=qty,
-                price=mi.price, notes=data.get('notes', '')
+            oi = OrderItem(
+                order=order,
+                menu_item=mi,
+                quantity=qty,
+                price=unit,
+                notes=note,
             )
+            apply_meta_to_order_item(oi, meta)
+            oi.save()
 
         return JsonResponse({'success': True, 'total': float(order.total)})
     except Exception as e:
@@ -882,14 +1003,16 @@ def _build_main_lines(order):
 
     for item in items:
         subtotal = item.subtotal
+        disp = order_item_display_name(item)
         lines.append({'cols': [
             {'text': f'{subtotal} ج', 'width': 0.25, 'align': 'left'},
             {'text': str(item.price), 'width': 0.2, 'align': 'center'},
             {'text': str(item.quantity), 'width': 0.15, 'align': 'center'},
-            {'text': item.menu_item.name, 'width': 0.4, 'align': 'right'},
+            {'text': disp, 'width': 0.4, 'align': 'right'},
         ]})
-        if item.notes:
-            lines.append({'text': f'  * {item.notes}', 'align': 'right', 'size': 'small'})
+        extra = order_item_print_notes(item)
+        if extra:
+            lines.append({'text': f'  * {extra}', 'align': 'right', 'size': 'small'})
 
     if order.notes:
         lines.append({'divider': True, 'divider_style': 'dashed'})
@@ -943,12 +1066,14 @@ def _build_section_lines(order, cat_type):
     lines.append({'divider': True, 'divider_style': 'double'})
 
     for item in items:
+        disp = order_item_display_name(item)
         lines.append({'cols': [
             {'text': str(item.quantity), 'width': 0.15, 'align': 'left', 'bold': True},
-            {'text': item.menu_item.name, 'width': 0.85, 'align': 'right', 'bold': True},
+            {'text': disp, 'width': 0.85, 'align': 'right', 'bold': True},
         ], 'size': 'large', 'bold': True})
-        if item.notes:
-            lines.append({'text': f'  * {item.notes}', 'align': 'right', 'bold': True})
+        extra = order_item_print_notes(item)
+        if extra:
+            lines.append({'text': f'  * {extra}', 'align': 'right', 'bold': True})
         lines.append({'divider': True, 'divider_style': 'dashed'})
 
     lines.append({'spacer': True, 'height': 10})

@@ -34,9 +34,23 @@
 .mini-mi:hover{border-color:var(--suc);background:var(--suc-l)}
 .mini-mi-name{font-weight:700;font-size:.75rem;display:block}
 .mini-mi-price{font-size:.72rem;color:var(--pri);font-weight:800}
+.od-item-extra{font-size:.72rem;color:var(--pri-d);margin-top:4px;line-height:1.35}
+.itemcfg-overlay{background:rgba(15,23,42,.55);z-index:400;position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:12px}
+.itemcfg-overlay.open{display:flex!important}
+.itemcfg-modal{width:min(420px,94vw);max-height:min(85dvh,640px);background:#fff;display:flex;flex-direction:column;border-radius:20px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.3)}
+.itemcfg-hdr{padding:14px 18px;background:linear-gradient(135deg,var(--gold-soft),var(--gold));border-bottom:1px solid rgba(0,0,0,.06)}
+.itemcfg-hdr h3{margin:0;font-size:.95rem;font-weight:800;color:#2d2608}
+.itemcfg-body{padding:14px 16px;overflow-y:auto;flex:1;font-size:.82rem}
+.itemcfg-sec{margin-bottom:14px}
+.itemcfg-sec h4{margin:0 0 8px;font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.itemcfg-sz label{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;font-weight:700;margin-bottom:8px}
+.itemcfg-add label{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;border:1px solid #e8ecf2;cursor:pointer;font-weight:600;margin-bottom:6px}
+.itemcfg-ta{width:100%;min-height:56px;padding:10px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:.8rem;resize:vertical}
+.itemcfg-ftr{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;background:#fafbff}
 </style>{% endblock %}
 
 {% block content %}
+{{ menu_catalog|json_script:"menu-catalog-data" }}
 <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
   <a href="{% url 'cashier_dashboard' %}" class="btn btn-out btn-sm"><i class="fas fa-arrow-right"></i> رجوع</a>
   <span style="font-size:.82rem;color:var(--muted)">
@@ -59,7 +73,11 @@
         {% for item in order.items.all %}
         <tr id="row-{{ item.id }}">
           <td>
-            <strong>{{ item.menu_item.name }}</strong>
+            <strong>{% if item.size_label %}{{ item.menu_item.name }} ({{ item.size_label }}){% else %}{{ item.menu_item.name }}{% endif %}</strong>
+            {% if item.drink_detail %}<div class="od-item-extra">{{ item.drink_detail }}</div>{% endif %}
+            {% if item.extras_json.addons %}
+            <div class="od-item-extra" style="color:var(--muted)">{% for a in item.extras_json.addons %}+ {{ a.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
+            {% endif %}
             {% if item.notes %}<div style="font-size:.73rem;color:var(--muted)">{{ item.notes }}</div>{% endif %}
           </td>
           <td><span style="background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:800">{{ item.quantity }}</span></td>
@@ -95,9 +113,9 @@
       <div class="mini-menu">
         {% for cat in categories %}
           {% for item in cat.items.all %}{% if item.is_available %}
-          <button class="mini-mi" onclick="addItemToOrder({{ item.id }}, {{ order.id }})">
+          <button type="button" class="mini-mi" onclick="startAddItem({{ item.id }},{{ order.id }})">
             <span class="mini-mi-name">{{ item.name }}</span>
-            <span class="mini-mi-price">{{ item.price }} ج</span>
+            <span class="mini-mi-price">{% if item.sizes.all %}من {% endif %}{{ item.menu_grid_price }} ج</span>
           </button>
           {% endif %}{% endfor %}
         {% endfor %}
@@ -145,13 +163,127 @@
     </div>
   </div>
 </div>
+
+<div class="itemcfg-overlay" id="odItemCfgOv" onclick="if(event.target===this)closeOdCfg()">
+  <div class="modal itemcfg-modal" onclick="event.stopPropagation()">
+    <div class="itemcfg-hdr"><h3 id="odCfgTitle"><i class="fas fa-sliders"></i></h3></div>
+    <div class="itemcfg-body" id="odCfgBody"></div>
+    <div class="itemcfg-ftr">
+      <button type="button" class="btn btn-out" style="flex:1" onclick="closeOdCfg()">إلغاء</button>
+      <button type="button" class="btn btn-pri" style="flex:2" onclick="confirmOdCfg()"><i class="fas fa-check"></i> إضافة</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}<script>
-async function addItemToOrder(menuItemId, orderId){
+const MENU_OD=JSON.parse(document.getElementById('menu-catalog-data').textContent);
+const ORDER_ID={{ order.id }};
+let odCfg=null;
+
+function escOd(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+
+function findOdEntry(menuItemId){
+  for(const c of MENU_OD.categories){
+    for(const it of c.items){
+      if(it.id===menuItemId)return{cat:c,item:it};
+    }
+  }
+  return null;
+}
+
+function buildDrinkOd(cat,presetIds,custom){
+  if(!cat.enable_drink_options)return'';
+  const parts=[];
+  (presetIds||[]).forEach(pid=>{
+    const p=(cat.drink_presets||[]).find(x=>x.id===pid);
+    if(p)parts.push(p.label);
+  });
+  if(custom&&String(custom).trim())parts.push(String(custom).trim());
+  return parts.join(' · ');
+}
+
+function startAddItem(menuItemId, orderId){
+  const hit=findOdEntry(menuItemId);
+  if(!hit){showToast('صنف غير متاح','err');return;}
+  const {cat,item}=hit;
+  const needSize=cat.enable_sizes&&(item.sizes||[]).length>0;
+  const needAddons=cat.enable_addons&&(cat.addons||[]).length>0;
+  const needDrink=cat.enable_drink_options&&cat.category_type==='drink';
+  if(!needSize&&!needAddons&&!needDrink){
+    addItemToOrderApi(orderId,{
+      menu_item_id:menuItemId,
+      quantity:1,
+      notes:'',
+      size_id:null,
+      addon_ids:[],
+      drink_preset_ids:[],
+      drink_custom:'',
+    });
+    return;
+  }
+  odCfg={orderId,cat,item};
+  document.getElementById('odCfgTitle').innerHTML='<i class="fas fa-sliders"></i> '+escOd(item.name);
+  const body=document.getElementById('odCfgBody');
+  let html='';
+  if(cat.enable_sizes&&(item.sizes||[]).length){
+    html+='<div class="itemcfg-sec"><h4>الحجم</h4>';
+    (item.sizes||[]).forEach((sz,i)=>{
+      html+=`<label><span>${escOd(sz.name)}</span><span><input type="radio" name="od_sz" value="${sz.id}" ${i===0?'checked':''}> <strong>${Number(sz.price).toFixed(2)} ج</strong></span></label>`;
+    });
+    html+='</div>';
+  }
+  if(cat.enable_addons&&(cat.addons||[]).length){
+    html+='<div class="itemcfg-sec"><h4>إضافات</h4>';
+    (cat.addons||[]).forEach(a=>{
+      html+=`<label><input type="checkbox" name="od_ad" value="${a.id}"> ${escOd(a.name)} <strong style="color:var(--pri-d)">+${Number(a.price).toFixed(2)} ج</strong></label>`;
+    });
+    html+='</div>';
+  }
+  if(cat.enable_drink_options&&cat.category_type==='drink'){
+    html+='<div class="itemcfg-sec"><h4>تفاصيل المشروب</h4>';
+    (cat.drink_presets||[]).forEach(p=>{
+      html+=`<label><input type="checkbox" name="od_dp" value="${p.id}"> ${escOd(p.label)}</label>`;
+    });
+    html+='<textarea class="itemcfg-ta" id="odDrinkCustom" placeholder="نص حر…" rows="2"></textarea></div>';
+  }
+  body.innerHTML=html;
+  document.getElementById('odItemCfgOv').classList.add('open');
+}
+
+function closeOdCfg(){
+  document.getElementById('odItemCfgOv').classList.remove('open');
+  odCfg=null;
+}
+
+function confirmOdCfg(){
+  if(!odCfg)return;
+  const {orderId,cat,item}=odCfg;
+  let sizeId=null;
+  const szEl=document.querySelector('#odCfgBody input[name="od_sz"]:checked');
+  if(szEl)sizeId=parseInt(szEl.value,10);
+  const addonIds=[...document.querySelectorAll('#odCfgBody input[name="od_ad"]:checked')].map(x=>parseInt(x.value,10));
+  const presetIds=[...document.querySelectorAll('#odCfgBody input[name="od_dp"]:checked')].map(x=>parseInt(x.value,10));
+  const dc=document.getElementById('odDrinkCustom');
+  addItemToOrderApi(orderId,{
+    menu_item_id:item.id,
+    quantity:1,
+    notes:'',
+    size_id:sizeId,
+    addon_ids:addonIds,
+    drink_preset_ids:presetIds,
+    drink_custom:dc?dc.value:'',
+  });
+  closeOdCfg();
+}
+
+async function addItemToOrderApi(orderId, payload){
   const r=await fetch(`/api/order/${orderId}/add-item/`,{
-    method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
-    body:JSON.stringify({menu_item_id:menuItemId,quantity:1})
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+    body:JSON.stringify(payload),
   });
   const d=await r.json();
   if(d.success){showToast('تم إضافة الصنف ✓','suc');location.reload();}

@@ -175,7 +175,7 @@
                   {% if cats %}
                 <optgroup label="{{ type_label }}">
                   {% for cat in cats %}
-                  <option value="{{ cat.pk }}" {% if obj and obj.category_id == cat.pk %}selected{% endif %}>{{ cat.name }}</option>
+                  <option value="{{ cat.pk }}" data-enable-sizes="{% if cat.enable_sizes %}1{% else %}0{% endif %}" {% if obj and obj.category_id == cat.pk %}selected{% endif %}>{{ cat.name }}</option>
                   {% endfor %}
                 </optgroup>
                   {% endif %}
@@ -220,6 +220,29 @@
           {% endif %}
         </div>
 
+        <div class="form-section" id="sizesSection" style="display:{% if obj and obj.category.enable_sizes %}block{% else %}none{% endif %}">
+          <div class="form-section-h"><i class="fas fa-ruler-combined"></i> أحجام الصنف</div>
+          <p class="if-hint" style="margin:-6px 0 14px;line-height:1.5">يظهر هذا القسم عندما يكون التصنيف مفعّلاً فيه «أحجام». أدخل اسماً وسعراً لكل حجم (مثال: صغير / كبير). السعر الأساسي أعلاه يبقى احتياطياً إذا لم تُعرَّف أحجام.</p>
+          <div id="sizeList" style="display:flex;flex-direction:column;gap:8px">
+            {% for s in existing_sizes %}
+            <div class="if-row2" style="margin:0;gap:10px;align-items:end">
+              <div class="if-fg" style="margin:0">
+                <label>اسم الحجم</label>
+                <input name="size_name" type="text" value="{{ s.name }}" placeholder="مثال: كبير">
+              </div>
+              <div class="if-fg" style="margin:0">
+                <label>السعر</label>
+                <div class="if-price-wrap">
+                  <input name="size_price" type="number" step="0.01" min="0" value="{{ s.price|unlocalize }}" placeholder="0">
+                  <span class="if-price-suffix">ج</span>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="btn btn-out btn-sm" style="margin-top:10px" id="addSizeRowBtn"><i class="fas fa-plus"></i> سطر حجم</button>
+        </div>
+
         <div class="form-section">
           <div class="form-section-h"><i class="fas fa-align-right"></i> الوصف <span class="if-hint" style="font-weight:600;margin-inline-start:auto">اختياري</span></div>
           <div class="if-fg">
@@ -239,13 +262,13 @@
         <div class="preview-card-h">معاينة سريعة</div>
         <div class="preview-mock">
           <div class="preview-mock-name" id="previewName">{% if obj %}{{ obj.name }}{% else %}اسم المنتج{% endif %}</div>
-          <div class="preview-mock-price" id="previewPrice">{% if obj %}{{ obj.price|unlocalize }} ج{% else %}٠ ج{% endif %}</div>
+          <div class="preview-mock-price" id="previewPrice">{% if obj %}{% if existing_sizes %}من {{ obj.menu_grid_price|unlocalize }} ج{% else %}{{ obj.price|unlocalize }} ج{% endif %}{% else %}٠ ج{% endif %}</div>
           <div class="preview-mock-meta" id="previewMeta">كما يظهر تقريباً في بطاقة المنيو</div>
         </div>
       </div>
       <div class="tip-card">
         <strong><i class="fas fa-lightbulb"></i> نصيحة</strong>
-        استخدم ترتيباً واضحاً للقائمة (مثلاً الأكثر مبيعاً أعلى). السعر بخانتين عشريتين يكفي لمعظم الأطباق والمشروبات.
+        فعّل الأحجام والإضافات من شاشة تعديل التصنيف؛ هنا تضيف أحجام هذا الصنف فقط. الإضافات والعناوين الجاهزة للمشروب تُعرَّف مرة واحدة على مستوى التصنيف.
       </div>
     </aside>
   </div>
@@ -259,6 +282,10 @@
   if(!form)return;
   const nameEl=document.getElementById('itemName');
   const priceEl=document.getElementById('itemPrice');
+  const catSel=form.querySelector('select[name="category"]');
+  const sizesSection=document.getElementById('sizesSection');
+  const sizeList=document.getElementById('sizeList');
+  const addSizeBtn=document.getElementById('addSizeRowBtn');
   const pvN=document.getElementById('previewName');
   const pvP=document.getElementById('previewPrice');
   function toAsciiNumberString(str){
@@ -277,7 +304,39 @@
     const s=n.toLocaleString('ar-EG',{minimumFractionDigits:0,maximumFractionDigits:2});
     return s+' ج';
   }
+  function selectedCatSizesOn(){
+    const o=catSel&&catSel.options[catSel.selectedIndex];
+    return o&&o.getAttribute('data-enable-sizes')==='1';
+  }
+  function addSizeRow(){
+    if(!sizeList)return;
+    const wrap=document.createElement('div');
+    wrap.className='if-row2';
+    wrap.style.margin='0';
+    wrap.style.gap='10px';
+    wrap.style.alignItems='end';
+    wrap.innerHTML='<div class="if-fg" style="margin:0"><label>اسم الحجم</label><input name="size_name" type="text" placeholder="مثال: وسط"></div><div class="if-fg" style="margin:0"><label>السعر</label><div class="if-price-wrap"><input name="size_price" type="number" step="0.01" min="0" placeholder="0"><span class="if-price-suffix">ج</span></div></div>';
+    sizeList.appendChild(wrap);
+  }
+  function toggleSizesSection(){
+    if(!sizesSection)return;
+    const on=selectedCatSizesOn();
+    sizesSection.style.display=on?'block':'none';
+    sizeList&&sizeList.querySelectorAll('input').forEach(function(i){i.disabled=!on;});
+    if(on&&sizeList&&!sizeList.children.length)addSizeRow();
+  }
+  addSizeBtn&&addSizeBtn.addEventListener('click',addSizeRow);
+  catSel&&catSel.addEventListener('change',toggleSizesSection);
   let priceFieldTouched=false;
+  function minSizePrice(){
+    if(!sizeList||!selectedCatSizesOn())return null;
+    let m=null;
+    sizeList.querySelectorAll('input[name="size_price"]').forEach(function(inp){
+      const n=parseFloat(toAsciiNumberString(inp.value));
+      if(isFinite(n)&&n>=0&&(m===null||n<m))m=n;
+    });
+    return m;
+  }
   function sync(){
     if(nameEl&&pvN){
       const t=nameEl.value.trim();
@@ -289,12 +348,16 @@
         const fb=priceEl.getAttribute('data-price-fallback')||'';
         raw=toAsciiNumberString(fb);
       }
-      pvP.textContent=fmtPrice(raw);
+      const ms=minSizePrice();
+      if(ms!==null&&isFinite(ms))pvP.textContent='من '+fmtPrice(String(ms)).replace(/ ج$/,'')+' ج';
+      else pvP.textContent=fmtPrice(raw);
     }
   }
   nameEl&&nameEl.addEventListener('input',sync);
   priceEl&&priceEl.addEventListener('input',function(){priceFieldTouched=true;sync();});
   priceEl&&priceEl.addEventListener('blur',function(){if(String(priceEl.value).trim()==='')priceFieldTouched=true;});
+  sizeList&&sizeList.addEventListener('input',sync);
+  toggleSizesSection();
   sync();
   form.addEventListener('submit',function(){
     const btn=form.querySelector('button[type="submit"]');

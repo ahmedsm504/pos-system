@@ -321,6 +321,21 @@
 .cat-chip{font-size:.62rem;font-weight:800;padding:2px 7px;border-radius:6px;margin-left:6px;vertical-align:middle}
 .chip-food{background:#ffedd5;color:#9a3412}.chip-drink{background:#dbeafe;color:#1d4ed8}.chip-other{background:#f1f5f9;color:#475569}
 .order-note-box{margin-top:10px;padding:9px 11px;background:var(--war-l);border-radius:10px;font-size:.78rem;color:#92400e;border:1px solid #fde68a}
+
+.itemcfg-overlay{background:rgba(15,23,42,.55);z-index:400}
+.itemcfg-modal{width:min(420px,94vw);max-height:min(85dvh,640px);display:flex;flex-direction:column;border-radius:20px;overflow:hidden}
+.itemcfg-hdr{padding:14px 18px;background:linear-gradient(135deg,var(--gold-soft),var(--gold));border-bottom:1px solid rgba(0,0,0,.06)}
+.itemcfg-hdr h3{margin:0;font-size:.95rem;font-weight:800;color:#2d2608}
+.itemcfg-body{padding:14px 16px;overflow-y:auto;flex:1;font-size:.82rem}
+.itemcfg-sec{margin-bottom:14px}
+.itemcfg-sec h4{margin:0 0 8px;font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.itemcfg-sz{display:flex;flex-direction:column;gap:8px}
+.itemcfg-sz label{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;font-weight:700}
+.itemcfg-sz input{accent-color:var(--gold)}
+.itemcfg-add label{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;border:1px solid #e8ecf2;cursor:pointer;font-weight:600}
+.itemcfg-add input{accent-color:var(--gold)}
+.itemcfg-ta{width:100%;min-height:56px;padding:10px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:.8rem;resize:vertical}
+.itemcfg-ftr{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;background:#fafbff}
 .confirm-btn{
   flex:2;padding:13px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:14px;
   font-size:.92rem;font-weight:800;cursor:pointer;font-family:inherit;transition:all .2s;
@@ -438,6 +453,7 @@
 </style>{% endblock %}
 
 {% block content %}
+{{ menu_catalog|json_script:"menu-catalog-data" }}
 <div class="pos-shell">
 
   <div class="menu-panel">
@@ -482,13 +498,13 @@
             data-menu-kind="{{ cat.category_type }}"
             data-id="{{ item.id }}"
             data-name="{{ item.name }}"
-            data-price="{{ item.price }}"
+            data-price="{{ item.menu_grid_price }}"
             onclick="addItem(this)">
             <span class="mi-badge" id="bd{{ item.id }}">0</span>
             <span class="mi-inner">
               <span class="mi-name">{{ item.name }}</span>
               <span class="mi-foot">
-                <span class="mi-price">{{ item.price }} ج</span>
+                <span class="mi-price">{% if item.sizes.all %}من {% endif %}{{ item.menu_grid_price }} ج</span>
                 <span class="mi-cat">{{ cat.name }}</span>
               </span>
             </span>
@@ -552,6 +568,17 @@
   </aside>
 </div>
 
+<div class="overlay itemcfg-overlay" id="itemCfgOverlay" style="display:none;align-items:center;justify-content:center;padding:12px">
+  <div class="modal itemcfg-modal" role="dialog" aria-modal="true" onclick="event.stopPropagation()">
+    <div class="itemcfg-hdr"><h3 id="itemCfgTitle"><i class="fas fa-sliders"></i> تفاصيل الصنف</h3></div>
+    <div class="itemcfg-body" id="itemCfgBody"></div>
+    <div class="itemcfg-ftr">
+      <button type="button" class="btn btn-out" style="flex:1" onclick="closeItemCfg()">إلغاء</button>
+      <button type="button" class="btn btn-pri" style="flex:2" onclick="confirmItemCfg()"><i class="fas fa-check"></i> أضف للطلب</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay preview-overlay" id="previewOverlay" onclick="if(event.target===this)closePreview()">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
     <div class="preview-modal-hdr">
@@ -570,8 +597,134 @@
 {% block extra_js %}<script>
 let menuKind=null, currentCat='all', orderType='dine_in';
 let cartLines=[];
+const MENU_CATALOG=JSON.parse(document.getElementById('menu-catalog-data').textContent);
 
 const kindLabels={food:'أكل',drink:'مشروبات',other:'أخرى'};
+
+function escHtml(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+
+function findCatalogEntry(menuItemId){
+  for(const c of MENU_CATALOG.categories){
+    for(const it of c.items){
+      if(it.id===menuItemId)return{cat:c,item:it};
+    }
+  }
+  return null;
+}
+
+function buildDrinkDetail(cat,presetIds,custom){
+  if(!cat.enable_drink_options)return'';
+  const parts=[];
+  (presetIds||[]).forEach(pid=>{
+    const p=(cat.drink_presets||[]).find(x=>x.id===pid);
+    if(p)parts.push(p.label);
+  });
+  if(custom&&String(custom).trim())parts.push(String(custom).trim());
+  return parts.join(' · ');
+}
+
+function unitPriceClient(cat,item,sizeId,addonIds){
+  let base=parseFloat(item.price)||0;
+  if(cat.enable_sizes&&(item.sizes||[]).length){
+    const sz=(item.sizes||[]).find(x=>x.id===sizeId)||item.sizes[0];
+    if(sz)base=parseFloat(sz.price)||0;
+  }
+  let add=0;
+  (addonIds||[]).forEach(aid=>{
+    const a=(cat.addons||[]).find(x=>x.id===aid);
+    if(a)add+=parseFloat(a.price)||0;
+  });
+  return base+add;
+}
+
+function mergeKeyLine(l){
+  const aids=[...(l.addon_ids||[])].slice().sort((a,b)=>a-b).join(',');
+  const sid=l.size_id||0;
+  const dd=(l.drink_detail||'').trim();
+  const n=(l.notes||'').trim();
+  return `${l.id}|${sid}|${aids}|${dd}|${n}`;
+}
+
+let itemCfgCtx=null;
+
+function openItemCfg(btn,cat,item){
+  itemCfgCtx={btn,cat,item};
+  document.getElementById('itemCfgTitle').innerHTML='<i class="fas fa-sliders"></i> '+escHtml(item.name);
+  const body=document.getElementById('itemCfgBody');
+  let html='';
+  if(cat.enable_sizes&&(item.sizes||[]).length){
+    html+='<div class="itemcfg-sec"><h4>الحجم</h4><div class="itemcfg-sz">';
+    (item.sizes||[]).forEach((sz,i)=>{
+      html+=`<label><span>${escHtml(sz.name)}</span><span><input type="radio" name="ic_sz" value="${sz.id}" ${i===0?'checked':''}> <strong>${Number(sz.price).toFixed(2)} ج</strong></span></label>`;
+    });
+    html+='</div></div>';
+  }
+  if(cat.enable_addons&&(cat.addons||[]).length){
+    html+='<div class="itemcfg-sec"><h4>إضافات</h4><div class="itemcfg-add">';
+    (cat.addons||[]).forEach(a=>{
+      html+=`<label><input type="checkbox" name="ic_ad" value="${a.id}"> ${escHtml(a.name)} <strong style="color:var(--pri-d)">+${Number(a.price).toFixed(2)} ج</strong></label>`;
+    });
+    html+='</div></div>';
+  }
+  if(cat.enable_drink_options&&cat.category_type==='drink'){
+    html+='<div class="itemcfg-sec"><h4>تفاصيل المشروب</h4><div class="itemcfg-add">';
+    (cat.drink_presets||[]).forEach(p=>{
+      html+=`<label><input type="checkbox" name="ic_dp" value="${p.id}"> ${escHtml(p.label)}</label>`;
+    });
+    html+='</div><textarea class="itemcfg-ta" id="icDrinkCustom" placeholder="نص حر (مثال: سبايسي، بدون سكر…)" rows="2"></textarea></div>';
+  }
+  body.innerHTML=html||'<p style="color:var(--muted)">لا خيارات إضافية — اضغط أضف للطلب</p>';
+  const ov=document.getElementById('itemCfgOverlay');
+  ov.style.display='flex';
+  ov.classList.add('open');
+}
+
+function closeItemCfg(){
+  const ov=document.getElementById('itemCfgOverlay');
+  ov.classList.remove('open');
+  ov.style.display='none';
+  itemCfgCtx=null;
+}
+
+function confirmItemCfg(){
+  if(!itemCfgCtx)return;
+  const {btn,cat,item}=itemCfgCtx;
+  let sizeId=null;
+  const szEl=document.querySelector('#itemCfgBody input[name="ic_sz"]:checked');
+  if(szEl)sizeId=parseInt(szEl.value,10);
+  const addonIds=[...document.querySelectorAll('#itemCfgBody input[name="ic_ad"]:checked')].map(x=>parseInt(x.value,10));
+  const presetIds=[...document.querySelectorAll('#itemCfgBody input[name="ic_dp"]:checked')].map(x=>parseInt(x.value,10));
+  const dcEl=document.getElementById('icDrinkCustom');
+  const drinkCustom=dcEl?dcEl.value:'';
+  const drinkDetail=buildDrinkDetail(cat,presetIds,drinkCustom);
+  const price=unitPriceClient(cat,item,sizeId,addonIds);
+  const line={
+    lineKey:lineKey(),
+    id:item.id,
+    name:item.name,
+    price,
+    qty:1,
+    notes:'',
+    catType:cat.category_type,
+    size_id:sizeId,
+    addon_ids:addonIds,
+    drink_preset_ids:presetIds,
+    drink_custom:drinkCustom,
+    drink_detail:drinkDetail,
+  };
+  const k=mergeKeyLine(line);
+  const merge=cartLines.find(l=>mergeKeyLine(l)===k&&!String(l.notes||'').trim());
+  if(merge)merge.qty++;
+  else cartLines.push(line);
+  closeItemCfg();
+  btn.style.borderColor='#10b981';
+  setTimeout(()=>{btn.style.borderColor='';},240);
+  renderCart();
+}
+
+document.getElementById('itemCfgOverlay').addEventListener('click',function(e){if(e.target===this)closeItemCfg();});
 
 function lineKey(){return 'L'+Date.now()+Math.random().toString(36).slice(2,8);}
 
@@ -629,12 +782,23 @@ function qtyForItemOnMenu(itemId){
 function addItem(btn){
   if(!menuKind){showToast('اختر نوع المنيو أولاً (أكل / مشروبات)','war');return;}
   const id=parseInt(btn.dataset.id,10);
-  const name=btn.dataset.name;
+  const hit=findCatalogEntry(id);
+  if(!hit){showToast('تعذر تحميل بيانات الصنف','err');return;}
+  const {cat,item}=hit;
+  const needSize=cat.enable_sizes&&(item.sizes||[]).length>0;
+  const needAddons=cat.enable_addons&&(cat.addons||[]).length>0;
+  const needDrink=cat.enable_drink_options&&cat.category_type==='drink';
+  if(needSize||needAddons||needDrink){
+    openItemCfg(btn,cat,item);
+    return;
+  }
   const price=parseFloat(btn.dataset.price);
+  const name=btn.dataset.name;
   const catType=btn.dataset.menuKind;
-  const open=[...cartLines].reverse().find(l=>l.id===id&&!String(l.notes||'').trim());
-  if(open){open.qty++;}
-  else{cartLines.push({lineKey:lineKey(),id,name,price,qty:1,notes:'',catType});}
+  const line={lineKey:lineKey(),id,name,price,qty:1,notes:'',catType,size_id:null,addon_ids:[],drink_preset_ids:[],drink_custom:'',drink_detail:''};
+  const merge=cartLines.find(l=>mergeKeyLine(l)===mergeKeyLine(line)&&!String(l.notes||'').trim());
+  if(merge)merge.qty++;
+  else cartLines.push(line);
   btn.style.borderColor='#10b981';
   setTimeout(()=>{btn.style.borderColor='';},240);
   renderCart();
@@ -684,11 +848,29 @@ function renderCart(){
     div.className='ci';
     div.dataset.idx=String(idx+1);
     const esc=n=>String(n).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    const hit=findCatalogEntry(line.id);
+    let extra='';
+    if(line.drink_detail)extra+=esc(line.drink_detail);
+    if((line.addon_ids||[]).length&&hit){
+      const bits=[];
+      (line.addon_ids||[]).forEach(aid=>{
+        const a=hit.cat.addons.find(x=>x.id===aid);
+        if(a)bits.push('+ '+a.name);
+      });
+      if(bits.length)extra+=(extra?' · ':'')+bits.join(' · ');
+    }
+    const extraHtml=extra?`<div class="ci-sub" style="font-size:.68rem;color:var(--pri-d);font-weight:600;line-height:1.35">${extra}</div>`:'';
+    let sizeBit='';
+    if(line.size_id&&hit){
+      const sz=(hit.item.sizes||[]).find(x=>x.id===line.size_id);
+      if(sz)sizeBit=' · '+esc(sz.name);
+    }
     div.innerHTML=`
       <div class="ci-row1">
         <div class="ci-main">
           <div class="ci-name">${esc(line.name)}</div>
-          <div class="ci-sub">${line.price.toFixed(2)} ج للوحدة · الكمية ${line.qty}</div>
+          <div class="ci-sub">${line.price.toFixed(2)} ج للوحدة${sizeBit} · الكمية ${line.qty}</div>
+          ${extraHtml}
         </div>
         <div class="ci-side">
           <div class="qc">
@@ -708,7 +890,15 @@ function renderCart(){
 }
 
 function payloadItems(){
-  return cartLines.map(l=>({id:l.id,quantity:l.qty,notes:(l.notes||'').trim()}));
+  return cartLines.map(l=>({
+    id:l.id,
+    quantity:l.qty,
+    notes:(l.notes||'').trim(),
+    size_id:l.size_id||null,
+    addon_ids:l.addon_ids||[],
+    drink_preset_ids:l.drink_preset_ids||[],
+    drink_custom:l.drink_custom||'',
+  }));
 }
 
 async function openPreview(){
@@ -749,10 +939,8 @@ async function openPreview(){
   btn.innerHTML='<i class="fas fa-eye"></i> معاينة وطباعة';
 }
 
-function escHtml(s){
-  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-}
 function renderReceipt(d){
+  const escH=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
   const catLabel=ct=>{
     if(ct==='food')return'<span class="pr-chip chip-food">مطبخ</span>';
     if(ct==='drink')return'<span class="pr-chip chip-drink">بار</span>';
@@ -761,22 +949,22 @@ function renderReceipt(d){
   const rows=d.items.map(item=>{
     let r=`<div class="pr-row">
       <span class="pr-chip-cell">${catLabel(item.cat_type)}</span>
-      <div class="pr-name">${escHtml(item.name)}</div>
-      <span class="pr-qty">×${escHtml(item.qty)}</span>
+      <div class="pr-name">${escH(item.name)}</div>
+      <span class="pr-qty">×${escH(item.qty)}</span>
       <span class="pr-price">${Number(item.subtotal).toFixed(2)} ج</span>`;
-    if(item.notes)r+=`<div class="pr-line">${escHtml(item.notes)}</div>`;
+    if(item.notes)r+=`<div class="pr-line">${escH(item.notes)}</div>`;
     r+='</div>';
     return r;
   }).join('');
   let html=`<div class="preview-rcpt">
     <div class="pr-meta">
       <p class="pr-title">فاتورة طلب</p>
-      <p class="pr-sub">${d.order_type==='delivery'?'ديليفري':'داخلي'} — ${escHtml(d.table)} — ${escHtml(d.time)}</p>
-      ${d.customer_name?`<div class="pr-cust">العميل: ${escHtml(d.customer_name)}</div>`:''}
+      <p class="pr-sub">${d.order_type==='delivery'?'ديليفري':'داخلي'} — ${escH(d.table)} — ${escH(d.time)}</p>
+      ${d.customer_name?`<div class="pr-cust">العميل: ${escH(d.customer_name)}</div>`:''}
     </div>
     <div class="pr-table">${rows}</div>
     <div class="pr-summary"><span>الإجمالي</span><span style="color:var(--gold-dim)">${Number(d.total).toFixed(2)} ج</span></div>
-    ${d.notes?`<div class="pr-order-note"><strong>ملاحظة الطلب:</strong> ${escHtml(d.notes)}</div>`:''}
+    ${d.notes?`<div class="pr-order-note"><strong>ملاحظة الطلب:</strong> ${escH(d.notes)}</div>`:''}
   </div>`;
   document.getElementById('receiptHTML').innerHTML=html;
   const sb=document.getElementById('previewScrollBody');

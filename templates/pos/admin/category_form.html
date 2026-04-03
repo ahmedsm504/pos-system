@@ -209,6 +209,44 @@
           </div>
         </div>
 
+        <div class="form-section">
+          <div class="form-section-h"><i class="fas fa-sliders"></i> خيارات المنيو في الكاشير</div>
+          <p class="cf-hint" style="margin:-6px 0 14px">الأحجام تُحدَّد لكل منتج عند إضافته. الإضافات وعناوين المشروب هنا تنطبق على كل أصناف هذا التصنيف.</p>
+          <label class="avail-row" style="cursor:pointer;margin-bottom:10px">
+            <div class="avail-row-txt"><strong>تصنيف فيه أحجام</strong><span>عند إضافة منتج ستُدخل أسماء الأحجام وسعر كل حجم.</span></div>
+            <span class="avail-switch"><input type="checkbox" name="enable_sizes" {% if obj and obj.enable_sizes %}checked{% endif %}><span class="track" aria-hidden="true"></span></span>
+          </label>
+          <label class="avail-row" style="cursor:pointer;margin-bottom:10px">
+            <div class="avail-row-txt"><strong>إضافات بأسعار</strong><span>مثل موتزريلا أو بطاطس؛ يختارها الكاشير وتُزاد على سطر الطلب.</span></div>
+            <span class="avail-switch"><input type="checkbox" name="enable_addons" {% if obj and obj.enable_addons %}checked{% endif %}><span class="track" aria-hidden="true"></span></span>
+          </label>
+          <label class="avail-row" style="cursor:pointer;margin-bottom:14px">
+            <div class="avail-row-txt"><strong>تفاصيل مشروب (عناوين + نص حر)</strong><span>مناسب لمشروبات: بدون سكر، زيادة ثلج… وتُطبع للمطبخ والبار.</span></div>
+            <span class="avail-switch"><input type="checkbox" name="enable_drink_options" {% if obj and obj.enable_drink_options %}checked{% endif %}><span class="track" aria-hidden="true"></span></span>
+          </label>
+          <div class="cf-fg" style="margin-bottom:10px">
+            <label>قائمة الإضافات <span class="cf-hint">اسم + سعر لكل سطر</span></label>
+            <div id="addonList" style="display:flex;flex-direction:column;gap:8px">
+              {% if obj %}{% for a in obj.addons.all %}
+              <div class="cf-row2" style="margin:0;gap:10px">
+                <input name="addon_name" type="text" value="{{ a.name }}" placeholder="مثال: موتزريلا">
+                <input name="addon_price" type="number" step="0.01" min="0" value="{{ a.price|unlocalize }}" placeholder="0">
+              </div>
+              {% endfor %}{% endif %}
+            </div>
+            <button type="button" class="btn btn-out btn-sm" style="margin-top:8px" onclick="addAddonRow()"><i class="fas fa-plus"></i> سطر إضافة</button>
+          </div>
+          <div class="cf-fg" style="margin-bottom:0">
+            <label>عناوين جاهزة للمشروب <span class="cf-hint">سطر لكل عبارة</span></label>
+            <div id="drinkPresetList" style="display:flex;flex-direction:column;gap:8px">
+              {% if obj %}{% for p in obj.drink_presets.all %}
+              <input name="drink_preset_label" type="text" value="{{ p.label }}" placeholder="مثال: بدون سكر">
+              {% endfor %}{% endif %}
+            </div>
+            <button type="button" class="btn btn-out btn-sm" style="margin-top:8px" onclick="addDrinkRow()"><i class="fas fa-plus"></i> سطر عنوان</button>
+          </div>
+        </div>
+
         {% if obj %}
         <div class="form-section">
           <div class="form-section-h"><i class="fas fa-eye"></i> الظهور في نقطة البيع</div>
@@ -295,6 +333,26 @@
   nameEl&&nameEl.addEventListener('input',syncPreview);
   radios.forEach(r=>r.addEventListener('change',syncPreview));
   syncPreview();
+
+  window.addAddonRow=function(){
+    const w=document.createElement('div');
+    w.className='cf-row2';
+    w.style.margin='0';
+    w.style.gap='10px';
+    w.innerHTML='<input name="addon_name" type="text" placeholder="اسم الإضافة"><input name="addon_price" type="number" step="0.01" min="0" placeholder="السعر">';
+    document.getElementById('addonList').appendChild(w);
+  };
+  window.addDrinkRow=function(){
+    const inp=document.createElement('input');
+    inp.name='drink_preset_label';
+    inp.type='text';
+    inp.placeholder='مثال: زيادة ثلج';
+    inp.style.width='100%';
+    inp.style.padding='11px 14px';
+    inp.style.border='1.5px solid var(--border)';
+    inp.style.borderRadius='12px';
+    document.getElementById('drinkPresetList').appendChild(inp);
+  };
 
   form&&form.addEventListener('submit',function(){
     const btn=form.querySelector('button[type="submit"]');

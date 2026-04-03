@@ -78,6 +78,10 @@
 .p-food{background:var(--accent-food-bg);color:var(--accent-food)}
 .p-drink{background:var(--accent-drink-bg);color:var(--accent-drink)}
 .p-other{background:var(--accent-other-bg);color:var(--accent-other)}
+.opt-chip{
+  font-size:.62rem;font-weight:800;padding:2px 7px;border-radius:6px;
+  background:#f1f5f9;color:#475569;border:1px solid var(--hairline);
+}
 .cat-count-dir{opacity:.85}
 .cat-actions{display:flex;gap:6px;flex-shrink:0}
 
@@ -190,6 +194,9 @@
               {% elif cat.category_type == 'drink' %}<span class="cat-pill p-drink">مشروبات</span>
               {% else %}<span class="cat-pill p-other">أخرى</span>{% endif %}
               <span class="cat-count-dir">{{ cat.items.all|length }} منتج</span>
+              {% if cat.enable_sizes %}<span class="opt-chip" title="أحجام">أحجام</span>{% endif %}
+              {% if cat.enable_addons %}<span class="opt-chip" title="إضافات">+ إضافات</span>{% endif %}
+              {% if cat.enable_drink_options %}<span class="opt-chip" title="تفاصيل مشروب">مشروب</span>{% endif %}
               {% if not cat.is_active %}<span class="badge b-war">غير نشط</span>{% endif %}
             </div>
           </div>
@@ -231,12 +238,19 @@
               {% else %}<span class="mini-type p-other">أخرى</span>{% endif %}
             </div>
             <span class="cat-section-count">{{ cat.items.all|length }} منتج</span>
+            {% if cat.enable_sizes or cat.enable_addons or cat.enable_drink_options %}
+            <span style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+              {% if cat.enable_sizes %}<span class="opt-chip">أحجام</span>{% endif %}
+              {% if cat.enable_addons %}<span class="opt-chip">إضافات</span>{% endif %}
+              {% if cat.enable_drink_options %}<span class="opt-chip">تفاصيل مشروب</span>{% endif %}
+            </span>
+            {% endif %}
           </div>
           <div class="items-grid">
             {% for item in cat.items.all %}
             <div class="item-card {% if not item.is_available %}unavail{% endif %}" data-primary-type="{{ cat.category_type }}">
               <div class="item-name">{{ item.name }}</div>
-              <div class="item-price">{{ item.price }} ج</div>
+              <div class="item-price">{% if item.sizes.all|length %}من {{ item.menu_grid_price }} ج{% else %}{{ item.price }} ج{% endif %}</div>
               <div class="item-cat">
                 {% if not item.is_available %}<span class="badge b-war" style="font-size:.65rem"><i class="fas fa-ban"></i> غير متاح</span>
                 {% else %}<span class="badge b-suc" style="font-size:.65rem"><i class="fas fa-check"></i> متاح</span>{% endif %}
