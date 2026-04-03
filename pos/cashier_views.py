@@ -5,7 +5,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 import json, logging
 from datetime import date
 from decimal import Decimal
@@ -18,7 +18,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 from .models import (Category, MenuItem, Table, Waiter, DeliveryDriver,
-                     Order, OrderItem, Shift, CashierProfile)
+                     Order, OrderItem, Shift, CashierProfile, InventoryEntry)
 
 
 # ── Decorators ────────────────────────────────────────────────────────────────
@@ -416,13 +416,115 @@ def open_drawer(request):
 
 
 # ══════════════════════════════════════════════════════════════════════════
+#  CASHIER — واردات (بموافقة المدير، مرتبطة بالشيفت)
+# ══════════════════════════════════════════════════════════════════════════
+
+@cashier_required
+def cashier_inventory(request):
+    shift = Shift.objects.filter(cashier=request.user, status='open').first()
+    entries = []
+    if shift:
+        entries = list(
+            InventoryEntry.objects.filter(shift=shift)
+            .select_related('added_by', 'recorded_by_cashier')
+            .order_by('-id')[:80]
+        )
+    profile = get_profile(request.user)
+    return render(
+        request,
+        'pos/cashier/inventory.html',
+        {'shift': shift, 'entries': entries, 'profile': profile},
+    )
+
+
+@cashier_required
+@require_POST
+def cashier_inventory_submit(request):
+    try:
+        shift = Shift.objects.filter(cashier=request.user, status='open').first()
+        if not shift:
+            return JsonResponse({'success': False, 'error': 'لا يوجد شيفت مفتوح'})
+
+        try:
+            data = json.loads(request.body or '{}')
+        except json.JSONDecodeError:
+            data = request.POST
+
+        au = (data.get('admin_username') or '').strip()
+        ap = data.get('admin_password') or ''
+        admin_user = authenticate(request, username=au, password=ap)
+        if not admin_user or not admin_user.is_staff:
+            return JsonResponse({
+                'success': False,
+                'error':   'يجب إدخال حساب مدير صحيح للموافقة على الوارد',
+                'need_admin': True,
+            })
+
+        name = (data.get('name') or '').strip()
+        if not name:
+            return JsonResponse({'success': False, 'error': 'أدخل اسم الصنف / الوصف'})
+
+        try:
+            qty = Decimal(str(data.get('quantity', '0')).replace(',', '.'))
+            cost = Decimal(str(data.get('total_cost', '0')).replace(',', '.'))
+        except Exception:
+            return JsonResponse({'success': False, 'error': 'الكمية أو التكلفة غير صالحة'})
+        if qty < 0 or cost < 0:
+            return JsonResponse({'success': False, 'error': 'لا يُسمح بقيم سالبة'})
+
+        InventoryEntry.objects.create(
+            name=name,
+            quantity=qty,
+            unit=(data.get('unit') or '').strip(),
+            total_cost=cost,
+            date=timezone.localdate(),
+            notes=(data.get('notes') or '').strip(),
+            added_by=admin_user,
+            shift=shift,
+            recorded_by_cashier=request.user,
+        )
+        return JsonResponse({'success': True})
+    except Exception as e:
+        log.error(f'cashier_inventory_submit: {e}')
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+def _shift_orders_total_sum(cashier, shift):
+    """مجموع مبيعات الطلبات = نقد دخل الدرج (مطبوع + مكتمل منذ بداية الشيفت)."""
+    orders = Order.objects.filter(
+        cashier=cashier,
+        created_at__gte=shift.start_time,
+        status__in=['printed', 'completed'],
+    )
+    return sum(Decimal(str(o.total)) for o in orders)
+
+
+def _shift_inventory_total(shift):
+    """إجمالي مبالغ واردات الشيفت المسجّلة — يُجمع مع مجموع الطلبات في حساب المطابقة مع الدرج."""
+    t = InventoryEntry.objects.filter(shift=shift).aggregate(s=Sum('total_cost'))['s']
+    return Decimal(t) if t is not None else Decimal(0)
+
+
+# ══════════════════════════════════════════════════════════════════════════
 #  SHIFT END
 # ══════════════════════════════════════════════════════════════════════════
 
 @cashier_required
 def end_shift(request):
     shift = Shift.objects.filter(cashier=request.user, status='open').first()
-    return render(request, 'pos/cashier/end_shift.html', {'shift': shift})
+    orders_total = inventory_out = None
+    if shift:
+        orders_total = _shift_orders_total_sum(request.user, shift)
+        inventory_out = _shift_inventory_total(shift)
+    return render(
+        request,
+        'pos/cashier/end_shift.html',
+        {
+            'shift': shift,
+            'orders_total': orders_total,
+            'inventory_out': inventory_out,
+        },
+    )
 
 
 @cashier_required
@@ -435,28 +537,28 @@ def submit_shift_end(request):
 
         cash_input = Decimal(request.POST.get('cash_in_drawer', '0'))
 
-        orders = Order.objects.filter(
-            cashier=request.user,
-            created_at__gte=shift.start_time,
-            status__in=['printed', 'completed']
-        )
-        sys_total = sum(o.total for o in orders)
+        orders_total = _shift_orders_total_sum(request.user, shift)
+        inventory_total = _shift_inventory_total(shift)
+        # مطابقة الدرج: مجمع السيستم = طلبات + واردات الشيفت؛ الفرق = الدرج الفعلي − المجمع
+        sys_total = orders_total + inventory_total
         diff = cash_input - sys_total
 
         shift.cash_in_drawer = cash_input
-        shift.system_total   = sys_total
-        shift.difference     = diff
-        shift.end_time       = timezone.now()
-        shift.status         = 'closed'
-        shift.notes          = request.POST.get('notes', '')
+        shift.system_total = sys_total
+        shift.difference = diff
+        shift.end_time = timezone.now()
+        shift.status = 'closed'
+        shift.notes = request.POST.get('notes', '')
         shift.save()
 
         return JsonResponse({
-            'success':      True,
+            'success': True,
+            'orders_total': float(orders_total),
+            'inventory_out': float(inventory_total),
             'system_total': float(sys_total),
-            'cash_input':   float(cash_input),
-            'difference':   float(diff),
-            'status':       'زيادة' if diff > 0 else ('نقص' if diff < 0 else 'متطابق'),
+            'cash_input': float(cash_input),
+            'difference': float(diff),
+            'status': 'زيادة' if diff > 0 else ('نقص' if diff < 0 else 'متطابق'),
         })
     except Exception as e:
         log.error(f'submit_shift_end: {e}')

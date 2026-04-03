@@ -118,6 +118,15 @@ class InventoryEntry(models.Model):
     date       = models.DateField(default=timezone.now, verbose_name='تاريخ الوارد')
     added_by   = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='أضافه')
     notes      = models.TextField(blank=True, verbose_name='ملاحظات')
+    # وارد من شيفت كاشير (بعد موافقة المدير) — يُخصم من المتوقع في الدرج عند إغلاق الشيفت
+    shift = models.ForeignKey(
+        'Shift', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='inventory_entries', verbose_name='الشيفت',
+    )
+    recorded_by_cashier = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='cashier_inventory_entries', verbose_name='الكاشير (التسجيل)',
+    )
     class Meta:
         verbose_name='وارد مخزون'; verbose_name_plural='واردات المخزون'; ordering=['-date','-id']
     def __str__(self): return f"{self.name} — {self.total_cost} ج"
@@ -129,8 +138,12 @@ class Shift(models.Model):
     end_time       = models.DateTimeField(null=True, blank=True)
     status         = models.CharField(max_length=10, choices=[('open','مفتوح'),('closed','مغلق')], default='open')
     cash_in_drawer = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='الفلوس في الدرج')
-    system_total   = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='إجمالي السيستم')
-    difference     = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='الفرق')
+    system_total   = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        verbose_name='المتوقع بالدرج',
+        help_text='مجموع طلبات الشيفت + واردات الشيفت (أساس مقارنة العدّ مع الدرج)',
+    )
+    difference     = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='الفرق (الدرج − المتوقع)')
     notes          = models.TextField(blank=True)
     class Meta:
         verbose_name='شيفت'; verbose_name_plural='الشيفتات'; ordering=['-start_time']

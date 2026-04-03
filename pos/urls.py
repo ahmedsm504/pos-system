@@ -73,6 +73,8 @@ urlpatterns = [
     path('cashier/order/new/',               cashier_views.new_order,         name='cashier_new_order'),
     path('cashier/order/<int:order_id>/',    cashier_views.order_detail,      name='cashier_order_detail'),
     path('cashier/orders/',                  cashier_views.orders_list,       name='cashier_orders'),
+    path('cashier/inventory/',               cashier_views.cashier_inventory, name='cashier_inventory'),
+    path('cashier/inventory/submit/',         cashier_views.cashier_inventory_submit, name='cashier_inventory_submit'),
 
     # API
     path('api/order/preview/',              cashier_views.preview_order,     name='api_preview'),

@@ -51,8 +51,8 @@ a.dash-kpi:hover{transform:translateY(-3px);box-shadow:0 16px 40px -16px rgba(0,
 .dash-kpi-val{font-size:1.85rem;font-weight:900;line-height:1.1;font-family:'Outfit','Cairo',sans-serif;letter-spacing:-.03em}
 .dash-kpi-lbl{font-size:.78rem;font-weight:700;opacity:.9}
 
-.dash-quick{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
-@media(max-width:640px){.dash-quick{grid-template-columns:1fr}}
+.dash-quick{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:900px){.dash-quick{grid-template-columns:1fr}}
 .dash-q{
   display:flex;align-items:center;gap:14px;padding:18px 18px;border-radius:18px;text-decoration:none;color:var(--text);
   background:linear-gradient(180deg,#fff 0%,#faf8f4 100%);
@@ -156,6 +156,13 @@ a.dash-kpi:hover{transform:translateY(-3px);box-shadow:0 16px 40px -16px rgba(0,
       <div class="dash-q-t">
         <strong>طلبات اليوم</strong>
         <span>عرض كل الطلبات مع فلترة داخلي / ديليفري</span>
+      </div>
+    </a>
+    <a href="{% url 'cashier_inventory' %}" class="dash-q">
+      <div class="dash-q-ic" style="background:linear-gradient(135deg,#0d9488,#14b8a6);box-shadow:0 6px 18px -4px rgba(13,148,136,.4);color:#fff"><i class="fas fa-boxes-stacked"></i></div>
+      <div class="dash-q-t">
+        <strong>واردات الشيفت</strong>
+        <span>تسجيل مخزون بموافقة المدير — يُحسب عند إغلاق الشيفت</span>
       </div>
     </a>
   </div>

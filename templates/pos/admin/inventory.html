@@ -102,7 +102,7 @@
     <div class="inv-toolbar-top">
       <div>
         <h2><i class="fas fa-filter" style="color:#0d9488;margin-inline-end:8px"></i> نطاق التاريخ</h2>
-        <p>اختر <strong>من</strong> و<strong>إلى</strong>: يوم ثم شهر ثم سنة لكل منهما. التواريخ تُرسل للسيرفر بصيغة آمنة (يوم-شهر-سنة).</p>
+        <p>اختر <strong>من</strong> و<strong>إلى</strong>: يوم ثم شهر ثم سنة لكل منهما. حركات <strong>كاشير</strong> تظهر مع الشيفت؛ إدخال الإدارة يظهر كمصدر &laquo;إدارة&raquo;.</p>
       </div>
       <div class="inv-actions-top">
         <a href="{% url 'admin_inventory_add' %}" class="btn btn-pri" style="border-radius:12px;padding:11px 18px;font-weight:800">
@@ -177,7 +177,7 @@
     <table class="tbl">
       <thead>
         <tr>
-          <th>التاريخ</th><th>الصنف</th><th>الكمية</th><th>الوحدة</th><th>التكلفة</th><th>سجّلها</th><th>ملاحظات</th><th></th>
+          <th>التاريخ</th><th>الصنف</th><th>الكمية</th><th>الوحدة</th><th>التكلفة</th><th>المصدر</th><th>الكاشير</th><th>الشيفت</th><th>سجّلها</th><th>ملاحظات</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -188,12 +188,15 @@
           <td style="font-variant-numeric:tabular-nums">{{ e.quantity|floatformat:2 }}</td>
           <td style="color:var(--muted)">{{ e.unit|default:"—" }}</td>
           <td><span class="inv-cost">{{ e.total_cost|floatformat:2 }} ج</span></td>
+          <td style="font-size:.78rem">{% if e.shift %}<span class="badge b-pri" style="font-size:.65rem">كاشير</span>{% else %}<span class="badge b-grey" style="font-size:.65rem">إدارة</span>{% endif %}</td>
+          <td style="font-size:.78rem">{% if e.recorded_by_cashier %}{{ e.recorded_by_cashier.username }}{% else %}—{% endif %}</td>
+          <td style="font-size:.78rem;font-variant-numeric:tabular-nums">{% if e.shift_id %}#{{ e.shift_id }}{% else %}—{% endif %}</td>
           <td style="font-size:.82rem">{{ e.added_by.username|default:"—" }}</td>
-          <td style="font-size:.78rem;color:var(--muted);max-width:200px">{{ e.notes|truncatechars:40|default:"—" }}</td>
+          <td style="font-size:.78rem;color:var(--muted);max-width:180px">{{ e.notes|truncatechars:35|default:"—" }}</td>
           <td><button type="button" class="btn btn-dan btn-sm" onclick="delInv({{ e.pk }})" title="حذف"><i class="fas fa-trash"></i></button></td>
         </tr>
         {% empty %}
-        <tr><td colspan="8"><div class="inv-empty"><i class="fas fa-box-open"></i><strong>لا توجد واردات في هذا النطاق</strong>جرّب توسيع الفترة أو إضافة وارد جديد.</div></td></tr>
+        <tr><td colspan="11"><div class="inv-empty"><i class="fas fa-box-open"></i><strong>لا توجد واردات في هذا النطاق</strong>جرّب توسيع الفترة أو إضافة وارد جديد.</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

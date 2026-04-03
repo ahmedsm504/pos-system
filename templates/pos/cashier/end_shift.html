@@ -7,15 +7,24 @@
   <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;padding:24px;color:#fff;margin-bottom:20px;text-align:center">
     <i class="fas fa-clock" style="font-size:2.5rem;margin-bottom:12px;display:block;opacity:.9"></i>
     <h2 style="font-size:1.2rem;margin-bottom:6px">إنهاء الشيفت</h2>
-    <p style="opacity:.8;font-size:.85rem">أدخل الفلوس الموجودة في الدرج</p>
+    <p style="opacity:.8;font-size:.85rem">نجمّع من السيستم كل طلباتك (مطبوع + مكتمل). <strong>واردات الشيفت</strong> = فلوس خرجت من الدرج لكنها مسجّلة في السيستم، فبيتحسب <strong>مجموع المطابقة = الطلبات + الواردات</strong> ويُقارن بمبلغ الدرج اللي هتعدّه.</p>
     {% if shift %}<p style="opacity:.7;font-size:.8rem;margin-top:6px">بدأ: {{ shift.start_time|date:"H:i" }}</p>{% endif %}
   </div>
 
   <div class="card" id="inputCard">
+    {% if shift and orders_total is not None and inventory_out is not None %}
+    <div style="margin-bottom:18px;padding:14px 16px;border-radius:14px;background:linear-gradient(180deg,#f0fdfa,#ecfdf5);border:1px solid #99f6e4;font-size:.8rem;font-weight:700;color:#0f766e;line-height:1.55">
+      <div style="font-size:.72rem;opacity:.85;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">من السيستم (قبل ما تعدّ الدرج)</div>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(15,118,110,.25)"><span>مجموع طلباتك على السيستم <span style="font-size:.68rem;font-weight:600;opacity:.85">(المفروض يتجمع منهم كاش)</span></span><strong dir="ltr">{{ orders_total|floatformat:2 }} ج</strong></div>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(15,118,110,.25)"><span>واردات الشيفت <span style="font-size:.68rem;font-weight:600;opacity:.85">(مبلغ خرج للمخزون، يُضاف للمطابقة)</span></span><strong dir="ltr" style="color:#b45309">+ {{ inventory_out|floatformat:2 }} ج</strong></div>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;padding-top:8px"><span>مجموع المطابقة <span style="font-size:.68rem;font-weight:600;opacity:.85">(طلبات + واردات)</span></span><strong dir="ltr">{{ orders_total|add:inventory_out|floatformat:2 }} ج</strong></div>
+    </div>
+    {% endif %}
     <div class="fg">
-      <label style="font-size:1rem;font-weight:800;margin-bottom:10px">الفلوس المحصّلة في الدرج (ج)</label>
+      <label style="font-size:1rem;font-weight:800;margin-bottom:10px">عدّ الدرج واكتب المبلغ اللي عندك فعلاً (ج)</label>
       <input type="number" id="cashInput" step="0.01" placeholder="0.00" style="font-size:1.5rem;text-align:center;padding:16px;direction:ltr">
     </div>
+    <p style="font-size:.74rem;color:var(--muted);font-weight:600;margin:-4px 0 8px;line-height:1.5">بعد الضغط على احسب: <strong>الفرق = الدرج عندك − (مجموع الطلبات + واردات الشيفت)</strong>. موجب = زيادة، سالب = نقص.</p>
     <button class="btn btn-pri btn-lg" style="width:100%;justify-content:center;margin-top:10px" onclick="submitShift()">
       <i class="fas fa-calculator"></i> احسب الشيفت
     </button>
@@ -31,15 +40,26 @@
     </div>
     <div style="display:flex;flex-direction:column;gap:12px">
       <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#f8fafc;border-radius:10px">
-        <span style="color:var(--muted);font-weight:600">السيستم محاسبه</span>
+        <span style="color:var(--muted);font-weight:600">مجموع الطلبات على السيستم</span>
+        <strong id="ordTotal" style="font-size:1rem"></strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#fffbeb;border-radius:10px;border:1px solid #fde68a">
+        <span style="color:var(--muted);font-weight:600">واردات الشيفت <span style="font-size:.68rem;display:block;opacity:.85;font-weight:600">(تُجمع مع الطلبات)</span></span>
+        <strong id="invOut" style="font-size:1rem;color:#b45309"></strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#eef2ff;border-radius:10px;border:1px solid #c7d2fe">
+        <span style="color:var(--muted);font-weight:600">مجموع المطابقة <span style="font-size:.68rem;display:block;opacity:.85;font-weight:600">(طلبات + واردات)</span></span>
         <strong id="sysTotal" style="font-size:1rem"></strong>
       </div>
       <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#f8fafc;border-radius:10px">
-        <span style="color:var(--muted);font-weight:600">الدرج عندك</span>
+        <span style="color:var(--muted);font-weight:600">الدرج اللي عدّيته</span>
         <strong id="cashTotal" style="font-size:1rem"></strong>
       </div>
-      <div id="diffCard" style="display:flex;justify-content:space-between;padding:14px 16px;border-radius:10px;border:2px solid">
-        <span style="font-weight:700">الفرق</span>
+      <div id="diffCard" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:14px 16px;border-radius:10px;border:2px solid">
+        <div>
+          <span style="font-weight:800;display:block">الفرق</span>
+          <span style="font-size:.72rem;color:var(--muted);font-weight:600;line-height:1.35">الدرج − مجموع المطابقة · موجب = زيادة · سالب = نقص</span>
+        </div>
         <strong id="diffVal" style="font-size:1.1rem"></strong>
       </div>
     </div>
@@ -59,7 +79,9 @@ async function submitShift(){
   if(d.success){
     document.getElementById('inputCard').style.display='none';
     document.getElementById('resultCard').style.display='block';
-    document.getElementById('sysTotal').textContent=d.system_total.toFixed(2)+' ج';
+    if(typeof d.orders_total==='number')document.getElementById('ordTotal').textContent=d.orders_total.toFixed(2)+' ج';
+    if(typeof d.inventory_out==='number')document.getElementById('invOut').textContent='+'+d.inventory_out.toFixed(2)+' ج';
+    if(typeof d.system_total==='number')document.getElementById('sysTotal').textContent=d.system_total.toFixed(2)+' ج';
     document.getElementById('cashTotal').textContent=d.cash_input.toFixed(2)+' ج';
     const diff=d.difference;
     const diffCard=document.getElementById('diffCard');

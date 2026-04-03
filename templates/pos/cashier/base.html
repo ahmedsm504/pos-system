@@ -186,6 +186,7 @@ body{font-family:'Cairo','Segoe UI',Tahoma,sans-serif;background:var(--bg);color
     <a href="{% url 'cashier_new_order' %}" class="sb-a new-order-btn"><i class="fas fa-plus-circle"></i> طلب جديد</a>
     <a href="{% url 'cashier_dashboard' %}" class="sb-a {% if request.resolver_match.url_name == 'cashier_dashboard' %}active{% endif %}"><i class="fas fa-home"></i> الرئيسية</a>
     <a href="{% url 'cashier_orders' %}" class="sb-a {% if request.resolver_match.url_name == 'cashier_orders' %}active{% endif %}"><i class="fas fa-receipt"></i> طلبات اليوم</a>
+    <a href="{% url 'cashier_inventory' %}" class="sb-a {% if request.resolver_match.url_name == 'cashier_inventory' %}active{% endif %}"><i class="fas fa-boxes-stacked"></i> واردات الشيفت</a>
   </nav>
   <div class="sb-foot">
     <div class="sb-user">

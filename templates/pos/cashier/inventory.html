@@ -1,0 +1,161 @@
+{% extends 'pos/cashier/base.html' %}
+{% block title %}واردات الشيفت{% endblock %}
+{% block page_icon %}<i class="fas fa-boxes-stacked"></i>{% endblock %}
+{% block page_title %}واردات (مخزون){% endblock %}
+
+{% block extra_css %}<style>
+.inv-cash-wrap{max-width:720px;margin:0 auto}
+.inv-hero{
+  border-radius:20px;padding:20px 22px;margin-bottom:18px;color:#fff;
+  background:linear-gradient(135deg,#0f766e,#14b8a6);
+  box-shadow:0 12px 36px -12px rgba(15,118,110,.45);
+}
+.inv-hero h2{margin:0 0 8px;font-size:1.05rem;font-weight:900}
+.inv-hero p{margin:0;font-size:.8rem;opacity:.92;line-height:1.55;font-weight:600}
+.inv-warn{
+  background:linear-gradient(180deg,#fffbeb,#fef3c7);border:1px solid #fde68a;border-radius:14px;
+  padding:14px 16px;margin-bottom:18px;font-size:.8rem;font-weight:700;color:#92400e;line-height:1.5;
+}
+.inv-warn i{margin-inline-end:8px}
+.inv-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px 18px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+.inv-card-h{margin:0 0 14px;font-size:.92rem;font-weight:900;display:flex;align-items:center;gap:8px}
+.inv-card-h i{color:var(--gold)}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.78rem;font-weight:800;color:var(--text2);margin-bottom:6px}
+.fg input,.fg textarea{
+  width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:.9rem;
+  transition:border .2s,box-shadow .2s;
+}
+.fg input:focus,.fg textarea:focus{outline:none;border-color:rgba(201,162,39,.55);box-shadow:0 0 0 3px var(--gold-muted)}
+.fg textarea{min-height:72px;resize:vertical}
+.inv-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.inv-grid2{grid-template-columns:1fr}}
+.inv-submit{
+  width:100%;margin-top:6px;padding:14px;border:none;border-radius:14px;cursor:pointer;font-family:inherit;
+  font-size:.9rem;font-weight:900;color:#2d2608;
+  background:linear-gradient(135deg,var(--gold-soft),var(--gold));
+  box-shadow:0 4px 16px -4px rgba(201,162,39,.45);display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:filter .2s,transform .2s;
+}
+.inv-submit:hover{filter:brightness(1.05);transform:translateY(-1px)}
+.inv-submit:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+.inv-list{margin:0;padding:0;list-style:none}
+.inv-list li{
+  display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px;
+  padding:12px 0;border-bottom:1px solid var(--border);font-size:.84rem;
+}
+.inv-list li:last-child{border-bottom:none}
+.inv-list .nm{font-weight:800;color:var(--text)}
+.inv-list .meta{color:var(--muted);font-size:.74rem;margin-top:4px;font-weight:600}
+.inv-list .cost{font-weight:900;color:#0f766e;font-family:'Outfit','Cairo',sans-serif}
+.inv-badge{font-size:.62rem;font-weight:800;padding:3px 8px;border-radius:999px;background:var(--pri-l);color:var(--pri-d)}
+</style>{% endblock %}
+
+{% block content %}
+<div class="inv-cash-wrap">
+  <div class="inv-hero">
+    <h2><i class="fas fa-shield-halved" style="opacity:.85;margin-inline-end:8px"></i> تسجيل وارد بموافقة المدير</h2>
+    <p>الوارد يُسجّل في <strong>المخزون</strong> كما في لوحة الإدارة. عند <strong>إنهاء الشيفت</strong>: <strong>مجموع المطابقة = مجموع طلباتك + واردات الشيفت</strong>، و<strong>الفرق = الدرج اللي عدّيته − هذا المجموع</strong> (موجب زيادة، سالب نقص).</p>
+  </div>
+
+  <div class="inv-warn">
+    <i class="fas fa-user-lock"></i>
+    لا يُقبل الحفظ بدون إدخال اسم مستخدم وكلمة سر <strong>مدير</strong>. المدير يوافق على التفاصيل قبل التسجيل.
+  </div>
+
+  {% if not shift %}
+  <div class="card" style="text-align:center;padding:40px 20px">
+    <i class="fas fa-clock" style="font-size:2.2rem;color:var(--muted);opacity:.4;display:block;margin-bottom:12px"></i>
+    <p style="margin:0;font-weight:800;color:var(--text2)">لا يوجد شيفت مفتوح</p>
+    <p style="margin:10px 0 0;font-size:.82rem;color:var(--muted)">سجّل دخولك من جديد أو دوّر على الدعم.</p>
+    <a href="{% url 'cashier_dashboard' %}" class="btn btn-pri" style="margin-top:16px">الرئيسية</a>
+  </div>
+  {% else %}
+
+  <div class="inv-card">
+    <h3 class="inv-card-h"><i class="fas fa-plus-circle"></i> إضافة وارد لهذا الشيفت</h3>
+    <form id="invForm" onsubmit="return false">
+      <div class="fg">
+        <label for="invName">اسم الصنف / وصف الوارد</label>
+        <input id="invName" type="text" required maxlength="200" placeholder="مثال: لحوم، خضار، مناديل...">
+      </div>
+      <div class="inv-grid2">
+        <div class="fg">
+          <label for="invQty">الكمية</label>
+          <input id="invQty" type="number" step="0.01" min="0" value="1" placeholder="0" required>
+        </div>
+        <div class="fg">
+          <label for="invUnit">الوحدة (اختياري)</label>
+          <input id="invUnit" type="text" maxlength="50" placeholder="ك، علبة، كرتونة...">
+        </div>
+      </div>
+      <div class="fg">
+        <label for="invCost">التكلفة الإجمالية (ج)</label>
+        <input id="invCost" type="number" step="0.01" min="0" required placeholder="0.00" dir="ltr" style="text-align:center;font-size:1.1rem;font-weight:800">
+      </div>
+      <div class="fg">
+        <label for="invNotes">ملاحظات (اختياري)</label>
+        <textarea id="invNotes" maxlength="500" placeholder="مورد، فاتورة، أي تفاصيل..."></textarea>
+      </div>
+      <button type="button" class="inv-submit" id="invBtn" onclick="startInvSubmit()">
+        <i class="fas fa-user-shield"></i> حفظ الوارد — تأكيد المدير
+      </button>
+    </form>
+  </div>
+
+  <div class="inv-card">
+    <h3 class="inv-card-h"><i class="fas fa-list"></i> واردات مسجّلة في الشيفت الحالي</h3>
+    {% if entries %}
+    <ul class="inv-list">
+      {% for e in entries %}
+      <li>
+        <div>
+          <span class="nm">{{ e.name }}</span>
+          <div class="meta">
+            {{ e.quantity|floatformat:2 }} {{ e.unit|default:"" }} · {{ e.date|date:"d/m/Y" }}
+            {% if e.added_by %}· وافق: {{ e.added_by.username }}{% endif %}
+          </div>
+        </div>
+        <div style="text-align:left">
+          <span class="cost">{{ e.total_cost|floatformat:2 }} ج</span>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="color:var(--muted);font-size:.85rem;margin:0">لا توجد واردات بعد في هذا الشيفت.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}<script>
+function startInvSubmit(){
+  const name=document.getElementById('invName').value.trim();
+  const qty=document.getElementById('invQty').value;
+  const unit=document.getElementById('invUnit').value.trim();
+  const cost=document.getElementById('invCost').value;
+  const notes=document.getElementById('invNotes').value.trim();
+  if(!name){showToast('اكتب اسم الصنف','err');return}
+  if(!cost||parseFloat(cost)<0){showToast('أدخل التكلفة بشكل صحيح','err');return}
+  requireAdmin('تسجيل وارد مخزون: يجب أن يدخل المدير اسمه وكلمة السر للموافقة.', async function(adminUser, adminPass){
+    const btn=document.getElementById('invBtn');btn.disabled=true;
+    try{
+      const r=await fetch('{% url "cashier_inventory_submit" %}',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+        body:JSON.stringify({
+          name,quantity:qty,unit,total_cost:cost,notes,
+          admin_username:adminUser,admin_password:adminPass
+        })
+      });
+      const d=await r.json();
+      if(d.success){showToast('تم تسجيل الوارد','suc');setTimeout(function(){location.reload();},700)}
+      else showToast(d.error||'خطأ','err');
+    }catch(e){showToast('خطأ في الاتصال','err')}
+    btn.disabled=false;
+  });
+}
+</script>{% endblock %}

@@ -449,7 +449,7 @@ def inventory_list(request):
 
     qs = (
         InventoryEntry.objects.filter(date__range=[start_d, end_d])
-        .select_related('added_by')
+        .select_related('added_by', 'shift', 'recorded_by_cashier')
         .order_by('-date', '-id')
     )
     total_cost = qs.aggregate(t=Sum('total_cost'))['t'] or 0
