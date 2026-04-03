@@ -2,7 +2,20 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.http import JsonResponse
-from django.db.models import Case, IntegerField, Sum, Count, Q, When
+from collections import defaultdict
+
+from django.db.models import (
+    Case,
+    Count,
+    DecimalField,
+    F,
+    IntegerField,
+    Prefetch,
+    Q,
+    Sum,
+    When,
+)
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.contrib import messages
@@ -508,74 +521,256 @@ def inventory_delete(request, pk):
 #  REPORTS / PROFITS
 # ══════════════════════════════════════════════════════════════════════════
 
+def _order_total(o):
+    t = Decimal(0)
+    for i in o.items.all():
+        p = i.price if i.price is not None else i.menu_item.price
+        t += Decimal(p) * i.quantity
+    return t
+
+
+def _date_from_dmy(day, month, year):
+    try:
+        d, m, y = int(day), int(month), int(year)
+        return date(y, m, d)
+    except (ValueError, TypeError):
+        return None
+
+
+def _ar_date_label(d):
+    months = dict(_AR_MONTHS)
+    return f'{d.day} {months.get(d.month, d.month)} {d.year}'
+
+
 @admin_required
 def reports(request):
-    period = request.GET.get('period', 'week')
-    today  = date.today()
+    today = date.today()
+    raw_period = (request.GET.get('period') or '').strip()
+    start_s = (request.GET.get('start') or '').strip()
+    end_s = (request.GET.get('end') or '').strip()
+    sd, sm, sy = (
+        request.GET.get('sd'),
+        request.GET.get('sm'),
+        request.GET.get('sy'),
+    )
+    ed, em, ey = (
+        request.GET.get('ed'),
+        request.GET.get('em'),
+        request.GET.get('ey'),
+    )
 
-    if period == 'today':
+    period = raw_period or 'week'
+    if all([sd, sm, sy, ed, em, ey]):
+        start_p = _date_from_dmy(sd, sm, sy)
+        end_p = _date_from_dmy(ed, em, ey)
+        if start_p and end_p:
+            if start_p > end_p:
+                start_p, end_p = end_p, start_p
+            start, end = start_p, end_p
+            period = 'custom'
+        else:
+            messages.warning(request, 'تاريخ غير صالح. تحقق من اليوم والشهر والسنة.')
+            start = today - timedelta(days=6)
+            end = today
+            period = 'week'
+    elif start_s and end_s:
+        start_p = parse_date(start_s)
+        end_p = parse_date(end_s)
+        if start_p and end_p:
+            if start_p > end_p:
+                start_p, end_p = end_p, start_p
+            start, end = start_p, end_p
+            period = 'custom'
+        else:
+            messages.warning(request, 'صيغة التاريخ غير صالحة.')
+            start = today - timedelta(days=6)
+            end = today
+            period = 'week'
+    elif period == 'today':
         start = end = today
     elif period == 'month':
-        start = today.replace(day=1); end = today
+        start = today.replace(day=1)
+        end = today
+    elif period == 'custom':
+        start = today - timedelta(days=6)
+        end = today
+        period = 'week'
     else:
-        start = today - timedelta(days=6); end = today
+        period = 'week'
+        start = today - timedelta(days=6)
+        end = today
 
-    orders = Order.objects.filter(
-        created_at__date__range=[start, end],
-        status__in=['printed', 'completed']
-    ).prefetch_related('items')
+    year_now = today.year
+    year_options = sorted(
+        {*range(year_now - 4, year_now + 2), start.year, end.year, today.year}
+    )
 
-    total_revenue = sum(o.total for o in orders)
-    total_orders  = orders.count()
+    orders_qs = (
+        Order.objects.filter(
+            created_at__date__range=[start, end],
+            status__in=['printed', 'completed'],
+        )
+        .select_related('waiter', 'driver', 'cashier')
+        .prefetch_related(
+            Prefetch(
+                'items',
+                queryset=OrderItem.objects.select_related('menu_item__category'),
+            )
+        )
+    )
+    orders_list = list(orders_qs)
 
-    # breakdown: dine vs delivery
-    dine_orders    = orders.filter(order_type='dine_in')
-    delivery_orders = orders.filter(order_type='delivery')
-    dine_revenue   = sum(o.total for o in dine_orders)
-    delivery_revenue = sum(o.total for o in delivery_orders)
+    total_revenue = sum((_order_total(o) for o in orders_list), Decimal(0))
+    total_orders = len(orders_list)
 
-    # expenses
+    dine_list = [o for o in orders_list if o.order_type == 'dine_in']
+    delivery_list = [o for o in orders_list if o.order_type == 'delivery']
+    dine_revenue = sum((_order_total(o) for o in dine_list), Decimal(0))
+    delivery_revenue = sum((_order_total(o) for o in delivery_list), Decimal(0))
+
+    kitchen_rev = bar_rev = other_rev = Decimal(0)
+    kitchen_order_ids = set()
+    bar_order_ids = set()
+    other_order_ids = set()
+    for o in orders_list:
+        for i in o.items.all():
+            p = i.price if i.price is not None else i.menu_item.price
+            amt = Decimal(p) * i.quantity
+            ct = i.menu_item.category.category_type
+            if ct == 'food':
+                kitchen_rev += amt
+                kitchen_order_ids.add(o.id)
+            elif ct == 'drink':
+                bar_rev += amt
+                bar_order_ids.add(o.id)
+            else:
+                other_rev += amt
+                other_order_ids.add(o.id)
+    kitchen_order_count = len(kitchen_order_ids)
+    bar_order_count = len(bar_order_ids)
+    other_order_count = len(other_order_ids)
+
+    cat_sum = kitchen_rev + bar_rev + other_rev
+    if cat_sum > 0:
+        kitchen_pct = float((kitchen_rev / cat_sum) * 100)
+        bar_pct = float((bar_rev / cat_sum) * 100)
+        other_pct = float((other_rev / cat_sum) * 100)
+    else:
+        kitchen_pct = bar_pct = other_pct = 0.0
+
+    driver_map = defaultdict(lambda: {'name': '', 'count': 0, 'revenue': Decimal(0)})
+    for o in delivery_list:
+        key = o.driver_id if o.driver_id else -1
+        name = o.driver.name if o.driver else 'بدون طيار'
+        driver_map[key]['name'] = name
+        driver_map[key]['count'] += 1
+        driver_map[key]['revenue'] += _order_total(o)
+    driver_stats = sorted(driver_map.values(), key=lambda x: x['revenue'], reverse=True)
+
+    waiter_map = defaultdict(lambda: {'name': '', 'count': 0, 'revenue': Decimal(0)})
+    for o in orders_list:
+        key = o.waiter_id if o.waiter_id else -1
+        name = o.waiter.name if o.waiter else 'بدون ويتر'
+        waiter_map[key]['name'] = name
+        waiter_map[key]['count'] += 1
+        waiter_map[key]['revenue'] += _order_total(o)
+    waiter_stats = sorted(waiter_map.values(), key=lambda x: x['revenue'], reverse=True)
+
     expenses = InventoryEntry.objects.filter(date__range=[start, end])
-    total_expenses = expenses.aggregate(t=Sum('total_cost'))['t'] or 0
+    te = expenses.aggregate(t=Sum('total_cost'))['t']
+    total_expenses = te if te is not None else Decimal(0)
     profit = total_revenue - total_expenses
 
-    # daily data
+    by_date = defaultdict(lambda: {'rev': Decimal(0), 'count': 0})
+    for o in orders_list:
+        d = o.created_at.date()
+        by_date[d]['rev'] += _order_total(o)
+        by_date[d]['count'] += 1
+
     daily = []
     delta = (end - start).days + 1
     for i in range(delta):
         d = start + timedelta(days=i)
-        day_orders = orders.filter(created_at__date=d)
-        rev = sum(o.total for o in day_orders)
-        exp = expenses.filter(date=d).aggregate(t=Sum('total_cost'))['t'] or 0
-        daily.append({'date': d.strftime('%m/%d'), 'revenue': float(rev), 'expenses': float(exp), 'count': day_orders.count()})
+        row = by_date[d]
+        rev = row['rev']
+        cnt = row['count']
+        exp_row = expenses.filter(date=d).aggregate(t=Sum('total_cost'))['t']
+        exp = exp_row if exp_row is not None else Decimal(0)
+        daily.append({
+            'date': d.strftime('%m/%d'),
+            'revenue': float(rev),
+            'expenses': float(exp),
+            'count': cnt,
+        })
 
-    # top items
-    top_items = (OrderItem.objects
-        .filter(order__in=orders)
-        .values('menu_item__name', 'menu_item__category__name')
-        .annotate(qty=Sum('quantity'), rev=Sum('price'))
-        .order_by('-qty')[:10])
+    oid_list = [o.id for o in orders_list]
+    top_items = []
+    if oid_list:
+        top_items = list(
+            OrderItem.objects.filter(order_id__in=oid_list)
+            .values('menu_item__name', 'menu_item__category__name')
+            .annotate(
+                qty=Sum('quantity'),
+                rev=Sum(
+                    F('quantity') * Coalesce(F('price'), F('menu_item__price')),
+                    output_field=DecimalField(max_digits=14, decimal_places=2),
+                ),
+            )
+            .order_by('-qty')[:10]
+        )
 
-    # cashier stats
+    by_cashier = defaultdict(list)
+    for o in orders_list:
+        if o.cashier_id:
+            by_cashier[o.cashier_id].append(o)
     cashier_stats = []
-    cashiers = User.objects.filter(is_staff=False)
-    for c in cashiers:
-        co = orders.filter(cashier=c)
-        cr = sum(o.total for o in co)
-        cashier_stats.append({'cashier': c, 'count': co.count(), 'revenue': cr})
+    for c in User.objects.filter(is_staff=False):
+        co = by_cashier.get(c.id, [])
+        cr = sum((_order_total(o) for o in co), Decimal(0))
+        cashier_stats.append({'cashier': c, 'count': len(co), 'revenue': cr})
     cashier_stats.sort(key=lambda x: x['revenue'], reverse=True)
 
-    import json
-    return render(request, 'pos/admin/reports.html', {
-        'period': period, 'start': start, 'end': end,
-        'total_revenue': total_revenue, 'total_orders': total_orders,
-        'dine_revenue': dine_revenue, 'delivery_revenue': delivery_revenue,
-        'dine_count': dine_orders.count(), 'delivery_count': delivery_orders.count(),
-        'total_expenses': total_expenses, 'profit': profit,
+    context = {
+        'period': period,
+        'start': start,
+        'end': end,
+        'start_iso': start.strftime('%Y-%m-%d'),
+        'end_iso': end.strftime('%Y-%m-%d'),
+        'rep_start_label': _ar_date_label(start),
+        'rep_end_label': _ar_date_label(end),
+        'start_day': start.day,
+        'start_month': start.month,
+        'start_year': start.year,
+        'end_day': end.day,
+        'end_month': end.month,
+        'end_year': end.year,
+        'ar_months': _AR_MONTHS,
+        'year_options': year_options,
+        'days_range': list(range(1, 32)),
+        'total_revenue': total_revenue,
+        'total_orders': total_orders,
+        'dine_revenue': dine_revenue,
+        'delivery_revenue': delivery_revenue,
+        'dine_count': len(dine_list),
+        'delivery_count': len(delivery_list),
+        'kitchen_rev': kitchen_rev,
+        'bar_rev': bar_rev,
+        'other_rev': other_rev,
+        'kitchen_order_count': kitchen_order_count,
+        'bar_order_count': bar_order_count,
+        'other_order_count': other_order_count,
+        'kitchen_pct': kitchen_pct,
+        'bar_pct': bar_pct,
+        'other_pct': other_pct,
+        'driver_stats': driver_stats,
+        'waiter_stats': waiter_stats,
+        'total_expenses': total_expenses,
+        'profit': profit,
         'daily_json': json.dumps(daily),
         'top_items': top_items,
         'cashier_stats': cashier_stats,
-    })
+    }
+    return render(request, 'pos/admin/reports.html', context)
 
 
 # ══════════════════════════════════════════════════════════════════════════
