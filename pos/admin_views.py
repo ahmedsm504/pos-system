@@ -24,7 +24,12 @@ import json
 from datetime import date, timedelta
 from decimal import Decimal
 
-from .shift_helpers import shift_orders_qs
+from .shift_helpers import (
+    annotate_timeline_days,
+    build_shift_timeline,
+    shift_all_orders_qs,
+    shift_orders_qs,
+)
 from .models import (
     Category,
     CategoryAddon,
@@ -987,3 +992,33 @@ def shifts_list(request):
             'inventory_entries': list(s.inventory_entries.all()),
         })
     return render(request, 'pos/admin/shifts.html', {'shift_rows': rows})
+
+
+@admin_required
+def shift_detail(request, shift_id):
+    shift = get_object_or_404(Shift.objects.select_related('cashier'), pk=shift_id)
+    orders = list(
+        shift_all_orders_qs(shift.cashier, shift)
+        .select_related('table', 'waiter', 'driver')
+        .prefetch_related('items__menu_item__category')
+    )
+    inventory_entries = list(
+        InventoryEntry.objects.filter(shift=shift)
+        .select_related('added_by', 'recorded_by_cashier')
+        .order_by('date', 'id')
+    )
+    timeline = annotate_timeline_days(build_shift_timeline(orders, inventory_entries))
+    sales_pc = sum(
+        Decimal(str(o.total)) for o in orders if o.status in ('printed', 'completed')
+    )
+    return render(
+        request,
+        'pos/admin/shift_detail.html',
+        {
+            'shift': shift,
+            'timeline': timeline,
+            'orders_count': len(orders),
+            'inv_count': len(inventory_entries),
+            'sales_printed_completed': sales_pc,
+        },
+    )

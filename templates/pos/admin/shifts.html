@@ -104,6 +104,7 @@
               <div>
                 <strong style="font-size:.88rem">{{ s.cashier.get_full_name|default:s.cashier.username }}</strong>
                 <div style="font-size:.72rem;color:var(--muted);direction:ltr;text-align:right">@{{ s.cashier.username }}</div>
+                <a href="{% url 'admin_shift_detail' s.pk %}" class="btn btn-pri btn-sm" style="margin-top:8px;min-height:32px;width:100%;max-width:140px;justify-content:center;font-size:.72rem"><i class="fas fa-list-ul"></i> سجل الشيفت</a>
               </div>
             </div>
           </td>
@@ -167,6 +168,7 @@
             <details class="sh-details">
               <summary><i class="fas fa-receipt"></i> تفاصيل إنهاء الشيفت ومطابقة الدرج</summary>
               <div class="sh-body">
+                <p style="margin:0 0 12px"><a href="{% url 'admin_shift_detail' s.pk %}" class="btn btn-pri btn-sm"><i class="fas fa-list-ul"></i> فتح سجل الشيفت الكامل (طلبات + واردات)</a></p>
                 <div class="sh-kv">
                   <div class="row"><span class="lbl">فتح الشيفت (أول تسجيل دخول / إنشاء شيفت)</span><span class="val">{{ s.start_time|date:"Y-m-d H:i" }}</span></div>
                   {% if s.end_time %}

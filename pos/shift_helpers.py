@@ -1,9 +1,59 @@
 """منطق مشترك لعزل طلبات كل شيفت (من البداية حتى الإغلاق فقط)."""
 from __future__ import annotations
 
+from collections import defaultdict
+
 from django.db.models import QuerySet
+from django.utils import timezone
 
 from .models import Order
+
+
+def shift_all_orders_qs(cashier, shift) -> QuerySet:
+    """كل طلبات الكاشير ضمن فترة الشيفت (كل الحالات) — لسجل المراجعة."""
+    qs = Order.objects.filter(
+        cashier=cashier,
+        created_at__gte=shift.start_time,
+    )
+    if getattr(shift, 'status', None) == 'closed' and shift.end_time:
+        qs = qs.filter(created_at__lte=shift.end_time)
+    return qs.order_by('created_at', 'id')
+
+
+def build_shift_timeline(orders, inventory_entries):
+    """
+    ترتيب زمني معقول: لكل يوم تقويمي (بالتوقيت المحلي) —
+    طلبات اليوم حسب created_at ثم واردات ذلك اليوم حسب id.
+    """
+    by_day = defaultdict(lambda: {'orders': [], 'inv': []})
+    for o in orders:
+        d = timezone.localtime(o.created_at).date()
+        by_day[d]['orders'].append(o)
+    for inv in inventory_entries:
+        by_day[inv.date]['inv'].append(inv)
+    timeline = []
+    for d in sorted(by_day.keys()):
+        b = by_day[d]
+        for o in sorted(b['orders'], key=lambda x: (x.created_at, x.id)):
+            timeline.append(('order', o))
+        for inv in sorted(b['inv'], key=lambda x: x.id):
+            timeline.append(('inv', inv))
+    return timeline
+
+
+def annotate_timeline_days(timeline):
+    """يضيف show_day و day لكل عنصر لعرض شريط التاريخ مرة واحدة عند تغيّر اليوم."""
+    last = None
+    out = []
+    for kind, obj in timeline:
+        if kind == 'order':
+            d = timezone.localtime(obj.created_at).date()
+        else:
+            d = obj.date
+        show = d != last
+        last = d
+        out.append({'kind': kind, 'obj': obj, 'day': d, 'show_day': show})
+    return out
 
 
 def shift_orders_qs(

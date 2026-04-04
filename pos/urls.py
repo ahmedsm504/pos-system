@@ -62,6 +62,7 @@ urlpatterns = [
 
     # Shifts
     path('admin-panel/shifts/',              admin_views.shifts_list,         name='admin_shifts'),
+    path('admin-panel/shifts/<int:shift_id>/', admin_views.shift_detail,      name='admin_shift_detail'),
 
     # API — Admin approve
     path('api/admin-verify/',                views.admin_verify,              name='admin_verify'),
