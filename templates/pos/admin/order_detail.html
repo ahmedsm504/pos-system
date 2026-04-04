@@ -2,6 +2,10 @@
 {% block title %}طلب #{{ order.id }}{% endblock %}
 {% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
 {% block page_title %}تفاصيل طلب #{{ order.id }}{% endblock %}
+{% block extra_css %}<style>
+.admin-od-extra{font-size:.72rem;color:var(--pri-d);margin-top:4px;line-height:1.35}
+.admin-od-note{font-size:.73rem;color:var(--muted);margin-top:4px}
+</style>{% endblock %}
 {% block content %}
 <div style="margin-bottom:16px"><a href="{% url 'admin_history' %}" class="btn btn-out btn-sm"><i class="fas fa-arrow-right"></i> رجوع</a></div>
 <div style="display:grid;grid-template-columns:1fr 280px;gap:18px;align-items:start">
@@ -16,7 +20,14 @@
       <tbody>
         {% for item in order.items.all %}
         <tr>
-          <td><strong>{{ item.menu_item.name }}</strong>{% if item.notes %}<div style="font-size:.75rem;color:var(--muted)">{{ item.notes }}</div>{% endif %}</td>
+          <td>
+            <strong>{% if item.size_label %}{{ item.menu_item.name }} ({{ item.size_label }}){% else %}{{ item.menu_item.name }}{% endif %}</strong>
+            {% if item.drink_detail %}<div class="admin-od-extra">{{ item.drink_detail }}</div>{% endif %}
+            {% if item.extras_json and item.extras_json.addons %}
+            <div class="admin-od-extra" style="color:var(--muted)">{% for a in item.extras_json.addons %}+ {{ a.name|default:"—" }}{% if a.price %} <span style="opacity:.85">({{ a.price }} ج)</span>{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
+            {% endif %}
+            {% if item.notes %}<div class="admin-od-note"><i class="fas fa-comment-dots" style="opacity:.5;margin-inline-end:4px"></i>{{ item.notes }}</div>{% endif %}
+          </td>
           <td>
             {% if item.menu_item.category.category_type == 'food' %}<span class="badge b-war">مطبخ</span>
             {% elif item.menu_item.category.category_type == 'drink' %}<span class="badge" style="background:#dbeafe;color:#1e40af">بار</span>
@@ -58,7 +69,6 @@
         {% if order.waiter %}<div>👤 الويتر: {{ order.waiter }}</div>{% endif %}
       </div>
       {% endif %}
-      {% for row in row_data %}{% endfor %}
       <div style="display:flex;flex-direction:column;gap:6px;font-size:.84rem">
         <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">الكاشير</span><strong>{{ order.cashier.username|default:"—" }}</strong></div>
         <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الطلب</span><strong>{{ order.created_at|date:"d/m H:i" }}</strong></div>

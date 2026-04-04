@@ -174,7 +174,7 @@
                   {% else %}
                   <div class="row"><span class="lbl">إغلاق الشيفت</span><span class="val muted">لا يزال مفتوحًا</span></div>
                   {% endif %}
-                  <div class="row"><span class="lbl">مفروض المبيعات (إعادة حساب من الطلبات)</span><span class="val" dir="ltr">{{ row.sales_total|floatformat:2 }} ج</span></div>
+                  <div class="row"><span class="lbl">مفروض المبيعات (من الطلبات بين بداية الشيفت ونهايته فقط)</span><span class="val" dir="ltr">{{ row.sales_total|floatformat:2 }} ج</span></div>
                   <div class="row"><span class="lbl">واردات الشيفت (إجمالي التكلفة المسجّلة)</span><span class="val" dir="ltr">{{ row.inventory_total|floatformat:2 }} ج</span></div>
                   <div class="row"><span class="lbl">مجموع المطابقة (معاد الحساب: مبيعات + واردات)</span><span class="val" dir="ltr">{{ row.recombined_total|floatformat:2 }} ج</span></div>
                   {% if s.status == 'closed' and s.system_total is not None %}

@@ -24,6 +24,7 @@ import json
 from datetime import date, timedelta
 from decimal import Decimal
 
+from .shift_helpers import shift_orders_qs
 from .models import (
     Category,
     CategoryAddon,
@@ -938,14 +939,10 @@ def order_history_detail(request, order_id):
 
 def _shift_sales_total_for_display(shift):
     """
-    مفروض المبيعات (نفس منطق إنهاء الشيفت): طلبات مطبوعة + مكتملة منذ بداية الشيفت.
+    مفروض المبيعات (نفس منطق إنهاء الشيفت): طلبات مطبوعة + مكتملة
+    من بداية الشيفت حتى نهايته فقط (لا تُدخل طلبات الشيفت اللي بعده).
     """
-    qs = Order.objects.filter(
-        cashier=shift.cashier,
-        created_at__gte=shift.start_time,
-        status__in=['printed', 'completed'],
-    )
-    return sum(Decimal(str(o.total)) for o in qs)
+    return sum(Decimal(str(o.total)) for o in shift_orders_qs(shift.cashier, shift))
 
 
 def _shift_inventory_total_for_display(shift):

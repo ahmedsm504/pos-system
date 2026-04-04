@@ -20,6 +20,7 @@ except ImportError:
 
 log = logging.getLogger(__name__)
 
+from .shift_helpers import shift_orders_qs
 from .models import (
     Category,
     MenuItem,
@@ -612,14 +613,10 @@ def cashier_inventory_submit(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
-def _shift_orders_qs(cashier, shift):
-    """طلبات الشيفت (مطبوع + مكتمل) مع العلاقات للتقارير."""
+def _shift_orders_qs(cashier, shift, *, close_snapshot_at=None):
+    """طلبات الشيفت (مطبوع + مكتمل) ضمن [بداية الشيفت، نهايته] فقط عند الإغلاق."""
     return (
-        Order.objects.filter(
-            cashier=cashier,
-            created_at__gte=shift.start_time,
-            status__in=['printed', 'completed'],
-        )
+        shift_orders_qs(cashier, shift, close_snapshot_at=close_snapshot_at)
         .select_related('waiter', 'table', 'driver')
         .prefetch_related('items__menu_item__category')
     )
@@ -900,8 +897,9 @@ def submit_shift_end(request):
             })
 
         cash_input = Decimal(request.POST.get('cash_in_drawer', '0'))
+        end_at = timezone.now()
 
-        orders_list = list(_shift_orders_qs(request.user, shift).order_by('id'))
+        orders_list = list(_shift_orders_qs(request.user, shift, close_snapshot_at=end_at).order_by('id'))
         orders_total = sum(Decimal(str(o.total)) for o in orders_list)
         inventory_total = _shift_inventory_total(shift)
         inventory_rows = list(
@@ -914,7 +912,7 @@ def submit_shift_end(request):
         shift.cash_in_drawer = cash_input
         shift.system_total = sys_total
         shift.difference = diff
-        shift.end_time = timezone.now()
+        shift.end_time = end_at
         shift.status = 'closed'
         shift.notes = request.POST.get('notes', '')
         shift.save()
