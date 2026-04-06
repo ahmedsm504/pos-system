@@ -7,7 +7,7 @@
   <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;padding:24px;color:#fff;margin-bottom:20px;text-align:center">
     <i class="fas fa-clock" style="font-size:2.5rem;margin-bottom:12px;display:block;opacity:.9"></i>
     <h2 style="font-size:1.2rem;margin-bottom:6px">إنهاء الشيفت</h2>
-    <p style="opacity:.8;font-size:.85rem">نجمّع من السيستم كل طلباتك (مطبوع + مكتمل). <strong>واردات الشيفت</strong> = فلوس خرجت من الدرج لكنها مسجّلة في السيستم، فبيتحسب <strong>مجموع المطابقة = الطلبات + الواردات</strong> ويُقارن بمبلغ الدرج اللي هتعدّه. بعد التأكيد يُطبَع <strong>تقرير اليوم</strong> على الطابعة الرئيسية ثم <strong>تسجيل خروج تلقائي</strong>.</p>
+    <p style="opacity:.8;font-size:.85rem">نجمّع من السيستم كل طلباتك (مطبوع + مكتمل). <strong>واردات الشيفت</strong> تُضاف لمجموع المطابقة مع الطلبات ومقارنتها بالدرج. <strong>إيراد التقارير:</strong> مبيعات السيستم + <strong>زيادة الدرج</strong> فقط إن وُجدت؛ عند العجز الإيراد = المبيعات فقط. بعد التأكيد يُطبَع التقرير ثم <strong>تسجيل خروج تلقائي</strong>.</p>
     {% if shift %}<p style="opacity:.7;font-size:.8rem;margin-top:6px">بدأ: {{ shift.start_time|date:"H:i" }}</p>{% endif %}
   </div>
 
@@ -30,6 +30,7 @@
       <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(15,118,110,.25)"><span><strong>مفروض المبيعات</strong> <span style="font-size:.68rem;font-weight:600;opacity:.85">(طلبات مطبوعة ومكتملة — النقد المتوقع منها)</span></span><strong dir="ltr">{{ orders_total|floatformat:2 }} ج</strong></div>
       <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(15,118,110,.25)"><span>واردات الشيفت <span style="font-size:.68rem;font-weight:600;opacity:.85">(فلوس خرجت للمخزون — تُجمع مع المبيعات في المطابقة)</span></span><strong dir="ltr" style="color:#b45309">+ {{ inventory_out|floatformat:2 }} ج</strong></div>
       <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;padding-top:8px"><span><strong>مجموع المطابقة</strong> <span style="font-size:.68rem;font-weight:600;opacity:.85">(مفروض المبيعات + واردات — يُقارَن بالدرج بعد العدّ)</span></span><strong dir="ltr">{{ orders_total|add:inventory_out|floatformat:2 }} ج</strong></div>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:8px 0 0;margin-top:6px;border-top:1px dashed rgba(15,118,110,.3)"><span><strong>طلبات ملغاة</strong> <span style="font-size:.68rem;font-weight:600;opacity:.85">(لا تُحسب في المبيعات — تظهر في تقرير الإغلاق)</span></span><strong dir="ltr" style="color:#991b1b">{{ cancelled_in_shift }}</strong></div>
     </div>
     {% endif %}
     <div class="fg">
@@ -74,6 +75,17 @@
         </div>
         <strong id="diffVal" style="font-size:1.1rem"></strong>
       </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#ecfdf5;border-radius:10px;border:1px solid #6ee7b7">
+        <div>
+          <span style="font-weight:800;display:block">إيراد مسجّل للتقارير</span>
+          <span style="font-size:.72rem;color:var(--muted);font-weight:600;line-height:1.35">مبيعات السيستم + زيادة الدرج (إن وُجدت) — العجز لا يُزاد ولا يُنقص من هذا الرقم</span>
+        </div>
+        <strong id="revBooked" style="font-size:1.05rem;color:#047857"></strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 16px;background:#fef2f2;border-radius:10px;border:1px solid #fecaca">
+        <span style="color:var(--muted);font-weight:600">طلبات ملغاة (الشيفت)</span>
+        <strong id="cancelledCount" style="font-size:1rem;color:#991b1b"></strong>
+      </div>
     </div>
     <p id="logoutHint" style="text-align:center;margin-top:18px;font-size:.85rem;font-weight:700;color:var(--muted);line-height:1.5">
       <i class="fas fa-sign-out-alt" style="opacity:.7"></i> سيتم تسجيل الخروج تلقائياً خلال ثوانٍ بعد طباعة التقرير…
@@ -108,6 +120,9 @@ async function submitShift(){
     if(diff===0){diffCard.style.borderColor='var(--suc)';diffCard.style.background='var(--suc-l)';icon.textContent='✅';title.textContent='ممتاز! الحسابات متطابقة'}
     else if(diff>0){diffCard.style.borderColor='var(--pri)';diffCard.style.background='var(--pri-l)';diffVal.style.color='var(--pri)';icon.textContent='💰';title.textContent='فيه زيادة في الدرج'}
     else{diffCard.style.borderColor='var(--dan)';diffCard.style.background='var(--dan-l)';diffVal.style.color='var(--dan)';icon.textContent='⚠️';title.textContent='فيه نقص في الدرج'}
+    if(typeof d.revenue_booked==='number')document.getElementById('revBooked').textContent=d.revenue_booked.toFixed(2)+' ج';
+    const cc=document.getElementById('cancelledCount');
+    if(cc&&typeof d.cancelled_orders_count==='number')cc.textContent=String(d.cancelled_orders_count);
     if(d.print_success===true)showToast('تم إغلاق الشيفت وإرسال تقرير اليوم للطابعة','suc',2800);
     else if(d.print_success===false)showToast('تم إغلاق الشيفت — تحقق من تشغيل خدمة الطباعة (لم تُطبع الفاتورة)','war',5000);
     const logoutUrl=d.logout_url||'{% url "logout" %}';

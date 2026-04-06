@@ -29,9 +29,18 @@
 /* Add item mini panel */
 .add-item-wrap{padding:12px 16px;border-top:1px solid var(--border);background:#fafbff}
 .add-item-wrap h4{font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:8px}
+.od-add-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.od-add-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.od-add-tab{border:none;border-radius:999px;padding:7px 12px;cursor:pointer;font-size:.73rem;font-weight:800;background:#eef2ff;color:#3730a3}
+.od-add-tab.active{background:linear-gradient(135deg,var(--gold-soft),var(--gold));color:#2d2608}
+.od-add-cats{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.od-add-cat{border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 11px;cursor:pointer;font-size:.7rem;font-weight:700;color:var(--text2)}
+.od-add-cat.active{border-color:var(--gold);color:var(--gold-dim);background:#fff8e6}
+.od-add-search{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:.78rem;margin-bottom:8px}
 .mini-menu{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;max-height:200px;overflow-y:auto}
 .mini-mi{background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:9px 7px;cursor:pointer;text-align:center;font-family:inherit;transition:all .15s}
 .mini-mi:hover{border-color:var(--suc);background:var(--suc-l)}
+.mini-mi.hide{display:none}
 .mini-mi-name{font-weight:700;font-size:.75rem;display:block}
 .mini-mi-price{font-size:.72rem;color:var(--pri);font-weight:800}
 .od-item-extra{font-size:.72rem;color:var(--pri-d);margin-top:4px;line-height:1.35}
@@ -68,7 +77,7 @@
     </div>
 
     <table class="it-tbl">
-      <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th>{% if order.status in 'open,printed' %}<th></th>{% endif %}</tr></thead>
+      <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th>{% if order.status in 'open,printed' %}<th></th><th></th>{% endif %}</tr></thead>
       <tbody id="orderItemsTbody">
         {% for item in order.items.all %}
         <tr id="row-{{ item.id }}">
@@ -84,6 +93,22 @@
           <td style="color:var(--muted)">{{ item.price }} ج</td>
           <td><strong>{{ item.subtotal|floatformat:2 }} ج</strong></td>
           {% if order.status in 'open,printed' %}
+          <td>
+            <button
+              class="btn btn-out btn-sm"
+              onclick="startEditItem(
+                {{ item.id }},
+                {{ item.menu_item.id }},
+                {{ item.selected_size_id|default:'null' }},
+                '{{ item.notes|escapejs }}',
+                '{% if item.extras_json and item.extras_json.addons %}{% for a in item.extras_json.addons %}{% if a.id %}{{ a.id }}{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}{% endif %}',
+                '{{ item.drink_detail|escapejs }}'
+              )"
+              title="تعديل البند"
+            >
+              <i class="fas fa-pen"></i>
+            </button>
+          </td>
           <td>
             <button class="btn btn-dan btn-sm" onclick="removeItem({{ item.id }}, {{ order.id }}, {{ item.quantity }})">
               <i class="fas fa-minus"></i>
@@ -109,11 +134,20 @@
     <!-- Add item (only if not completed/cancelled) -->
     {% if order.status in 'open,printed' %}
     <div class="add-item-wrap">
-      <h4><i class="fas fa-plus"></i> إضافة صنف للطلب</h4>
-      <div class="mini-menu">
+      <div class="od-add-head">
+        <h4><i class="fas fa-plus"></i> إضافة صنف للطلب</h4>
+        <div class="od-add-tabs" id="odAddTabs">
+          <button type="button" class="od-add-tab active" data-kind="food">أكل</button>
+          <button type="button" class="od-add-tab" data-kind="drink">مشروبات</button>
+          <button type="button" class="od-add-tab" data-kind="other">أخرى</button>
+        </div>
+      </div>
+      <div class="od-add-cats" id="odAddCats"></div>
+      <input type="text" id="odAddSearch" class="od-add-search" placeholder="ابحث عن صنف..." autocomplete="off">
+      <div class="mini-menu" id="odMiniMenu">
         {% for cat in categories %}
           {% for item in cat.items.all %}{% if item.is_available %}
-          <button type="button" class="mini-mi" onclick="startAddItem({{ item.id }},{{ order.id }})">
+          <button type="button" class="mini-mi" data-kind="{{ cat.category_type }}" data-cat="{{ cat.id }}" data-name="{{ item.name|lower }}" onclick="startAddItem({{ item.id }},{{ order.id }})">
             <span class="mini-mi-name">{{ item.name }}</span>
             <span class="mini-mi-price">{% if item.sizes.all %}من {% endif %}{{ item.menu_grid_price }} ج</span>
           </button>
@@ -140,6 +174,11 @@
       {% if order.driver %}<div class="info-row"><span style="color:var(--muted)">الطيار</span><strong>{{ order.driver }}</strong></div>{% endif %}
       {% endif %}
       <div class="info-row"><span style="color:var(--muted)">الوقت</span><strong>{{ order.created_at|time:"H:i" }}</strong></div>
+      {% if order.status == 'cancelled' and order.cancellation_reason %}
+      <div style="margin-top:10px;padding:10px 12px;background:#fef2f2;border-radius:10px;font-size:.78rem;color:#7f1d1d;line-height:1.45;border:1px solid #fecaca">
+        <strong>سبب الإلغاء:</strong> {{ order.cancellation_reason }}
+      </div>
+      {% endif %}
     </div>
 
     <!-- Actions -->
@@ -155,7 +194,7 @@
           <i class="fas fa-print"></i> إعادة الطباعة
         </button>
         {% if order.status in 'open,printed' %}
-        <button class="act-btn act-cancel" onclick="cancelOrderReq({{ order.id }}, '{{ order.status }}')">
+        <button class="act-btn act-cancel" onclick="cancelOrderReq()">
           <i class="fas fa-times-circle"></i> إلغاء الطلب
         </button>
         {% endif %}
@@ -174,12 +213,29 @@
     </div>
   </div>
 </div>
+
+<div class="itemcfg-overlay" id="cancelOrderOv" style="z-index:450" onclick="if(event.target===this)closeCancelOrder()">
+  <div class="modal itemcfg-modal" onclick="event.stopPropagation()">
+    <div class="itemcfg-hdr" style="background:linear-gradient(135deg,#fecaca,#fca5a5);border-bottom:1px solid rgba(0,0,0,.06)"><h3 style="margin:0;font-size:.95rem;font-weight:800;color:#450a0a"><i class="fas fa-ban"></i> إلغاء الطلب</h3></div>
+    <div class="itemcfg-body">
+      <p style="font-size:.8rem;color:var(--muted);margin:0 0 10px;line-height:1.45">بعد <strong>تأكيد المدير</strong> يُلغى الطلب و<strong>لا يُحسب في المبيعات</strong>.</p>
+      <label style="font-size:.72rem;font-weight:800;color:var(--muted);display:block;margin-bottom:6px">سبب الإلغاء (إلزامي)</label>
+      <textarea id="cancelOrderReason" class="itemcfg-ta" placeholder="مثال: طلب العميل — تعديل الطلب — خطأ…" style="min-height:88px"></textarea>
+    </div>
+    <div class="itemcfg-ftr">
+      <button type="button" class="btn btn-out" style="flex:1" onclick="closeCancelOrder()">رجوع</button>
+      <button type="button" class="btn btn-dan" style="flex:2" onclick="proceedCancelOrder()"><i class="fas fa-shield-halved"></i> متابعة لتأكيد المدير</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}<script>
 const MENU_OD=JSON.parse(document.getElementById('menu-catalog-data').textContent);
 const ORDER_ID={{ order.id }};
 let odCfg=null;
+let odAddKind='food';
+let odAddCat='all';
 
 function escOd(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -224,21 +280,50 @@ function startAddItem(menuItemId, orderId){
     });
     return;
   }
-  odCfg={orderId,cat,item};
-  document.getElementById('odCfgTitle').innerHTML='<i class="fas fa-sliders"></i> '+escOd(item.name);
+  odCfg={mode:'add',orderId,cat,item,orderItemId:null,init:{sizeId:null,addonIds:[],notes:'',drinkCustom:''}};
+  document.getElementById('odCfgTitle').innerHTML='<i class="fas fa-circle-plus"></i> إضافة على الطلب — '+escOd(item.name);
+  renderOdCfg();
+}
+
+function startEditItem(orderItemId, menuItemId, selectedSizeId, notes, addonsCsv, drinkDetail){
+  const hit=findOdEntry(menuItemId);
+  if(!hit){showToast('الصنف غير متاح للتعديل','err');return;}
+  const addonIds=(addonsCsv||'').split(',').map(x=>parseInt(x,10)).filter(x=>!isNaN(x));
+  odCfg={
+    mode:'edit',
+    orderId:ORDER_ID,
+    orderItemId,
+    cat:hit.cat,
+    item:hit.item,
+    init:{
+      sizeId:(selectedSizeId&&selectedSizeId!=='null')?parseInt(selectedSizeId,10):null,
+      addonIds,
+      notes:notes||'',
+      drinkCustom:drinkDetail||'',
+    }
+  };
+  document.getElementById('odCfgTitle').innerHTML='<i class="fas fa-pen"></i> تعديل بند في الطلب — '+escOd(hit.item.name);
+  renderOdCfg();
+}
+
+function renderOdCfg(){
+  if(!odCfg)return;
+  const {cat,item,init}=odCfg;
   const body=document.getElementById('odCfgBody');
   let html='';
   if(cat.enable_sizes&&(item.sizes||[]).length){
     html+='<div class="itemcfg-sec"><h4>الحجم</h4>';
     (item.sizes||[]).forEach((sz,i)=>{
-      html+=`<label><span>${escOd(sz.name)}</span><span><input type="radio" name="od_sz" value="${sz.id}" ${i===0?'checked':''}> <strong>${Number(sz.price).toFixed(2)} ج</strong></span></label>`;
+      const checked = init.sizeId ? Number(init.sizeId)===Number(sz.id) : i===0;
+      html+=`<label><span>${escOd(sz.name)}</span><span><input type="radio" name="od_sz" value="${sz.id}" ${checked?'checked':''}> <strong>${Number(sz.price).toFixed(2)} ج</strong></span></label>`;
     });
     html+='</div>';
   }
   if(cat.enable_addons&&(cat.addons||[]).length){
     html+='<div class="itemcfg-sec"><h4>إضافات</h4>';
     (cat.addons||[]).forEach(a=>{
-      html+=`<label><input type="checkbox" name="od_ad" value="${a.id}"> ${escOd(a.name)} <strong style="color:var(--pri-d)">+${Number(a.price).toFixed(2)} ج</strong></label>`;
+      const on = (init.addonIds||[]).includes(Number(a.id));
+      html+=`<label><input type="checkbox" name="od_ad" value="${a.id}" ${on?'checked':''}> ${escOd(a.name)} <strong style="color:var(--pri-d)">+${Number(a.price).toFixed(2)} ج</strong></label>`;
     });
     html+='</div>';
   }
@@ -247,8 +332,9 @@ function startAddItem(menuItemId, orderId){
     (cat.drink_presets||[]).forEach(p=>{
       html+=`<label><input type="checkbox" name="od_dp" value="${p.id}"> ${escOd(p.label)}</label>`;
     });
-    html+='<textarea class="itemcfg-ta" id="odDrinkCustom" placeholder="نص حر…" rows="2"></textarea></div>';
+    html+=`<textarea class="itemcfg-ta" id="odDrinkCustom" placeholder="نص حر…" rows="2">${escOd(init.drinkCustom||'')}</textarea></div>`;
   }
+  html+='<div class="itemcfg-sec"><h4>تعليق على البند</h4><textarea class="itemcfg-ta" id="odItemNote" placeholder="ملاحظة على هذا البند..." rows="2">'+escOd(init.notes||'')+'</textarea></div>';
   body.innerHTML=html;
   document.getElementById('odItemCfgOv').classList.add('open');
 }
@@ -260,22 +346,30 @@ function closeOdCfg(){
 
 function confirmOdCfg(){
   if(!odCfg)return;
-  const {orderId,cat,item}=odCfg;
+  const {mode,orderId,orderItemId,cat,item}=odCfg;
   let sizeId=null;
   const szEl=document.querySelector('#odCfgBody input[name="od_sz"]:checked');
   if(szEl)sizeId=parseInt(szEl.value,10);
   const addonIds=[...document.querySelectorAll('#odCfgBody input[name="od_ad"]:checked')].map(x=>parseInt(x.value,10));
   const presetIds=[...document.querySelectorAll('#odCfgBody input[name="od_dp"]:checked')].map(x=>parseInt(x.value,10));
   const dc=document.getElementById('odDrinkCustom');
-  addItemToOrderApi(orderId,{
-    menu_item_id:item.id,
-    quantity:1,
-    notes:'',
+  const noteEl=document.getElementById('odItemNote');
+  const payload={
+    notes:noteEl?noteEl.value:'',
     size_id:sizeId,
     addon_ids:addonIds,
     drink_preset_ids:presetIds,
     drink_custom:dc?dc.value:'',
-  });
+  };
+  if(mode==='edit'){
+    updateItemMetaApi(orderId,{order_item_id:orderItemId,...payload});
+  }else{
+    addItemToOrderApi(orderId,{
+      menu_item_id:item.id,
+      quantity:1,
+      ...payload,
+    });
+  }
   closeOdCfg();
 }
 
@@ -286,12 +380,29 @@ async function addItemToOrderApi(orderId, payload){
     body:JSON.stringify(payload),
   });
   const d=await r.json();
-  if(d.success){showToast('تم إضافة الصنف ✓','suc');location.reload();}
+  if(d.success){
+    if(d.print_success===false)showToast('تمت الإضافة لكن الطباعة الجزئية لم تتم','war');
+    else showToast('تم إضافة الصنف ✓','suc');
+    location.reload();
+  }
   else showToast(d.error||'خطأ','err');
 }
 
+async function updateItemMetaApi(orderId, payload){
+  const r=await fetch(`/api/order/${orderId}/update-item/`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+    body:JSON.stringify(payload),
+  });
+  const d=await r.json();
+  if(d.success){
+    if(d.print_success===false)showToast('تم التعديل لكن طباعة التعديل لم تتم','war');
+    else showToast('تم تعديل البند ✓','suc');
+    location.reload();
+  }else showToast(d.error||'خطأ','err');
+}
+
 function removeItem(itemId, orderId, qty){
-  const status='{{ order.status }}';
   const doRemove=(au,ap)=>{
     fetch(`/api/order/${orderId}/remove-item/`,{
       method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
@@ -301,11 +412,7 @@ function removeItem(itemId, orderId, qty){
       else showToast(d.error||'خطأ','err');
     });
   };
-  if(status==='printed'||status==='completed'){
-    requireAdmin('حذف صنف من طلب مطبوع يتطلب موافقة المدير',doRemove);
-  }else{
-    doRemove('','');
-  }
+  requireAdmin('حذف صنف من الطلب يتطلب موافقة المدير',doRemove);
 }
 
 async function completeOrder(orderId){
@@ -322,21 +429,66 @@ async function reprintOrder(orderId){
   showToast(d.success?'تم إرسال الطباعة ✓':'الطابعة مش متصلة',d.success?'suc':'war');
 }
 
-function cancelOrderReq(orderId, status){
-  if(status==='printed'){
-    requireAdmin('إلغاء طلب مطبوع يتطلب موافقة المدير',async(au,ap)=>{
-      const r=await fetch(`/api/order/${orderId}/cancel/`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({admin_username:au,admin_password:ap})});
-      const d=await r.json();
-      if(d.success){showToast('تم إلغاء الطلب','err');setTimeout(()=>location.href='{% url "cashier_dashboard" %}',900);}
-      else showToast(d.error||'خطأ','err');
-    });
-  }else{
-    if(!confirm('هتلغي الطلب ده؟'))return;
-    fetch(`/api/order/${orderId}/cancel/`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({})})
-    .then(r=>r.json()).then(d=>{
-      if(d.success){showToast('تم إلغاء الطلب','err');setTimeout(()=>location.href='{% url "cashier_dashboard" %}',900);}
-      else showToast(d.error||'خطأ','err');
+function closeCancelOrder(){
+  const ov=document.getElementById('cancelOrderOv');
+  if(ov)ov.classList.remove('open');
+}
+function cancelOrderReq(){
+  const ta=document.getElementById('cancelOrderReason');
+  if(ta)ta.value='';
+  const ov=document.getElementById('cancelOrderOv');
+  if(ov){ov.classList.add('open');setTimeout(()=>ta&&ta.focus(),80);}
+}
+function proceedCancelOrder(){
+  const reason=(document.getElementById('cancelOrderReason')&&document.getElementById('cancelOrderReason').value||'').trim();
+  if(reason.length<2){showToast('اكتب سبب الإلغاء','err');return;}
+  closeCancelOrder();
+  requireAdmin('إلغاء الطلب يتطلب موافقة المدير وسبباً مكتوباً',async(au,ap)=>{
+    const r=await fetch(`/api/order/${ORDER_ID}/cancel/`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({admin_username:au,admin_password:ap,cancellation_reason:reason})});
+    const d=await r.json();
+    if(d.success){
+      if(d.print_success===true)showToast('تم الإلغاء وإشعار المطبخ/البار ✓','suc');
+      else if(d.print_success===false)showToast('تم الإلغاء — تحقق من الطباعة للمطبخ/البار','war',4200);
+      else showToast('تم إلغاء الطلب','err');
+      setTimeout(()=>location.href='{% url "cashier_dashboard" %}',900);
+    }
+    else showToast(d.error||'خطأ','err');
+  });
+}
+
+function initOdAddPanel(){
+  const tabs=[...document.querySelectorAll('#odAddTabs .od-add-tab')];
+  const catsWrap=document.getElementById('odAddCats');
+  const search=document.getElementById('odAddSearch');
+  const cards=[...document.querySelectorAll('#odMiniMenu .mini-mi')];
+  if(!tabs.length||!catsWrap||!cards.length)return;
+
+  function renderCats(){
+    const cats=MENU_OD.categories.filter(c=>c.category_type===odAddKind);
+    let html='<button type="button" class="od-add-cat '+(odAddCat==='all'?'active':'')+'" data-cat="all">الكل</button>';
+    cats.forEach(c=>{html+='<button type="button" class="od-add-cat '+(String(c.id)===String(odAddCat)?'active':'')+'" data-cat="'+c.id+'">'+escOd(c.name)+'</button>';});
+    catsWrap.innerHTML=html;
+    catsWrap.querySelectorAll('.od-add-cat').forEach(b=>b.addEventListener('click',()=>{odAddCat=b.dataset.cat;renderCats();apply();}));
+  }
+  function apply(){
+    const q=(search.value||'').trim().toLowerCase();
+    cards.forEach(c=>{
+      const kindOk=c.dataset.kind===odAddKind;
+      const catOk=odAddCat==='all'||c.dataset.cat===odAddCat;
+      const txtOk=!q||String(c.dataset.name||'').includes(q);
+      c.classList.toggle('hide',!(kindOk&&catOk&&txtOk));
     });
   }
+  tabs.forEach(t=>t.addEventListener('click',()=>{
+    odAddKind=t.dataset.kind||'food';
+    odAddCat='all';
+    tabs.forEach(x=>x.classList.toggle('active',x===t));
+    renderCats();
+    apply();
+  }));
+  search&&search.addEventListener('input',apply);
+  renderCats();
+  apply();
 }
+initOdAddPanel();
 </script>{% endblock %}

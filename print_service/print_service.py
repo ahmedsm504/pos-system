@@ -546,7 +546,7 @@ def _build_test_receipt():
             {'text': 'طلب رقم', 'width': 0.7, 'align': 'right'},
         ], 'bold': True},
         {'cols': [
-            {'text': 'داخل المحل', 'width': 0.3, 'align': 'right'},
+            {'text': 'داخلي', 'width': 0.3, 'align': 'right'},
             {'text': 'النوع', 'width': 0.7, 'align': 'right'},
         ]},
         {'cols': [

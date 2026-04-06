@@ -58,6 +58,9 @@
   <span><i class="fas fa-receipt"></i> {{ orders_count }} طلب في الفترة</span>
   <span><i class="fas fa-boxes-stacked"></i> {{ inv_count }} وارد</span>
   <span><i class="fas fa-coins"></i> مبيعات مطبوعة/مكتملة: <strong dir="ltr">{{ sales_printed_completed|floatformat:2 }} ج</strong></span>
+  {% if shift.status == 'closed' and shift.revenue_booked is not None %}
+  <span><i class="fas fa-chart-line" style="color:#059669"></i> إيراد مسجّل: <strong dir="ltr">{{ shift.revenue_booked|floatformat:2 }} ج</strong> <small style="color:var(--muted)">(مبيعات + زيادة)</small></span>
+  {% endif %}
 </div>
 
 {% for row in timeline %}
@@ -77,7 +80,7 @@
         {% elif obj.status == 'printed' %}<span class="badge" style="background:var(--pri-l);color:#3730a3">{{ obj.get_status_display }}</span>
         {% else %}<span class="badge b-war">{{ obj.get_status_display }}</span>{% endif %}
         {% if obj.order_type == 'delivery' %}<span class="badge" style="background:#fef3c7;color:#92400e">ديليفري</span>
-        {% else %}<span class="badge b-grey">داخل المحل</span>{% endif %}
+        {% else %}<span class="badge b-grey">داخلي</span>{% endif %}
       </div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">

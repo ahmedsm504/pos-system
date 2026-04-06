@@ -13,6 +13,7 @@ import logging
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal
+from types import SimpleNamespace
 try:
     import requests as http_requests
 except ImportError:
@@ -20,7 +21,11 @@ except ImportError:
 
 log = logging.getLogger(__name__)
 
-from .shift_helpers import shift_orders_qs
+from .shift_helpers import (
+    revenue_booked_from_shift_close,
+    shift_cancelled_orders_count,
+    shift_orders_qs,
+)
 from .models import (
     Category,
     MenuItem,
@@ -179,10 +184,17 @@ def orders_list(request):
         dine_in=Count('id', filter=Q(order_type='dine_in')),
         delivery=Count('id', filter=Q(order_type='delivery')),
     )
+    status_stats = orders.aggregate(
+        total=Count('id'),
+        waiting=Count('id', filter=Q(status__in=['open', 'printed'])),
+        completed=Count('id', filter=Q(status='completed')),
+        cancelled=Count('id', filter=Q(status='cancelled')),
+    )
     profile = get_profile(request.user)
     return render(request, 'pos/cashier/orders_list.html', {
         'orders':       orders,
         'order_stats':  order_stats,
+        'status_stats': status_stats,
         'profile':      profile,
     })
 
@@ -364,9 +376,21 @@ def add_item(request, order_id):
             if merge_key_from_oi(oi) == mk:
                 existing = oi
                 break
+        changed_items = []
         if existing:
             existing.quantity += qty
             existing.save()
+            changed_items.append(
+                SimpleNamespace(
+                    menu_item=existing.menu_item,
+                    quantity=qty,
+                    price=existing.price,
+                    size_label=existing.size_label,
+                    drink_detail=existing.drink_detail,
+                    extras_json=existing.extras_json,
+                    notes=existing.notes,
+                )
+            )
         else:
             oi = OrderItem(
                 order=order,
@@ -377,15 +401,72 @@ def add_item(request, order_id):
             )
             apply_meta_to_order_item(oi, meta)
             oi.save()
+            changed_items.append(oi)
 
-        return JsonResponse({'success': True, 'total': float(order.total)})
+        print_ok = None
+        if order.status == 'printed':
+            print_ok = _send_order_update_to_printer(
+                order,
+                changed_items,
+                action_label='إضافة',
+                print_main_full=True,
+            )
+        return JsonResponse({'success': True, 'total': float(order.total), 'print_success': print_ok})
     except Exception as e:
         log.error(f'add_item: {e}')
         return JsonResponse({'success': False, 'error': str(e)})
 
 
 # ══════════════════════════════════════════════════════════════════════════
-#  API — REMOVE ITEM (needs admin confirm if printed)
+#  API — UPDATE ITEM META (no deletion)
+# ══════════════════════════════════════════════════════════════════════════
+
+@login_required
+@require_POST
+def update_item_meta(request, order_id):
+    try:
+        order = get_object_or_404(Order, id=order_id)
+        if order.status in ['completed', 'cancelled']:
+            return JsonResponse({'success': False, 'error': 'لا يمكن التعديل على هذا الطلب'})
+
+        data = json.loads(request.body)
+        oi = get_object_or_404(OrderItem.objects.select_related('menu_item'), id=data['order_item_id'], order=order)
+        mi = oi.menu_item
+        note = (data.get('notes') or '')[:200]
+        payload = {
+            'id': mi.id,
+            'size_id': data.get('size_id'),
+            'addon_ids': data.get('addon_ids') or [],
+            'drink_preset_ids': data.get('drink_preset_ids') or [],
+            'drink_custom': data.get('drink_custom') or '',
+            'notes': note,
+        }
+        try:
+            unit, meta = compute_order_item_unit_price(mi, payload)
+        except ValueError as err:
+            return JsonResponse({'success': False, 'error': str(err)})
+
+        oi.price = unit
+        oi.notes = note
+        apply_meta_to_order_item(oi, meta)
+        oi.save()
+
+        print_ok = None
+        if order.status == 'printed':
+            print_ok = _send_order_update_to_printer(
+                order,
+                [oi],
+                action_label='تعديل',
+                print_main_full=False,
+            )
+        return JsonResponse({'success': True, 'total': float(order.total), 'print_success': print_ok})
+    except Exception as e:
+        log.error(f'update_item_meta: {e}')
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  API — REMOVE ITEM (always requires admin confirm)
 # ══════════════════════════════════════════════════════════════════════════
 
 @login_required
@@ -396,14 +477,13 @@ def remove_item(request, order_id):
         data  = json.loads(request.body)
         item  = get_object_or_404(OrderItem, id=data['item_id'], order=order)
 
-        if order.status in ['printed', 'completed']:
-            admin_user = authenticate(
-                request,
-                username=data.get('admin_username', ''),
-                password=data.get('admin_password', '')
-            )
-            if not admin_user or not admin_user.is_staff:
-                return JsonResponse({'success': False, 'error': 'يلزم تاكيد المدير', 'need_admin': True})
+        admin_user = authenticate(
+            request,
+            username=data.get('admin_username', ''),
+            password=data.get('admin_password', '')
+        )
+        if not admin_user or not admin_user.is_staff:
+            return JsonResponse({'success': False, 'error': 'يلزم تاكيد المدير', 'need_admin': True})
 
         if int(data.get('qty', 1)) >= item.quantity:
             item.delete()
@@ -448,7 +528,12 @@ def complete_order(request, order_id):
 @require_POST
 def cancel_order(request, order_id):
     try:
-        order = get_object_or_404(Order, id=order_id)
+        order = get_object_or_404(
+            Order.objects.filter(cashier=request.user).prefetch_related(
+                'items__menu_item__category',
+            ),
+            id=order_id,
+        )
 
         # اقرأ الـ body بس لو في content
         data = {}
@@ -464,21 +549,43 @@ def cancel_order(request, order_id):
         if order.status == 'completed':
             return JsonResponse({'success': False, 'error': 'لا يمكن الغاء طلب مكتمل'})
 
-        # الطلبات المطبوعة تحتاج تاكيد مدير
-        if order.status == 'printed':
-            admin_user = authenticate(
-                request,
-                username=data.get('admin_username', ''),
-                password=data.get('admin_password', '')
-            )
-            if not admin_user or not admin_user.is_staff:
-                return JsonResponse({'success': False, 'error': 'يلزم تاكيد المدير', 'need_admin': True})
-            order.cancel_approved_by = admin_user
+        reason = (data.get('cancellation_reason') or '').strip()
+        if len(reason) < 2:
+            return JsonResponse({'success': False, 'error': 'اكتب سبب الإلغاء (نص واضح)'})
+
+        admin_user = authenticate(
+            request,
+            username=data.get('admin_username', ''),
+            password=data.get('admin_password', ''),
+        )
+        if not admin_user or not admin_user.is_staff:
+            return JsonResponse({'success': False, 'error': 'يلزم تاكيد المدير', 'need_admin': True})
+
+        had_gone_to_stations = order.printed_at is not None
+
+        order.cancel_approved_by = admin_user
+        order.cancellation_reason = reason[:2000]
 
         order.status       = 'cancelled'
         order.cancelled_at = timezone.now()
         order.save()
-        return JsonResponse({'success': True})
+
+        print_success = None
+        if had_gone_to_stations:
+            order_print = (
+                Order.objects.select_related('table', 'waiter', 'driver', 'cashier')
+                .prefetch_related('items__menu_item__category')
+                .get(pk=order.pk)
+            )
+            print_success = _send_order_cancel_to_printer(
+                order_print,
+                order_print.cancellation_reason or '',
+            )
+
+        out = {'success': True}
+        if print_success is not None:
+            out['print_success'] = print_success
+        return JsonResponse(out)
     except Exception as e:
         log.error(f'cancel_order: {e}')
         return JsonResponse({'success': False, 'error': str(e)})
@@ -659,6 +766,7 @@ def _build_shift_report_lines(
     inventory_total: Decimal,
     sys_total: Decimal,
     diff: Decimal,
+    cancelled_orders_count: int = 0,
 ):
     """سطور فاتورة تقرير إنهاء الشيفت للطابعة الرئيسية."""
     end = shift.end_time or timezone.now()
@@ -812,6 +920,12 @@ def _build_shift_report_lines(
         lines.append({'text': 'لا توجد واردات مسجّلة', 'align': 'center', 'size': 'small'})
     lines.append({'divider': True, 'divider_style': 'double'})
 
+    lines.append({'text': 'طلبات ملغاة', 'align': 'center', 'bold': True})
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    lines.append(row('عدد الطلبات الملغاة (لا تُحسب في المبيعات)', str(cancelled_orders_count)))
+    lines.append({'text': 'تُسجَّل للمراجعة فقط — غير مضمّنة في مفروض المبيعات أو الإيراد أعلاه', 'align': 'center', 'size': 'small'})
+    lines.append({'divider': True, 'divider_style': 'double'})
+
     # —— مطابقة الدرج ——
     lines.append({'text': 'مطابقة الدرج', 'align': 'center', 'bold': True})
     lines.append({'divider': True, 'divider_style': 'dashed'})
@@ -821,6 +935,10 @@ def _build_shift_report_lines(
     lines.append(row('الدرج بعد العدّ', f'{_fmt_j(cash_input)} ج', bold_val=True))
     lines.append(row('الفرق (زيادة / نقص)', f'{_fmt_shift_diff(diff)} ج', bold_val=True))
     lines.append({'text': 'موجب = زيادة · سالب = نقص', 'align': 'center', 'size': 'small'})
+    rev_booked = revenue_booked_from_shift_close(orders_total, diff)
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    lines.append(row('إيراد مسجّل للتقارير (مبيعات + زيادة الدرج)', f'{_fmt_j(rev_booked)} ج', bold_val=True))
+    lines.append({'text': 'عند العجز: يُحتسب المبيعات فقط — الزيادة تُضاف للإيراد عند وجودها', 'align': 'center', 'size': 'small'})
     lines.append({'divider': True, 'divider_style': 'double'})
     lines.append(row('الكاشير', cashier_name, bold_val=True))
     lines.append({'spacer': True, 'height': 6})
@@ -866,10 +984,12 @@ def end_shift(request):
     shift = Shift.objects.filter(cashier=request.user, status='open').first()
     orders_total = inventory_out = None
     pending_orders_count = 0
+    cancelled_in_shift = 0
     if shift:
         orders_total = _shift_orders_total_sum(request.user, shift)
         inventory_out = _shift_inventory_total(shift)
         pending_orders_count = _shift_incomplete_orders_count(request.user, shift)
+        cancelled_in_shift = shift_cancelled_orders_count(request.user, shift)
     return render(
         request,
         'pos/cashier/end_shift.html',
@@ -878,6 +998,7 @@ def end_shift(request):
             'orders_total': orders_total,
             'inventory_out': inventory_out,
             'pending_orders_count': pending_orders_count,
+            'cancelled_in_shift': cancelled_in_shift,
         },
     )
 
@@ -900,6 +1021,7 @@ def submit_shift_end(request):
         end_at = timezone.now()
 
         orders_list = list(_shift_orders_qs(request.user, shift, close_snapshot_at=end_at).order_by('id'))
+        cancelled_count = shift_cancelled_orders_count(request.user, shift, close_snapshot_at=end_at)
         orders_total = sum(Decimal(str(o.total)) for o in orders_list)
         inventory_total = _shift_inventory_total(shift)
         inventory_rows = list(
@@ -908,10 +1030,13 @@ def submit_shift_end(request):
         # مطابقة الدرج: مجمع السيستم = طلبات + واردات الشيفت؛ الفرق = الدرج الفعلي − المجمع
         sys_total = orders_total + inventory_total
         diff = cash_input - sys_total
+        rev_booked = revenue_booked_from_shift_close(orders_total, diff)
 
         shift.cash_in_drawer = cash_input
         shift.system_total = sys_total
         shift.difference = diff
+        shift.orders_total_at_close = orders_total
+        shift.revenue_booked = rev_booked
         shift.end_time = end_at
         shift.status = 'closed'
         shift.notes = request.POST.get('notes', '')
@@ -927,6 +1052,7 @@ def submit_shift_end(request):
             inventory_total,
             sys_total,
             diff,
+            cancelled_orders_count=cancelled_count,
         )
         print_success = _send_shift_report_to_printer(report_lines)
         if not print_success:
@@ -939,6 +1065,8 @@ def submit_shift_end(request):
             'system_total': float(sys_total),
             'cash_input': float(cash_input),
             'difference': float(diff),
+            'revenue_booked': float(rev_booked),
+            'cancelled_orders_count': cancelled_count,
             'status': 'زيادة' if diff > 0 else ('نقص' if diff < 0 else 'متطابق'),
             'print_success': print_success,
             'logout_url': request.build_absolute_uri(reverse('logout')),
@@ -956,7 +1084,7 @@ def _build_main_lines(order):
     items      = order.items.select_related('menu_item__category').all()
     now_date   = timezone.localtime(order.created_at).strftime('%Y-%m-%d')
     now_time   = timezone.localtime(order.created_at).strftime('%H:%M')
-    type_label = 'داخل المحل' if order.order_type == 'dine_in' else 'ديليفري'
+    type_label = 'داخلي' if order.order_type == 'dine_in' else 'ديليفري'
     cashier_name = order.cashier.get_full_name() or order.cashier.username
 
     lines = [
@@ -1033,21 +1161,19 @@ def _build_main_lines(order):
     return lines
 
 
-def _build_section_lines(order, cat_type):
-    items = [
-        i for i in order.items.select_related('menu_item__category').all()
-        if i.menu_item.category.category_type == cat_type
-    ]
+def _build_section_lines_for_items(order, cat_type, items, action_label=''):
+    items = [i for i in items if i.menu_item.category.category_type == cat_type]
     if not items:
         return []
 
     label = 'المطبخ' if cat_type == 'food' else 'البار'
     now_time = timezone.localtime(order.created_at).strftime('%H:%M')
-    type_label = 'داخل المحل' if order.order_type == 'dine_in' else 'ديليفري'
+    type_label = 'داخلي' if order.order_type == 'dine_in' else 'ديليفري'
+    hdr = label if not action_label else f'{label} — {action_label}'
 
     lines = [
         {'spacer': True, 'height': 5},
-        {'text': label, 'align': 'center', 'bold': True, 'size': 'xlarge'},
+        {'text': hdr, 'align': 'center', 'bold': True, 'size': 'xlarge'},
         {'divider': True, 'divider_style': 'double'},
         {'cols': [
             {'text': now_time, 'width': 0.3, 'align': 'left'},
@@ -1055,6 +1181,16 @@ def _build_section_lines(order, cat_type):
             {'text': type_label, 'width': 0.3, 'align': 'right'},
         ], 'bold': True},
     ]
+    if action_label:
+        if action_label == 'إلغاء':
+            lines.append({
+                'text': 'تنبيه: طلب ملغى — لا تُنفَّذ الأصناف التالية',
+                'align': 'center',
+                'bold': True,
+            })
+        else:
+            lines.append({'text': f'تنبيه: {action_label} على طلب موجود', 'align': 'center', 'bold': True})
+        lines.append({'divider': True, 'divider_style': 'dashed'})
 
     if order.order_type == 'dine_in' and order.table:
         lines.append({'text': f'الطاولة: {order.table}', 'align': 'center', 'bold': True})
@@ -1076,6 +1212,76 @@ def _build_section_lines(order, cat_type):
 
     lines.append({'spacer': True, 'height': 10})
     return lines
+
+
+def _build_section_lines(order, cat_type):
+    items = [
+        i for i in order.items.select_related('menu_item__category').all()
+        if i.menu_item.category.category_type == cat_type
+    ]
+    return _build_section_lines_for_items(order, cat_type, items)
+
+
+def _build_cancel_station_lines(order, cat_type, reason_note=''):
+    """سطور مطبخ/بار لإشعار إلغاء الطلب (نفس أسلوب الإضافة/التعديل)."""
+    items = [
+        i for i in order.items.select_related('menu_item__category').all()
+        if i.menu_item.category.category_type == cat_type
+    ]
+    if not items:
+        return []
+    lines = _build_section_lines_for_items(order, cat_type, items, action_label='إلغاء')
+    note = (reason_note or '').strip()
+    if note:
+        lines.insert(-1, {
+            'text': f'سبب الإلغاء: {note[:180]}' + ('…' if len(note) > 180 else ''),
+            'align': 'center',
+            'size': 'small',
+        })
+    return lines
+
+
+def _send_order_cancel_to_printer(order, reason: str = '') -> bool:
+    """يُبلّغ المطبخ/البار بإلغاء الطلب إن وُجدت أصناف تخص كل قسم."""
+    if not http_requests:
+        return False
+    try:
+        kitchen_lines = _build_cancel_station_lines(order, 'food', reason)
+        bar_lines = _build_cancel_station_lines(order, 'drink', reason)
+        if not kitchen_lines and not bar_lines:
+            return True
+        payload = {
+            'main_lines': [],
+            'kitchen_lines': kitchen_lines,
+            'bar_lines': bar_lines,
+            'open_drawer': False,
+        }
+        r = http_requests.post(settings.PRINT_SERVICE_URL, json=payload, timeout=6)
+        if r.status_code == 200:
+            return bool(r.json().get('success', False))
+        return False
+    except Exception as e:
+        log.error(f'_send_order_cancel_to_printer: {e}')
+        return False
+
+
+def _send_order_update_to_printer(order, changed_items, action_label='إضافة', print_main_full=True) -> bool:
+    if not http_requests:
+        return False
+    try:
+        payload = {
+            'main_lines': _build_main_lines(order) if print_main_full else [],
+            'kitchen_lines': _build_section_lines_for_items(order, 'food', changed_items, action_label=action_label),
+            'bar_lines': _build_section_lines_for_items(order, 'drink', changed_items, action_label=action_label),
+            'open_drawer': False,
+        }
+        r = http_requests.post(settings.PRINT_SERVICE_URL, json=payload, timeout=6)
+        if r.status_code == 200:
+            return bool(r.json().get('success', False))
+        return False
+    except Exception as e:
+        log.error(f'_send_order_update_to_printer: {e}')
+        return False
 
 
 def _send_to_printer(order, open_drawer=False) -> bool:

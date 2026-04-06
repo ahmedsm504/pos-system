@@ -182,6 +182,12 @@
                   {% if s.status == 'closed' and s.system_total is not None %}
                   <div class="row"><span class="lbl">مجموع المطابقة المحفوظ عند الإغلاق</span><span class="val" dir="ltr">{{ s.system_total|floatformat:2 }} ج</span></div>
                   {% endif %}
+                  {% if s.status == 'closed' and s.revenue_booked is not None %}
+                  <div class="row"><span class="lbl">إيراد مسجّل للتقارير <span style="font-size:.65rem;font-weight:600;color:var(--muted)">(مبيعات + زيادة الدرج)</span></span><span class="val" dir="ltr" style="color:#065f46">{{ s.revenue_booked|floatformat:2 }} ج</span></div>
+                  {% endif %}
+                  {% if s.status == 'closed' and s.orders_total_at_close is not None %}
+                  <div class="row"><span class="lbl">مبيعات الطلبات (لقطة عند الإغلاق)</span><span class="val" dir="ltr">{{ s.orders_total_at_close|floatformat:2 }} ج</span></div>
+                  {% endif %}
                   {% if s.cash_in_drawer is not None %}
                   <div class="row"><span class="lbl">الدرج بعد العدّ (ما أدخله الكاشير)</span><span class="val" dir="ltr">{{ s.cash_in_drawer|floatformat:2 }} ج</span></div>
                   {% endif %}

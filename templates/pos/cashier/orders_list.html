@@ -9,6 +9,7 @@
   display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;
   margin-bottom:20px;
 }
+.od-filters{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 .od-head-t h2{margin:0;font-size:1.35rem;font-weight:900;letter-spacing:-.02em;color:var(--text)}
 .od-head-t p{margin:6px 0 0;font-size:.82rem;color:var(--muted);font-weight:600}
 .od-filter{
@@ -100,25 +101,41 @@
   <div class="od-head">
     <div class="od-head-t">
       <h2>طلبات اليوم</h2>
-      <p>كل الطلبات اللي سجّلتها النهاردة — فلترة سريعة حسب نوع الطلب</p>
+      <p>فلترة حسب الحالة (الكل/انتظار/مكتمل/ملغي) ونوع الطلب (الكل/داخلي/ديليفري)</p>
     </div>
-    <div class="od-filter" role="tablist" aria-label="تصفية الطلبات">
-      <button type="button" class="od-tab active" data-filter="all" role="tab" aria-selected="true">
-        الكل <span class="od-c">{{ order_stats.total }}</span>
-      </button>
-      <button type="button" class="od-tab" data-filter="dine_in" role="tab" aria-selected="false">
-        داخلي <span class="od-c">{{ order_stats.dine_in }}</span>
-      </button>
-      <button type="button" class="od-tab" data-filter="delivery" role="tab" aria-selected="false">
-        ديليفري <span class="od-c">{{ order_stats.delivery }}</span>
-      </button>
+    <div class="od-filters">
+      <div class="od-filter" role="tablist" aria-label="تصفية حسب الحالة">
+        <button type="button" class="od-tab active" data-status-filter="all" role="tab" aria-selected="true">
+          الكل <span class="od-c">{{ status_stats.total }}</span>
+        </button>
+        <button type="button" class="od-tab" data-status-filter="waiting" role="tab" aria-selected="false">
+          انتظار <span class="od-c">{{ status_stats.waiting }}</span>
+        </button>
+        <button type="button" class="od-tab" data-status-filter="completed" role="tab" aria-selected="false">
+          مكتمل <span class="od-c">{{ status_stats.completed }}</span>
+        </button>
+        <button type="button" class="od-tab" data-status-filter="cancelled" role="tab" aria-selected="false">
+          ملغي <span class="od-c">{{ status_stats.cancelled }}</span>
+        </button>
+      </div>
+      <div class="od-filter" role="tablist" aria-label="تصفية حسب النوع">
+        <button type="button" class="od-tab active" data-type-filter="all" role="tab" aria-selected="true">
+          الكل <span class="od-c">{{ order_stats.total }}</span>
+        </button>
+        <button type="button" class="od-tab" data-type-filter="dine_in" role="tab" aria-selected="false">
+          داخلي <span class="od-c">{{ order_stats.dine_in }}</span>
+        </button>
+        <button type="button" class="od-tab" data-type-filter="delivery" role="tab" aria-selected="false">
+          ديليفري <span class="od-c">{{ order_stats.delivery }}</span>
+        </button>
+      </div>
     </div>
   </div>
 
   {% if orders %}
   <div class="od-list" id="odList">
     {% for o in orders %}
-    <div class="od-row" data-order-type="{{ o.order_type }}" onclick="location.href='{% url 'cashier_order_detail' o.id %}'">
+    <div class="od-row" data-order-type="{{ o.order_type }}" data-status-group="{% if o.status == 'completed' %}completed{% elif o.status == 'open' or o.status == 'printed' %}waiting{% elif o.status == 'cancelled' %}cancelled{% else %}other{% endif %}" onclick="location.href='{% url 'cashier_order_detail' o.id %}'">
       <div class="od-id"><span>#</span>{{ o.id }}</div>
       <div class="od-body">
         <div class="od-title">
@@ -154,8 +171,8 @@
   <div class="od-empty" id="odEmptyFilter" style="display:none">
     <i class="fas fa-filter-circle-xmark"></i>
     <p>مفيش طلبات بهذا النوع</p>
-    <span>جرّب «الكل» أو نوع تاني من الفلاتر</span>
-    <button type="button" class="btn btn-pri btn-sm" onclick="document.querySelector('.od-tab[data-filter=all]').click()">عرض الكل</button>
+    <span>جرّب تغيير فلتر الحالة أو النوع</span>
+    <button type="button" class="btn btn-pri btn-sm" id="odResetFilters">عرض الكل</button>
   </div>
   {% else %}
   <div class="od-empty">
@@ -174,23 +191,30 @@
   if(!list)return;
   const rows=[...list.querySelectorAll('.od-row')];
   const emptyF=document.getElementById('odEmptyFilter');
-  const tabs=[...document.querySelectorAll('.od-tab')];
-  let current='all';
+  const statusTabs=[...document.querySelectorAll('.od-tab[data-status-filter]')];
+  const typeTabs=[...document.querySelectorAll('.od-tab[data-type-filter]')];
+  const resetBtn=document.getElementById('odResetFilters');
+  let statusFilter='all';
+  let typeFilter='all';
   function apply(){
     let n=0;
     rows.forEach(r=>{
       const t=r.getAttribute('data-order-type');
-      const show=current==='all'||t===current;
+      const s=r.getAttribute('data-status-group');
+      const typeOk=typeFilter==='all'||t===typeFilter;
+      const statusOk=statusFilter==='all'||s===statusFilter;
+      const show=typeOk&&statusOk;
       r.style.display=show?'':'none';
       if(show)n++;
     });
-    if(emptyF)emptyF.style.display=(current!=='all'&&n===0)?'block':'none';
-    list.style.display=n===0&&current!=='all'?'none':'flex';
+    const filtered=statusFilter!=='all'||typeFilter!=='all';
+    if(emptyF)emptyF.style.display=(filtered&&n===0)?'block':'none';
+    list.style.display=n===0&&filtered?'none':'flex';
   }
-  tabs.forEach(tab=>{
+  statusTabs.forEach(tab=>{
     tab.addEventListener('click',function(){
-      current=this.getAttribute('data-filter')||'all';
-      tabs.forEach(x=>{
+      statusFilter=this.getAttribute('data-status-filter')||'all';
+      statusTabs.forEach(x=>{
         const on=x===this;
         x.classList.toggle('active',on);
         x.setAttribute('aria-selected',on?'true':'false');
@@ -198,5 +222,24 @@
       apply();
     });
   });
+  typeTabs.forEach(tab=>{
+    tab.addEventListener('click',function(){
+      typeFilter=this.getAttribute('data-type-filter')||'all';
+      typeTabs.forEach(x=>{
+        const on=x===this;
+        x.classList.toggle('active',on);
+        x.setAttribute('aria-selected',on?'true':'false');
+      });
+      apply();
+    });
+  });
+  if(resetBtn){
+    resetBtn.addEventListener('click',function(){
+      const sa=statusTabs.find(x=>x.getAttribute('data-status-filter')==='all');
+      const ta=typeTabs.find(x=>x.getAttribute('data-type-filter')==='all');
+      if(sa)sa.click();
+      if(ta)ta.click();
+    });
+  }
 })();
 </script>{% endblock %}

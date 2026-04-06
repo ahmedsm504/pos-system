@@ -2,11 +2,22 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from decimal import Decimal
 
 from django.db.models import QuerySet
 from django.utils import timezone
 
 from .models import Order
+
+
+def revenue_booked_from_shift_close(orders_total: Decimal, drawer_minus_system: Decimal) -> Decimal:
+    """
+    إيراد يُحسب للتقارير عند إغلاق الشيفت:
+    مبيعات الطلبات (المسجّلة بالسيستم) + زيادة الدرج إن وُجدت (الفرق الموجب).
+    عند العجز: لا يُضاف للمبيعات شيء (لا نخصم من رقم الإيراد).
+    """
+    surplus = max(Decimal('0'), drawer_minus_system)
+    return orders_total + surplus
 
 
 def shift_all_orders_qs(cashier, shift) -> QuerySet:
@@ -54,6 +65,25 @@ def annotate_timeline_days(timeline):
         last = d
         out.append({'kind': kind, 'obj': obj, 'day': d, 'show_day': show})
     return out
+
+
+def shift_cancelled_orders_count(
+    cashier,
+    shift,
+    *,
+    close_snapshot_at=None,
+) -> int:
+    """عدد الطلبات الملغاة ضمن فترة الشيفت (لا تُحسب في المبيعات)."""
+    qs = Order.objects.filter(
+        cashier=cashier,
+        created_at__gte=shift.start_time,
+        status='cancelled',
+    )
+    if close_snapshot_at is not None:
+        qs = qs.filter(created_at__lte=close_snapshot_at)
+    elif getattr(shift, 'status', None) == 'closed' and shift.end_time:
+        qs = qs.filter(created_at__lte=shift.end_time)
+    return qs.count()
 
 
 def shift_orders_qs(

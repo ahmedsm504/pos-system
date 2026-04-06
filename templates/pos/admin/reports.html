@@ -196,6 +196,47 @@
 .ti-bar-w{background:#f1f5f9;border-radius:999px;height:7px;flex:1}
 .ti-bar{background:linear-gradient(90deg,var(--gold),var(--gold-soft));height:100%;border-radius:999px;transition:width .5s}
 .ti-rev{font-size:.72rem;color:var(--muted);font-weight:700;min-width:72px;text-align:left;direction:ltr}
+
+.rep-cancel-card{
+  margin-bottom:22px;padding:20px;border-radius:20px;
+  border:1px solid #fecaca;background:linear-gradient(165deg,#fff 0%,#fef2f2 50%,#fff 100%);
+  box-shadow:0 6px 28px -12px rgba(153,27,27,.14),inset 0 1px 0 rgba(255,255,255,.95);
+}
+.rep-cancel-card-hd{
+  display:flex;align-items:center;gap:14px;margin-bottom:16px;
+}
+.rep-cancel-ic{
+  width:46px;height:46px;border-radius:14px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,#fee2e2,#fecaca);color:#991b1b;font-size:1.08rem;
+  box-shadow:0 2px 10px -4px rgba(153,27,27,.35);
+}
+.rep-cancel-card-titles{flex:1;min-width:0}
+.rep-cancel-card-titles strong{
+  display:block;font-size:.98rem;font-weight:900;color:#450a0a;letter-spacing:-.02em;
+}
+.rep-cancel-stats{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:12px;
+}
+@media(max-width:520px){.rep-cancel-stats{grid-template-columns:1fr}}
+.rep-cancel-stat{
+  min-width:0;padding:14px 16px;border-radius:16px;background:#fff;
+  border:1px solid #fecaca;box-shadow:0 2px 12px -6px rgba(0,0,0,.08);
+}
+.rep-cancel-stat .lbl{font-size:.62rem;font-weight:800;color:#991b1b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.rep-cancel-stat .val{font-size:1.42rem;font-weight:900;font-family:'Outfit','Cairo',sans-serif;color:#450a0a;line-height:1.1}
+.rep-cancel-stat .val small{font-size:.82rem;font-weight:700;color:#b91c1c}
+.rep-cancel-foot{
+  display:flex;align-items:flex-start;gap:11px;margin-top:16px;padding:13px 15px;
+  border-radius:14px;background:rgba(255,255,255,.85);border:1px solid #fca5a5;
+  font-size:.78rem;line-height:1.55;color:#7f1d1d;font-weight:600;
+}
+.rep-cancel-foot>i{flex-shrink:0;margin-top:2px;color:#b91c1c;font-size:.9rem;opacity:.88}
+.rep-cancel-foot a{
+  color:#991b1b;font-weight:800;text-decoration:underline;text-underline-offset:3px;
+  text-decoration-thickness:1px;transition:color .15s;
+}
+.rep-cancel-foot a:hover{color:#450a0a}
 </style>{% endblock %}
 
 {% block content %}
@@ -263,14 +304,14 @@
   </div>
 
   <p style="font-size:.8rem;color:var(--muted);margin:-8px 0 18px;font-weight:600;line-height:1.5">
-    الأرقام أدناه للطلبات بحالة <strong>مطبوعة / مكتملة</strong> ضمن الفترة المختارة فقط (حسب تاريخ التسجيل في النظام).
+    الأرقام أدناه للطلبات بحالة <strong>مطبوعة / مكتملة</strong> ضمن الفترة (حسب <strong>تاريخ إنشاء</strong> الطلب). <strong>قسم الطلبات الملغاة</strong> يعتمد على <strong>تاريخ الإلغاء</strong> ضمن نفس الفترة — للمراجعة فقط.
   </p>
 
   <div class="rep-kpi4">
     <div class="rep-kpi rep-kpi--rev">
       <div class="rep-kpi-ic" style="background:var(--suc-l);color:#059669"><i class="fas fa-coins"></i></div>
       <div class="rep-kpi-val">{{ total_revenue|floatformat:0 }}<small> ج</small></div>
-      <div class="rep-kpi-lbl">إجمالي المبيعات المسجّلة</div>
+      <div class="rep-kpi-lbl">إجمالي الإيراد <span style="font-size:.65rem;font-weight:600;opacity:.85">(مبيعات الطلبات + زيادة درج للشيفتات المغلقة في الفترة)</span></div>
     </div>
     <div class="rep-kpi rep-kpi--ord">
       <div class="rep-kpi-ic" style="background:#eef2ff;color:#4f46e5"><i class="fas fa-receipt"></i></div>
@@ -286,6 +327,27 @@
       <div class="rep-kpi-ic" style="background:var(--pri-l);color:var(--pri-d)"><i class="fas fa-chart-line"></i></div>
       <div class="rep-kpi-val" style="color:{% if profit >= 0 %}var(--suc){% else %}var(--dan){% endif %}">{{ profit|floatformat:0 }}<small> ج</small></div>
       <div class="rep-kpi-lbl">صافي الربح (مبيعات − مصاريف الفترة)</div>
+    </div>
+  </div>
+
+  <div class="rep-cancel-card">
+    <div class="rep-cancel-card-hd">
+      <div class="rep-cancel-ic" aria-hidden="true"><i class="fas fa-ban"></i></div>
+      <div class="rep-cancel-card-titles"><strong>طلبات ملغاة</strong></div>
+    </div>
+    <div class="rep-cancel-stats">
+      <div class="rep-cancel-stat">
+        <div class="lbl">عدد الطلبات الملغاة</div>
+        <div class="val">{{ cancelled_orders_count }}<small> طلب</small></div>
+      </div>
+      <div class="rep-cancel-stat">
+        <div class="lbl">قيمة الملغي (مرجعي)</div>
+        <div class="val">{{ cancelled_orders_value|floatformat:2 }}<small> ج</small></div>
+      </div>
+    </div>
+    <div class="rep-cancel-foot">
+      <i class="fas fa-circle-info" aria-hidden="true"></i>
+      <span>لمشاهدة <strong>سبب الإلغاء</strong> لكل طلب، راجع <a href="{% url 'admin_history' %}">سجل الطلبات</a> وافتح تفاصيل الطلب الملغي.</span>
     </div>
   </div>
 
@@ -380,7 +442,7 @@
       <div class="card" style="margin-bottom:14px">
         <div class="card-hdr"><span>نوع الطلب (داخلي / ديليفري)</span></div>
         <div class="type-row">
-          <span style="font-weight:700">داخل المحل</span>
+          <span style="font-weight:700">داخلي</span>
           <div style="text-align:left">
             <div style="font-weight:800">{{ dine_count }} طلب</div>
             <div style="font-size:.8rem;color:var(--muted)">{{ dine_revenue|floatformat:0 }} ج</div>

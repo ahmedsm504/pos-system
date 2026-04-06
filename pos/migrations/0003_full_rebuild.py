@@ -79,7 +79,7 @@ class Migration(migrations.Migration):
             name='Order',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True)),
-                ('order_type', models.CharField(choices=[('dine_in','داخل المحل'),('delivery','ديليفري')], default='dine_in', max_length=20, verbose_name='نوع الطلب')),
+                ('order_type', models.CharField(choices=[('dine_in','داخلي'),('delivery','ديليفري')], default='dine_in', max_length=20, verbose_name='نوع الطلب')),
                 ('status', models.CharField(choices=[('open','مفتوح'),('printed','قيد الانتظار'),('completed','مكتمل'),('cancelled','ملغي')], default='open', max_length=20, verbose_name='الحالة')),
                 ('notes', models.TextField(blank=True, verbose_name='ملاحظات')),
                 ('customer_name', models.CharField(blank=True, max_length=150, verbose_name='اسم العميل')),

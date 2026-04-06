@@ -75,7 +75,8 @@
         {% if order.printed_at %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الطباعة</span><strong>{{ order.printed_at|time:"H:i" }}</strong></div>{% endif %}
         {% if order.completed_at %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الاكتمال</span><strong>{{ order.completed_at|time:"H:i" }}</strong></div>{% endif %}
         {% if order.cancelled_at %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الإلغاء</span><strong>{{ order.cancelled_at|time:"H:i" }}</strong></div>{% endif %}
-        {% if order.cancel_approved_by %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">ألغاه</span><strong style="color:var(--dan)">{{ order.cancel_approved_by.username }}</strong></div>{% endif %}
+        {% if order.cancel_approved_by %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وافق على الإلغاء</span><strong style="color:var(--dan)">{{ order.cancel_approved_by.username }}</strong></div>{% endif %}
+        {% if order.cancellation_reason %}<div style="margin-top:10px;padding:10px 12px;background:var(--dan-l);border-radius:9px;font-size:.8rem;color:#7f1d1d;line-height:1.45"><strong>سبب الإلغاء:</strong> {{ order.cancellation_reason }}</div>{% endif %}
       </div>
     </div>
   </div>

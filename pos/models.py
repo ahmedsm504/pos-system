@@ -113,7 +113,7 @@ class Order(models.Model):
         ('completed','مكتمل'),
         ('cancelled','ملغي'),
     ]
-    TYPE_CHOICES = [('dine_in','داخل المحل'),('delivery','ديليفري')]
+    TYPE_CHOICES = [('dine_in','داخلي'),('delivery','ديليفري')]
 
     cashier          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='orders', verbose_name='الكاشير')
     order_type       = models.CharField(max_length=20, choices=TYPE_CHOICES, default='dine_in', verbose_name='نوع الطلب')
@@ -130,6 +130,11 @@ class Order(models.Model):
     completed_at     = models.DateTimeField(null=True, blank=True)
     cancelled_at     = models.DateTimeField(null=True, blank=True)
     cancel_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_cancels')
+    cancellation_reason = models.TextField(
+        blank=True,
+        verbose_name='سبب الإلغاء',
+        help_text='يُسجَّل عند الإلغاء بموافقة المدير؛ الطلب الملغي لا يُحسب في المبيعات.',
+    )
 
     class Meta:
         verbose_name='طلب'; verbose_name_plural='الطلبات'; ordering=['-created_at']
@@ -213,6 +218,16 @@ class Shift(models.Model):
         max_digits=10, decimal_places=2, null=True, blank=True,
         verbose_name='الفرق (الدرج − المطابقة)',
         help_text='موجب = زيادة في الدرج، سالب = عجز عن المطابقة.',
+    )
+    orders_total_at_close = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        verbose_name='مجموع مبيعات الطلبات عند الإغلاق',
+        help_text='لقطة: طلبات مطبوعة + مكتملة ضمن الشيفت وقت العدّ.',
+    )
+    revenue_booked = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        verbose_name='إيراد مسجّل',
+        help_text='للتقارير: مبيعات الطلبات + زيادة الدرج إن وُجدت؛ عند العجز = المبيعات فقط.',
     )
     notes          = models.TextField(blank=True)
     class Meta:

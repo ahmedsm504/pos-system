@@ -85,8 +85,20 @@ def _item_form_category_groups():
 def dashboard(request):
     today = date.today()
     orders_today = Order.objects.filter(created_at__date=today).exclude(status='cancelled')
-    revenue_today = sum(o.total for o in orders_today.filter(status__in=['printed','completed']))
+    revenue_orders = sum(
+        Decimal(str(o.total)) for o in orders_today.filter(status__in=['printed','completed'])
+    )
+    surplus_shifts = Shift.objects.filter(
+        status='closed',
+        end_time__date=today,
+        difference__gt=0,
+    ).aggregate(s=Sum('difference'))['s']
+    revenue_surplus = (
+        Decimal(str(surplus_shifts)) if surplus_shifts is not None else Decimal('0')
+    )
+    revenue_today = revenue_orders + revenue_surplus
     expenses_today = InventoryEntry.objects.filter(date=today).aggregate(t=Sum('total_cost'))['t'] or 0
+    expenses_today = Decimal(str(expenses_today)) if expenses_today is not None else Decimal('0')
     profit_today = revenue_today - expenses_today
 
     top_item = (OrderItem.objects
@@ -97,11 +109,16 @@ def dashboard(request):
 
     recent_orders = Order.objects.filter(created_at__date=today).select_related('cashier','table','waiter','driver')[:8]
 
+    cancelled_orders_today = Order.objects.filter(
+        created_at__date=today, status='cancelled'
+    ).count()
+
     return render(request, 'pos/admin/dashboard.html', {
         'revenue_today':  revenue_today,
         'expenses_today': expenses_today,
         'profit_today':   profit_today,
         'orders_count':   orders_today.count(),
+        'cancelled_orders_today': cancelled_orders_today,
         'top_item':       top_item,
         'recent_orders':  recent_orders,
         'open_orders':    Order.objects.filter(status__in=['open','printed']).count(),
@@ -732,7 +749,30 @@ def reports(request):
     )
     orders_list = list(orders_qs)
 
+    cancelled_orders = list(
+        Order.objects.filter(
+            status='cancelled',
+            cancelled_at__date__range=[start, end],
+        )
+        .select_related('cashier')
+        .prefetch_related('items__menu_item')
+    )
+    cancelled_orders_count = len(cancelled_orders)
+    cancelled_orders_value = sum(
+        (_order_total(o) for o in cancelled_orders),
+        Decimal(0),
+    )
+
     total_revenue = sum((_order_total(o) for o in orders_list), Decimal(0))
+    shift_surplus = Shift.objects.filter(
+        status='closed',
+        end_time__date__range=[start, end],
+        difference__gt=0,
+    ).aggregate(s=Sum('difference'))['s']
+    shift_surplus = (
+        Decimal(str(shift_surplus)) if shift_surplus is not None else Decimal('0')
+    )
+    total_revenue = total_revenue + shift_surplus
     total_orders = len(orders_list)
 
     dine_list = [o for o in orders_list if o.order_type == 'dine_in']
@@ -798,6 +838,12 @@ def reports(request):
         d = o.created_at.date()
         by_date[d]['rev'] += _order_total(o)
         by_date[d]['count'] += 1
+    for s in Shift.objects.filter(
+        status='closed',
+        end_time__date__range=[start, end],
+        difference__gt=0,
+    ):
+        by_date[s.end_time.date()]['rev'] += Decimal(str(s.difference))
 
     daily = []
     delta = (end - start).days + 1
@@ -861,6 +907,8 @@ def reports(request):
         'days_range': list(range(1, 32)),
         'total_revenue': total_revenue,
         'total_orders': total_orders,
+        'cancelled_orders_count': cancelled_orders_count,
+        'cancelled_orders_value': cancelled_orders_value,
         'dine_revenue': dine_revenue,
         'delivery_revenue': delivery_revenue,
         'dine_count': len(dine_list),
@@ -906,9 +954,18 @@ def history(request):
         .prefetch_related('items__menu_item')
         .order_by('-created_at')
     )
-    day_revenue = sum(
-        o.total for o in orders if o.status in ('printed', 'completed')
+    day_revenue_orders = sum(
+        Decimal(str(o.total)) for o in orders if o.status in ('printed', 'completed')
     )
+    surplus_day = Shift.objects.filter(
+        status='closed',
+        end_time__date=selected,
+        difference__gt=0,
+    ).aggregate(s=Sum('difference'))['s']
+    surplus_day = (
+        Decimal(str(surplus_day)) if surplus_day is not None else Decimal('0')
+    )
+    day_revenue = day_revenue_orders + surplus_day
     year_now = today.year
     year_options = list(range(year_now - 4, year_now + 2))
     return render(

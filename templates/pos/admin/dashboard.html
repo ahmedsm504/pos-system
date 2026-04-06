@@ -45,7 +45,7 @@
     <div class="kpi-glow"></div>
     <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-coins"></i></div><span class="kpi-lbl-t">اليوم</span></div>
     <div class="kpi-val">{{ revenue_today|floatformat:0 }}<small> ج</small></div>
-    <div class="kpi-sub">إيراد اليوم</div>
+    <div class="kpi-sub">إيراد اليوم <span style="font-size:.65rem;font-weight:600;color:var(--muted)">(مبيعات + زيادة درج الشيفت)</span></div>
   </div>
   <div class="kpi r">
     <div class="kpi-glow"></div>
@@ -63,7 +63,7 @@
     <div class="kpi-glow"></div>
     <div class="kpi-top"><div class="kpi-icon"><i class="fas fa-receipt"></i></div><span class="kpi-lbl-t">{{ open_orders }} نشط</span></div>
     <div class="kpi-val">{{ orders_count }}</div>
-    <div class="kpi-sub">طلبات اليوم</div>
+    <div class="kpi-sub">طلبات اليوم <span style="font-size:.72rem;font-weight:700;color:#b91c1c">· ملغي: {{ cancelled_orders_today }}</span></div>
   </div>
 </div>
 
