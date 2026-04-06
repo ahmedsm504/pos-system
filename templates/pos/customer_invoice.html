@@ -1,0 +1,323 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>فاتورة #{{ order.id }} — نسخة العميل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Cairo','Segoe UI',Tahoma,sans-serif;
+  background:#fff;
+  color:#000;
+  display:flex;
+  justify-content:center;
+  padding:0;
+  margin:0;
+}
+.invoice-page{
+  width:8cm;
+  background:#fff;
+  overflow:hidden;
+  padding:0 0 12px;
+}
+
+.inv-header{
+  padding:14px 10px 10px;
+  text-align:center;
+}
+.inv-logo{
+  width:5cm;
+  height:auto;
+  margin-bottom:4px;
+}
+.inv-brand{
+  font-size:.85rem;
+  font-weight:900;
+  color:#000;
+  letter-spacing:.04em;
+  margin-bottom:1px;
+}
+.inv-sub{
+  font-size:.6rem;
+  color:#000;
+  letter-spacing:.08em;
+}
+
+.inv-sep{
+  border:none;
+  border-top:1px dashed #000;
+  margin:6px 8px;
+}
+.inv-sep-solid{
+  border:none;
+  border-top:1.5px solid #000;
+  margin:6px 8px;
+}
+
+.inv-meta{
+  padding:4px 10px;
+}
+.inv-meta-row{
+  display:flex;
+  justify-content:space-between;
+  font-size:.7rem;
+  color:#000;
+  line-height:1.6;
+}
+.inv-meta-row strong{font-weight:800}
+
+.inv-delivery-box{
+  margin:4px 10px;
+  padding:6px 8px;
+  border:1px solid #000;
+  border-radius:4px;
+  font-size:.68rem;
+  color:#000;
+}
+.inv-delivery-box div{line-height:1.5}
+
+.inv-items{
+  padding:4px 8px;
+}
+.inv-items-title{
+  font-size:.68rem;
+  font-weight:800;
+  color:#000;
+  text-align:center;
+  margin-bottom:4px;
+  padding-bottom:3px;
+  border-bottom:1px solid #000;
+}
+.inv-tbl{
+  width:100%;
+  border-collapse:collapse;
+}
+.inv-tbl th{
+  text-align:right;
+  font-size:.6rem;
+  color:#000;
+  font-weight:800;
+  padding:3px 2px;
+  border-bottom:1px solid #000;
+}
+.inv-tbl td{
+  padding:4px 2px;
+  font-size:.68rem;
+  border-bottom:1px dotted #999;
+  vertical-align:top;
+  color:#000;
+}
+.inv-tbl tr:last-child td{border-bottom:none}
+.inv-item-name{font-weight:700;font-size:.68rem}
+.inv-item-detail{font-size:.58rem;color:#000;margin-top:1px;line-height:1.25}
+.inv-item-qty{
+  text-align:center;
+  font-weight:800;
+  font-size:.68rem;
+}
+.inv-item-price{font-size:.66rem}
+.inv-item-total{font-weight:800;font-size:.68rem}
+
+.inv-notes{
+  margin:4px 10px;
+  padding:4px 6px;
+  border:1px solid #000;
+  border-radius:3px;
+  font-size:.64rem;
+  color:#000;
+}
+
+.inv-total-bar{
+  margin:6px 8px 2px;
+  padding:8px 10px;
+  border-top:2px solid #000;
+  border-bottom:2px solid #000;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.inv-total-label{font-size:.78rem;font-weight:800;color:#000}
+.inv-total-amount{font-size:1.1rem;font-weight:900;color:#000}
+
+.inv-footer{
+  text-align:center;
+  padding:8px 10px 2px;
+}
+.inv-phones{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin-bottom:4px;
+}
+.inv-phone{
+  font-size:.7rem;
+  font-weight:800;
+  color:#000;
+  direction:ltr;
+}
+.inv-thanks{
+  font-size:.72rem;
+  font-weight:900;
+  color:#000;
+  margin-bottom:2px;
+}
+.inv-tagline{
+  font-size:.58rem;
+  color:#000;
+}
+
+.inv-print-bar{
+  text-align:center;
+  padding:12px 8px;
+}
+.inv-print-btn{
+  background:#000;
+  color:#fff;
+  border:none;
+  padding:10px 28px;
+  border-radius:6px;
+  font-size:.82rem;
+  font-weight:800;
+  cursor:pointer;
+  font-family:inherit;
+}
+.inv-print-btn:hover{opacity:.85}
+
+@page{size:72mm auto;margin:0}
+@media print{
+  html,body{width:72mm!important;margin:0!important;padding:0!important;background:#fff!important}
+  .invoice-page{width:72mm!important;margin:0!important;padding:0 0 8px!important;box-shadow:none!important;border-radius:0!important}
+  .inv-print-bar{display:none!important}
+  .inv-hdr img{width:4cm!important}
+}
+</style>
+</head>
+<body>
+
+<div class="invoice-page">
+  <div class="inv-header">
+    <img src="{% static 'img/logo.png' %}" alt="New Lamory" class="inv-logo">
+    <div class="inv-brand">New Lamory</div>
+    <div class="inv-sub">مطعم &amp; كافيه<br>RESTAURANT &amp; CAFE</div>
+  </div>
+
+  <hr class="inv-sep-solid">
+
+  <div class="inv-meta">
+    <div class="inv-meta-row">
+      <span>رقم الفاتورة</span>
+      <strong>#{{ order.id }}</strong>
+    </div>
+    <div class="inv-meta-row">
+      <span>التاريخ</span>
+      <strong>{{ order.created_at|date:"Y/m/d" }}</strong>
+    </div>
+    <div class="inv-meta-row">
+      <span>الوقت</span>
+      <strong>{{ order.created_at|time:"h:i A" }}</strong>
+    </div>
+    <div class="inv-meta-row">
+      <span>نوع الطلب</span>
+      <strong>{% if order.order_type == 'delivery' %}ديليفري{% else %}داخلي{% endif %}</strong>
+    </div>
+    {% if order.order_type == 'dine_in' and order.table %}
+    <div class="inv-meta-row">
+      <span>الطاولة</span>
+      <strong>{{ order.table }}</strong>
+    </div>
+    {% endif %}
+    {% if order.waiter %}
+    <div class="inv-meta-row">
+      <span>الويتر</span>
+      <strong>{{ order.waiter }}</strong>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if order.order_type == 'delivery' %}
+  <div class="inv-delivery-box">
+    <div style="font-weight:800;margin-bottom:1px">معلومات التوصيل</div>
+    {% if order.customer_name %}<div>العميل: {{ order.customer_name }}</div>{% endif %}
+    {% if order.customer_phone %}<div>الهاتف: {{ order.customer_phone }}</div>{% endif %}
+    {% if order.customer_address %}<div>العنوان: {{ order.customer_address }}</div>{% endif %}
+  </div>
+  {% endif %}
+
+  <hr class="inv-sep">
+
+  <div class="inv-items">
+    <div class="inv-items-title">تفاصيل الطلب</div>
+    <table class="inv-tbl">
+      <thead>
+        <tr>
+          <th style="width:44%">الصنف</th>
+          <th style="text-align:center;width:14%">الكمية</th>
+          <th style="width:20%">السعر</th>
+          <th style="width:22%">الإجمالي</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in order.items.all %}
+        <tr>
+          <td>
+            <div class="inv-item-name">
+              {% if item.size_label %}{{ item.menu_item.name }} ({{ item.size_label }}){% else %}{{ item.menu_item.name }}{% endif %}
+            </div>
+            {% if item.drink_detail %}
+            <div class="inv-item-detail">{{ item.drink_detail }}</div>
+            {% endif %}
+            {% if item.extras_json and item.extras_json.addons %}
+            <div class="inv-item-detail">
+              {% for a in item.extras_json.addons %}+ {{ a.name|default:"—" }}{% if a.price %} ({{ a.price }} ج){% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
+            </div>
+            {% endif %}
+            {% if item.notes %}
+            <div class="inv-item-detail">{{ item.notes }}</div>
+            {% endif %}
+          </td>
+          <td class="inv-item-qty">{{ item.quantity }}</td>
+          <td class="inv-item-price">{{ item.price }} ج</td>
+          <td class="inv-item-total">{{ item.subtotal|floatformat:2 }} ج</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if order.notes %}
+  <div class="inv-notes">
+    ملاحظات: {{ order.notes }}
+  </div>
+  {% endif %}
+
+  <div class="inv-total-bar">
+    <span class="inv-total-label">الإجمالي</span>
+    <span class="inv-total-amount">{{ order.total|floatformat:2 }} ج.م</span>
+  </div>
+
+  <hr class="inv-sep">
+
+  <div class="inv-footer">
+    <div class="inv-phones">
+      <span class="inv-phone">01014048058</span>
+      <span class="inv-phone">-</span>
+      <span class="inv-phone">01011534367</span>
+    </div>
+    <div class="inv-thanks">شكراً لزيارتكم</div>
+    <div class="inv-tagline">نتمنى لكم تجربة ممتعة — New Lamory</div>
+  </div>
+
+  <div class="inv-print-bar">
+    <button class="inv-print-btn" onclick="window.print()">
+      طباعة الفاتورة
+    </button>
+  </div>
+</div>
+
+</body>
+</html>

@@ -995,6 +995,16 @@ def order_history_detail(request, order_id):
     return render(request, 'pos/admin/order_detail.html', {'order': order})
 
 
+@admin_required
+def admin_customer_invoice(request, order_id):
+    order = get_object_or_404(
+        Order.objects.select_related('cashier', 'table', 'waiter', 'driver')
+                     .prefetch_related('items__menu_item__category', 'items__selected_size'),
+        id=order_id
+    )
+    return render(request, 'pos/customer_invoice.html', {'order': order})
+
+
 # ══════════════════════════════════════════════════════════════════════════
 #  SHIFTS
 # ══════════════════════════════════════════════════════════════════════════

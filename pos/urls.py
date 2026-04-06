@@ -59,6 +59,7 @@ urlpatterns = [
     # History
     path('admin-panel/history/',             admin_views.history,             name='admin_history'),
     path('admin-panel/history/<int:order_id>/', admin_views.order_history_detail, name='admin_order_detail'),
+    path('admin-panel/history/<int:order_id>/invoice/', admin_views.admin_customer_invoice, name='admin_customer_invoice'),
 
     # Shifts
     path('admin-panel/shifts/',              admin_views.shifts_list,         name='admin_shifts'),
@@ -73,6 +74,7 @@ urlpatterns = [
     path('cashier/',                         cashier_views.dashboard,         name='cashier_dashboard'),
     path('cashier/order/new/',               cashier_views.new_order,         name='cashier_new_order'),
     path('cashier/order/<int:order_id>/',    cashier_views.order_detail,      name='cashier_order_detail'),
+    path('cashier/order/<int:order_id>/invoice/', cashier_views.customer_invoice, name='cashier_customer_invoice'),
     path('cashier/orders/',                  cashier_views.orders_list,       name='cashier_orders'),
     path('cashier/inventory/',               cashier_views.cashier_inventory, name='cashier_inventory'),
     path('cashier/inventory/submit/',         cashier_views.cashier_inventory_submit, name='cashier_inventory_submit'),

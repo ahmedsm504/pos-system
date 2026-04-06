@@ -174,6 +174,17 @@ def order_detail(request, order_id):
 
 
 @cashier_required
+def customer_invoice(request, order_id):
+    order = get_object_or_404(
+        Order.objects.select_related('table', 'waiter', 'driver')
+        .prefetch_related('items__menu_item__category', 'items__selected_size'),
+        id=order_id,
+        cashier=request.user,
+    )
+    return render(request, 'pos/customer_invoice.html', {'order': order})
+
+
+@cashier_required
 def orders_list(request):
     today = date.today()
     orders = Order.objects.filter(
