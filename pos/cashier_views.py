@@ -1277,6 +1277,22 @@ def submit_shift_end(request):
 #  PRINT HELPERS
 # ══════════════════════════════════════════════════════════════════════════
 
+def _append_order_notes_for_station_ticket(lines, order):
+    """ملاحظات الطلب كاملة (ليست ملاحظة صنف) على تذكرة المطبخ/البار."""
+    order_note = (order.notes or '').strip()
+    if not order_note:
+        return
+    if len(order_note) > 500:
+        order_note = order_note[:497] + '…'
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    lines.append({
+        'text': f'ملاحظة الطلب: {order_note}',
+        'align': 'center',
+        'bold': True,
+        'size': 'small',
+    })
+
+
 def _build_main_lines(order):
     items      = order.items.select_related('menu_item__category').all()
     now_date   = timezone.localtime(order.created_at).strftime('%Y-%m-%d')
@@ -1394,6 +1410,8 @@ def _build_section_lines_for_items(order, cat_type, items, action_label=''):
     elif order.order_type == 'delivery' and order.customer_name:
         lines.append({'text': f'العميل: {order.customer_name}', 'align': 'center', 'bold': True})
 
+    _append_order_notes_for_station_ticket(lines, order)
+
     lines.append({'divider': True, 'divider_style': 'double'})
 
     for item in items:
@@ -1488,6 +1506,8 @@ def _build_remove_item_station_lines(order, cat_type, removed_info, remaining_it
         lines.append({'text': f'الطاولة: {order.tables_label()}', 'align': 'center', 'bold': True})
     elif order.order_type == 'delivery' and order.customer_name:
         lines.append({'text': f'العميل: {order.customer_name}', 'align': 'center', 'bold': True})
+
+    _append_order_notes_for_station_ticket(lines, order)
 
     lines.append({'divider': True, 'divider_style': 'double'})
 
