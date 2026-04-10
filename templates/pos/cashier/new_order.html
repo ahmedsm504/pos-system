@@ -1494,7 +1494,6 @@ function payloadItems(){
 
 async function openPreview(){
   if(!cartLines.length)return;
-  if(!menuKind){showToast('اختر نوع المنيو أولاً','war');return;}
   const btn=document.getElementById('previewBtn');
   btn.disabled=true;
   btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> جاري...';
