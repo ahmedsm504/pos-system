@@ -1,4 +1,4 @@
-{% extends 'pos/base.html' %}
+{% extends 'pos/base.html' %}{% load time12 %}
 {% block title %}الطلبات{% endblock %}
 {% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
 {% block page_title %}الطلبات{% endblock %}
@@ -163,7 +163,7 @@
         {{ o.tables_label }}
       </div>
       <div class="orow-meta">
-        <span><i class="fas fa-clock"></i>{{ o.created_at|time:"H:i" }}</span>
+        <span><i class="fas fa-clock"></i>{{ o.created_at|time12 }}</span>
         <span class="meta-sep"></span>
         <span><i class="fas fa-user"></i>{{ o.cashier.username|truncatechars:12 }}</span>
         <span class="meta-sep"></span>

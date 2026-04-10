@@ -1,4 +1,4 @@
-{% extends 'pos/cashier/base.html' %}
+{% extends 'pos/cashier/base.html' %}{% load time12 %}
 {% block title %}إنهاء الشيفت{% endblock %}
 {% block page_icon %}<i class="fas fa-clock"></i>{% endblock %}
 {% block page_title %}إنهاء الشيفت{% endblock %}
@@ -7,7 +7,7 @@
   <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;padding:24px;color:#fff;margin-bottom:20px;text-align:center">
     <i class="fas fa-clock" style="font-size:2.5rem;margin-bottom:12px;display:block;opacity:.9"></i>
     <h2 style="font-size:1.2rem;margin-bottom:6px">إنهاء الشيفت</h2>
-    {% if shift %}<p style="opacity:.85;font-size:.85rem;margin-top:4px">بدأ: {{ shift.start_time|date:"H:i" }}</p>{% endif %}
+    {% if shift %}<p style="opacity:.85;font-size:.85rem;margin-top:4px">بدأ: {{ shift.start_time|time12 }}</p>{% endif %}
   </div>
 
   {% if shift and pending_orders_count %}

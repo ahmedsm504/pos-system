@@ -1,4 +1,4 @@
-{% extends 'pos/admin/base.html' %}
+{% extends 'pos/admin/base.html' %}{% load time12 %}
 {% block title %}لوحة التحكم{% endblock %}
 {% block page_icon %}<i class="fas fa-chart-pie"></i>{% endblock %}
 {% block page_title %}لوحة التحكم{% endblock %}
@@ -115,7 +115,7 @@
           {% else %}<span class="badge b-dan">ملغي</span>{% endif %}
         </td>
         <td><strong>{{ o.total|floatformat:2 }} ج</strong></td>
-        <td style="color:var(--muted)">{{ o.created_at|time:"H:i" }}</td>
+        <td style="color:var(--muted)">{{ o.created_at|time12 }}</td>
       </tr>
       {% endfor %}
     </tbody>

@@ -1,4 +1,4 @@
-{% extends 'pos/admin/base.html' %}
+{% extends 'pos/admin/base.html' %}{% load time12 %}
 {% block title %}الكاشيرين{% endblock %}
 {% block page_icon %}<i class="fas fa-users"></i>{% endblock %}
 {% block page_title %}إدارة الكاشيرين{% endblock %}
@@ -119,7 +119,7 @@
             </div>
           </td>
           <td style="color:var(--text2);font-size:.82rem;font-variant-numeric:tabular-nums">
-            {{ u.last_login|date:"d/m/Y H:i"|default:"لم يدخل بعد" }}
+            {% if u.last_login %}{{ u.last_login|datetime12:"d/m/Y" }}{% else %}لم يدخل بعد{% endif %}
           </td>
           <td>
             <div class="cx-actions">

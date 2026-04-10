@@ -274,9 +274,9 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 (function(){
   const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
   function tick(){
-    const n=new Date();
+    const n=new Date();let h=n.getHours(),p=h<12?'ص':'م';h=h%12||12;
     document.getElementById('clock').textContent=
-      days[n.getDay()]+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+      days[n.getDay()]+' '+h+':'+String(n.getMinutes()).padStart(2,'0')+' '+p;
   }
   tick(); setInterval(tick,15000);
 })();

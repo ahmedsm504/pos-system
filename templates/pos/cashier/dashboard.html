@@ -1,4 +1,4 @@
-{% extends 'pos/cashier/base.html' %}
+{% extends 'pos/cashier/base.html' %}{% load time12 %}
 {% block title %}الرئيسية{% endblock %}
 {% block page_icon %}<i class="fas fa-home"></i>{% endblock %}
 {% block page_title %}مرحباً، {{ request.user.get_full_name|default:request.user.username }}{% endblock %}
@@ -181,7 +181,7 @@ a.dash-kpi:hover{transform:translateY(-3px);box-shadow:0 16px 40px -16px rgba(0,
           {% if o.order_type == 'delivery' %}🛵 {{ o.customer_name|default:"ديليفري" }}{% else %}🪑 {{ o.tables_label }}{% endif %}{% if o.waiter %} · {{ o.waiter }}{% endif %}
         </div>
         <div class="d-om">
-          <span><i class="fas fa-clock" style="opacity:.6"></i> {{ o.created_at|time:"H:i" }}</span>
+          <span><i class="fas fa-clock" style="opacity:.6"></i> {{ o.created_at|time12 }}</span>
           <span><i class="fas fa-box" style="opacity:.6"></i> {{ o.total_items }} صنف</span>
           <span><i class="fas fa-coins" style="opacity:.6"></i> {{ o.total|floatformat:2 }} ج</span>
         </div>

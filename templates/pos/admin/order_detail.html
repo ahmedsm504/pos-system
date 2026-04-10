@@ -1,5 +1,5 @@
 {% extends 'pos/admin/base.html' %}
-{% load static %}
+{% load static %}{% load time12 %}
 {% block title %}طلب #{{ order.display_number }}{% endblock %}
 {% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
 {% block page_title %}تفاصيل طلب #{{ order.display_number }}{% endblock %}
@@ -242,10 +242,10 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;font-size:.84rem">
         <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">الكاشير</span><strong>{{ order.cashier.username|default:"—" }}</strong></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الطلب</span><strong>{{ order.created_at|date:"d/m H:i" }}</strong></div>
-        {% if order.printed_at %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الطباعة</span><strong>{{ order.printed_at|time:"H:i" }}</strong></div>{% endif %}
-        {% if order.completed_at %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الاكتمال</span><strong>{{ order.completed_at|time:"H:i" }}</strong></div>{% endif %}
-        {% if order.cancelled_at %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الإلغاء</span><strong>{{ order.cancelled_at|time:"H:i" }}</strong></div>{% endif %}
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الطلب</span><strong>{{ order.created_at|datetime12:"d/m" }}</strong></div>
+        {% if order.printed_at %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الطباعة</span><strong>{{ order.printed_at|time12 }}</strong></div>{% endif %}
+        {% if order.completed_at %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الاكتمال</span><strong>{{ order.completed_at|time12 }}</strong></div>{% endif %}
+        {% if order.cancelled_at %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وقت الإلغاء</span><strong>{{ order.cancelled_at|time12 }}</strong></div>{% endif %}
         {% if order.cancel_approved_by %}<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">وافق على الإلغاء</span><strong style="color:var(--dan)">{{ order.cancel_approved_by.username }}</strong></div>{% endif %}
         {% if order.cancellation_reason %}<div style="margin-top:10px;padding:10px 12px;background:var(--dan-l);border-radius:9px;font-size:.8rem;color:#7f1d1d;line-height:1.45"><strong>سبب الإلغاء:</strong> {{ order.cancellation_reason }}</div>{% endif %}
       </div>
@@ -270,7 +270,7 @@
         <div class="inv-meta">
           <div class="inv-mr"><span>رقم الفاتورة</span><strong>#{{ order.display_number }}</strong></div>
           <div class="inv-mr"><span>التاريخ</span><strong>{{ order.created_at|date:"Y/m/d" }}</strong></div>
-          <div class="inv-mr"><span>الوقت</span><strong>{{ order.created_at|time:"h:i A" }}</strong></div>
+          <div class="inv-mr"><span>الوقت</span><strong>{{ order.created_at|time12 }}</strong></div>
           <div class="inv-mr"><span>نوع الطلب</span><strong>{% if order.order_type == 'delivery' %}ديليفري{% else %}داخلي{% endif %}</strong></div>
           {% if order.order_type == 'dine_in' %}
           <div class="inv-mr"><span>الطاولة</span><strong id="admInvoiceTableVal">{{ order.tables_label }}</strong></div>

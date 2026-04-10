@@ -1,4 +1,4 @@
-{% extends 'pos/admin/base.html' %}
+{% extends 'pos/admin/base.html' %}{% load time12 %}
 {% block title %}الشيفتات{% endblock %}
 {% block page_icon %}<i class="fas fa-clock"></i>{% endblock %}
 {% block page_title %}الشيفتات ومراجعة الدرج{% endblock %}
@@ -108,10 +108,10 @@
               </div>
             </div>
           </td>
-          <td style="font-size:.8rem;font-variant-numeric:tabular-nums">{{ s.start_time|date:"d/m/Y" }}<br><span style="color:var(--muted)">{{ s.start_time|date:"H:i" }}</span></td>
+          <td style="font-size:.8rem;font-variant-numeric:tabular-nums">{{ s.start_time|date:"d/m/Y" }}<br><span style="color:var(--muted)">{{ s.start_time|time12 }}</span></td>
           <td style="font-size:.8rem;font-variant-numeric:tabular-nums">
             {% if s.end_time %}
-              {{ s.end_time|date:"d/m/Y" }}<br><span style="color:var(--muted)">{{ s.end_time|date:"H:i" }}</span>
+              {{ s.end_time|date:"d/m/Y" }}<br><span style="color:var(--muted)">{{ s.end_time|time12 }}</span>
             {% else %}
               <span class="sh-money muted">—</span>
             {% endif %}
@@ -170,9 +170,9 @@
               <div class="sh-body">
                 <p style="margin:0 0 12px"><a href="{% url 'admin_shift_detail' s.pk %}" class="btn btn-pri btn-sm"><i class="fas fa-list-ul"></i> فتح سجل الشيفت الكامل (طلبات + واردات)</a></p>
                 <div class="sh-kv">
-                  <div class="row"><span class="lbl">فتح الشيفت (أول تسجيل دخول / إنشاء شيفت)</span><span class="val">{{ s.start_time|date:"Y-m-d H:i" }}</span></div>
+                  <div class="row"><span class="lbl">فتح الشيفت (أول تسجيل دخول / إنشاء شيفت)</span><span class="val">{{ s.start_time|datetime12:"Y-m-d" }}</span></div>
                   {% if s.end_time %}
-                  <div class="row"><span class="lbl">إغلاق الشيفت (حفظ العدّ)</span><span class="val">{{ s.end_time|date:"Y-m-d H:i" }}</span></div>
+                  <div class="row"><span class="lbl">إغلاق الشيفت (حفظ العدّ)</span><span class="val">{{ s.end_time|datetime12:"Y-m-d" }}</span></div>
                   {% else %}
                   <div class="row"><span class="lbl">إغلاق الشيفت</span><span class="val muted">لا يزال مفتوحًا</span></div>
                   {% endif %}

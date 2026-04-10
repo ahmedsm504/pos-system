@@ -1,5 +1,5 @@
 {% extends 'pos/cashier/base.html' %}
-{% load static %}
+{% load static %}{% load time12 %}
 {% block title %}طلب #{{ order.display_number }}{% endblock %}
 {% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
 {% block page_title %}طلب #{{ order.display_number }}{% endblock %}
@@ -354,7 +354,7 @@
       </div>
       {% endif %}
       {% endif %}
-      <div class="info-row"><span style="color:var(--muted)">الوقت</span><strong>{{ order.created_at|time:"H:i" }}</strong></div>
+      <div class="info-row"><span style="color:var(--muted)">الوقت</span><strong>{{ order.created_at|time12 }}</strong></div>
       {% if order.status == 'cancelled' and order.cancellation_reason %}
       <div style="margin-top:10px;padding:10px 12px;background:#fef2f2;border-radius:10px;font-size:.78rem;color:#7f1d1d;line-height:1.45;border:1px solid #fecaca">
         <strong>سبب الإلغاء:</strong> {{ order.cancellation_reason }}
@@ -430,7 +430,7 @@
         <div class="inv-meta">
           <div class="inv-mr"><span>رقم الفاتورة</span><strong>#{{ order.display_number }}</strong></div>
           <div class="inv-mr"><span>التاريخ</span><strong>{{ order.created_at|date:"Y/m/d" }}</strong></div>
-          <div class="inv-mr"><span>الوقت</span><strong>{{ order.created_at|time:"h:i A" }}</strong></div>
+          <div class="inv-mr"><span>الوقت</span><strong>{{ order.created_at|time12 }}</strong></div>
           <div class="inv-mr"><span>نوع الطلب</span><strong>{% if order.order_type == 'delivery' %}ديليفري{% else %}داخلي{% endif %}</strong></div>
           {% if order.order_type == 'dine_in' %}
           <div class="inv-mr"><span>الطاولة</span><strong id="invoiceTableVal">{{ order.tables_label }}</strong></div>

@@ -1,4 +1,4 @@
-{% load static %}
+{% load static %}{% load time12 %}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -222,7 +222,7 @@ body{
     </div>
     <div class="inv-meta-row">
       <span>الوقت</span>
-      <strong>{{ order.created_at|time:"h:i A" }}</strong>
+      <strong>{{ order.created_at|time12 }}</strong>
     </div>
     <div class="inv-meta-row">
       <span>نوع الطلب</span>

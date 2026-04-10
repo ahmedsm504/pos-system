@@ -1,4 +1,4 @@
-{% extends 'pos/admin/base.html' %}
+{% extends 'pos/admin/base.html' %}{% load time12 %}
 {% block title %}سجل شيفت #{{ shift.id }}{% endblock %}
 {% block page_icon %}<i class="fas fa-list-timeline"></i>{% endblock %}
 {% block page_title %}سجل الشيفت #{{ shift.id }}{% endblock %}
@@ -49,9 +49,9 @@
 
 <div class="sd-meta">
   <span><i class="fas fa-user" style="color:var(--pri)"></i> {{ shift.cashier.get_full_name|default:shift.cashier.username }} <small style="color:var(--muted)">@{{ shift.cashier.username }}</small></span>
-  <span><i class="fas fa-play" style="color:#059669"></i> بداية: {{ shift.start_time|date:"Y-m-d H:i" }}</span>
+  <span><i class="fas fa-play" style="color:#059669"></i> بداية: {{ shift.start_time|datetime12:"Y-m-d" }}</span>
   {% if shift.end_time %}
-  <span><i class="fas fa-stop" style="color:#dc2626"></i> نهاية: {{ shift.end_time|date:"Y-m-d H:i" }}</span>
+  <span><i class="fas fa-stop" style="color:#dc2626"></i> نهاية: {{ shift.end_time|datetime12:"Y-m-d" }}</span>
   {% else %}
   <span><i class="fas fa-circle" style="color:#f59e0b"></i> شيفت مفتوح</span>
   {% endif %}
@@ -73,7 +73,7 @@
 <div class="sd-card" id="order-{{ obj.id }}">
   <div class="sd-card-h">
     <div>
-      <div class="sd-time"><i class="fas fa-clock"></i> {{ obj.created_at|date:"H:i:s" }} — طلب #{{ obj.display_number }}</div>
+      <div class="sd-time"><i class="fas fa-clock"></i> {{ obj.created_at|time12 }} — طلب #{{ obj.display_number }}</div>
       <div class="sd-badges" style="margin-top:8px">
         {% if obj.status == 'completed' %}<span class="badge b-suc">{{ obj.get_status_display }}</span>
         {% elif obj.status == 'cancelled' %}<span class="badge b-dan">{{ obj.get_status_display }}</span>
@@ -101,9 +101,9 @@
   {% endif %}
   {% if obj.printed_at or obj.completed_at or obj.cancelled_at %}
   <div class="sd-sub" style="font-size:.72rem;color:var(--muted)">
-    {% if obj.printed_at %}طباعة: {{ obj.printed_at|date:"Y-m-d H:i" }}{% endif %}
-    {% if obj.completed_at %}{% if obj.printed_at %} · {% endif %}اكتمال: {{ obj.completed_at|date:"Y-m-d H:i" }}{% endif %}
-    {% if obj.cancelled_at %}{% if obj.printed_at or obj.completed_at %} · {% endif %}إلغاء: {{ obj.cancelled_at|date:"Y-m-d H:i" }}{% endif %}
+    {% if obj.printed_at %}طباعة: {{ obj.printed_at|datetime12:"Y-m-d" }}{% endif %}
+    {% if obj.completed_at %}{% if obj.printed_at %} · {% endif %}اكتمال: {{ obj.completed_at|datetime12:"Y-m-d" }}{% endif %}
+    {% if obj.cancelled_at %}{% if obj.printed_at or obj.completed_at %} · {% endif %}إلغاء: {{ obj.cancelled_at|datetime12:"Y-m-d" }}{% endif %}
   </div>
   {% endif %}
   {% if obj.notes %}

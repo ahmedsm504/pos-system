@@ -21,6 +21,24 @@ except ImportError:
 
 log = logging.getLogger(__name__)
 
+
+def _fmt12(dt):
+    """تحويل datetime إلى نص وقت 12 ساعة بالعربي: مثال 08:30 م"""
+    local = timezone.localtime(dt)
+    h = local.hour
+    period = 'ص' if h < 12 else 'م'
+    h12 = h % 12 or 12
+    return f'{h12}:{local.minute:02d} {period}'
+
+
+def _fmt12_raw(dt):
+    """مثل _fmt12 لكن بدون تحويل localtime (الدخل localtime بالفعل)."""
+    h = dt.hour
+    period = 'ص' if h < 12 else 'م'
+    h12 = h % 12 or 12
+    return f'{h12}:{dt.minute:02d} {period}'
+
+
 from .shift_helpers import (
     revenue_booked_from_shift_close,
     shift_cancelled_orders_count,
@@ -313,7 +331,7 @@ def preview_order(request):
             'order_type':    data.get('order_type', 'dine_in'),
             'customer_name': data.get('customer_name', ''),
             'notes':         data.get('notes', ''),
-            'time':          timezone.localtime(timezone.now()).strftime('%Y-%m-%d  %H:%M'),
+            'time':          timezone.localtime(timezone.now()).strftime('%Y-%m-%d') + '  ' + _fmt12(timezone.now()),
             'cashier':       request.user.get_full_name() or request.user.username,
         })
     except Exception as e:
@@ -970,7 +988,7 @@ def _build_shift_report_lines(
     end_local = timezone.localtime(end)
     start_local = timezone.localtime(shift.start_time)
     rep_date = end_local.strftime('%Y-%m-%d')
-    rep_time = end_local.strftime('%H:%M')
+    rep_time = _fmt12_raw(end_local)
     cashier_name = cashier_user.get_full_name() or cashier_user.username
 
     def row(label, value, bold_val=False):
@@ -986,7 +1004,7 @@ def _build_shift_report_lines(
         {'text': 'تقارير اليوم — إنهاء الشيفت', 'align': 'center', 'bold': True, 'size': 'xlarge'},
         {'divider': True, 'divider_style': 'double'},
         {'text': f'تاريخ التقرير: {rep_date}   الوقت: {rep_time}', 'align': 'center', 'size': 'small'},
-        {'text': f'الشيفت: من {start_local.strftime("%H:%M %Y-%m-%d")} إلى {end_local.strftime("%H:%M %Y-%m-%d")}', 'align': 'center', 'size': 'small'},
+        {'text': f'الشيفت: من {_fmt12_raw(start_local)} {start_local.strftime("%Y-%m-%d")} إلى {_fmt12_raw(end_local)} {end_local.strftime("%Y-%m-%d")}', 'align': 'center', 'size': 'small'},
         {'divider': True, 'divider_style': 'double'},
     ]
 
@@ -1296,7 +1314,7 @@ def _append_order_notes_for_station_ticket(lines, order):
 def _build_main_lines(order):
     items      = order.items.select_related('menu_item__category').all()
     now_date   = timezone.localtime(order.created_at).strftime('%Y-%m-%d')
-    now_time   = timezone.localtime(order.created_at).strftime('%H:%M')
+    now_time   = _fmt12(order.created_at)
     type_label = 'داخلي' if order.order_type == 'dine_in' else 'ديليفري'
     cashier_name = order.cashier.get_full_name() or order.cashier.username
 
@@ -1380,7 +1398,7 @@ def _build_section_lines_for_items(order, cat_type, items, action_label=''):
         return []
 
     label = 'المطبخ' if cat_type == 'food' else 'البار'
-    now_time = timezone.localtime(order.created_at).strftime('%H:%M')
+    now_time = _fmt12(order.created_at)
     type_label = 'داخلي' if order.order_type == 'dine_in' else 'ديليفري'
     hdr = label if not action_label else f'{label} — {action_label}'
 
@@ -1486,7 +1504,7 @@ def _build_remove_item_station_lines(order, cat_type, removed_info, remaining_it
         return []
 
     label = 'المطبخ' if cat_type == 'food' else 'البار'
-    now_time = timezone.localtime(order.created_at).strftime('%H:%M')
+    now_time = _fmt12(order.created_at)
     type_label = 'داخلي' if order.order_type == 'dine_in' else 'ديليفري'
 
     lines = [

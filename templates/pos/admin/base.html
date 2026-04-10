@@ -330,7 +330,7 @@ body{font-family:'Cairo','Segoe UI',Tahoma,sans-serif;background:var(--bg);color
 // Clock
 (function(){
   const days=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-  function tick(){const n=new Date();document.getElementById('clk').textContent=days[n.getDay()]+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')}
+  function tick(){const n=new Date();let h=n.getHours(),p=h<12?'ص':'م';h=h%12||12;document.getElementById('clk').textContent=days[n.getDay()]+' '+h+':'+String(n.getMinutes()).padStart(2,'0')+' '+p}
   tick();setInterval(tick,15000);
 })();
 

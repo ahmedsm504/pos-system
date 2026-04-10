@@ -1,4 +1,4 @@
-{% extends 'pos/cashier/base.html' %}
+{% extends 'pos/cashier/base.html' %}{% load time12 %}
 {% block title %}طلبات الشيفت{% endblock %}
 {% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
 {% block page_title %}طلبات الشيفت{% endblock %}
@@ -146,7 +146,7 @@
           {% endif %}
         </div>
         <div class="od-meta">
-          <span><i class="fas fa-clock" style="opacity:.65"></i> {{ o.created_at|time:"H:i" }}</span>
+          <span><i class="fas fa-clock" style="opacity:.65"></i> {{ o.created_at|time12 }}</span>
           <span><i class="fas fa-box" style="opacity:.65"></i> {{ o.total_items }} صنف</span>
         </div>
       </div>

@@ -1,4 +1,4 @@
-{% extends 'pos/admin/base.html' %}
+{% extends 'pos/admin/base.html' %}{% load time12 %}
 {% block title %}سجل الطلبات{% endblock %}
 {% block page_icon %}<i class="fas fa-clock-rotate-left"></i>{% endblock %}
 {% block page_title %}سجل الطلبات{% endblock %}
@@ -140,7 +140,7 @@
       {% if o.waiter %} · {{ o.waiter }}{% endif %}
     </div>
     <div class="orow-meta">
-      <span><i class="fas fa-clock" style="margin-inline-end:4px;opacity:.75"></i> {{ o.created_at|time:"H:i" }}</span>
+      <span><i class="fas fa-clock" style="margin-inline-end:4px;opacity:.75"></i> {{ o.created_at|time12 }}</span>
       <span><i class="fas fa-user" style="margin-inline-end:4px;opacity:.75"></i> {{ o.cashier.username|default:"—" }}</span>
       <span><i class="fas fa-box" style="margin-inline-end:4px;opacity:.75"></i> {{ o.total_items }} صنف</span>
       {% if o.order_type == 'delivery' and o.driver %}<span><i class="fas fa-motorcycle" style="margin-inline-end:4px;opacity:.75"></i> {{ o.driver }}</span>{% endif %}
