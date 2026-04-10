@@ -181,6 +181,7 @@ def order_detail(request, order_id):
     busy = set()
     if order.status in ('open', 'printed') and order.order_type == 'dine_in':
         busy = busy_table_ids_global(exclude_order_id=order.id)
+    drivers = DeliveryDriver.objects.filter(is_active=True).order_by('name')
     return render(
         request,
         'pos/cashier/order_detail.html',
@@ -192,6 +193,7 @@ def order_detail(request, order_id):
             'tables_for_edit': all_tables,
             'table_edit_busy_ids': busy,
             'table_edit_selected_ids': selected_tids,
+            'drivers': drivers,
         },
     )
 
@@ -448,6 +450,42 @@ def update_order_tables(request, order_id):
         return JsonResponse({'success': True, 'tables_label': order.tables_label()})
     except Exception as e:
         log.error(f'update_order_tables: {e}')
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_POST
+def update_order_driver(request, order_id):
+    """تعيين أو إزالة طيار الديليفري (كاشير على طلبه، أو مدير)."""
+    try:
+        order = get_object_or_404(Order, id=order_id)
+        if not request.user.is_staff and order.cashier_id != request.user.id:
+            return JsonResponse({'success': False, 'error': 'غير مصرح'}, status=403)
+        if order.status in ('completed', 'cancelled'):
+            return JsonResponse({'success': False, 'error': 'لا يمكن تعديل طلب منتهٍ أو ملغى'})
+        if order.order_type != 'delivery':
+            return JsonResponse({'success': False, 'error': 'تعيين الطيار لطلبات الديليفري فقط'})
+        data = json.loads(request.body or '{}')
+        raw = data.get('driver_id')
+        driver_id = None
+        if raw not in (None, ''):
+            try:
+                driver_id = int(raw)
+            except (TypeError, ValueError):
+                return JsonResponse({'success': False, 'error': 'معرّف الطيار غير صالح'})
+        if driver_id:
+            drv = DeliveryDriver.objects.filter(id=driver_id, is_active=True).first()
+            if not drv:
+                return JsonResponse({'success': False, 'error': 'الطيار غير متاح'})
+            order.driver_id = driver_id
+        else:
+            order.driver_id = None
+        order.save(update_fields=['driver_id'])
+        order.refresh_from_db()
+        label = str(order.driver) if order.driver else '— بدون طيار —'
+        return JsonResponse({'success': True, 'driver_label': label, 'driver_id': order.driver_id})
+    except Exception as e:
+        log.error(f'update_order_driver: {e}')
         return JsonResponse({'success': False, 'error': str(e)})
 
 

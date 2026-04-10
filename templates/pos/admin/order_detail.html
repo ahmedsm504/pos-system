@@ -57,6 +57,11 @@
 .adm-table-picker.table-picker.open{z-index:10050}
 .adm-table-picker .table-picker-trigger-text{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .adm-table-picker .table-picker-row:has(input:disabled){opacity:.45;cursor:not-allowed}
+.adm-driver-picker.table-picker{z-index:2}
+.adm-driver-picker.table-picker.open{z-index:10050}
+.adm-driver-picker .table-picker-trigger-ic{background:linear-gradient(145deg,#ffedd5,#fdba74);color:#9a3412}
+.adm-driver-picker .table-picker-row:has(.driver-rb:checked){background:linear-gradient(90deg,#fff7ed,#ffedd5)}
+.adm-driver-picker .table-picker-row input.driver-rb{margin:0;width:16px;height:16px;accent-color:#ea580c;flex-shrink:0}
 .table-picker{position:relative}
 .table-picker-trigger{
   width:100%;display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:12px;border:1.5px solid var(--border);
@@ -150,11 +155,48 @@
         <div>👤 {{ order.customer_name }}</div>
         <div>📱 {{ order.customer_phone }}</div>
         <div>📍 {{ order.customer_address }}</div>
-        {% if order.driver %}<div>🏍️ {{ order.driver }}</div>{% endif %}
+        <div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(0,0,0,.08)">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px">
+            <span style="font-weight:800;color:var(--muted)">الطيار</span>
+            <span id="admDriverDisplay" style="font-weight:700;text-align:left;flex:1">{% if order.driver %}{{ order.driver }}{% else %}— بدون طيار —{% endif %}</span>
+          </div>
+          {% if order.status in 'open,printed' %}
+          <p class="adm-tbl-hint">اختر من القائمة ثم احفظ.</p>
+          <div class="table-picker adm-driver-picker" id="admDriverPicker" style="margin-top:6px">
+            <button type="button" class="table-picker-trigger" id="admDriverPickerTrigger" aria-expanded="false">
+              <span class="table-picker-trigger-ic"><i class="fas fa-motorcycle"></i></span>
+              <span class="table-picker-trigger-text" id="admDriverPickerLabel">تعديل الطيار…</span>
+              <i class="fas fa-chevron-down table-picker-chev"></i>
+            </button>
+            <div class="table-picker-panel" id="admDriverPickerPanel">
+              <div class="table-picker-search-wrap"><i class="fas fa-search"></i><input type="search" id="admDriverPickerSearch" placeholder="بحث…" autocomplete="off"></div>
+              <div class="table-picker-list" id="admDriverPickerList">
+                <div class="table-picker-empty">لا نتائج</div>
+                <label class="table-picker-row adm-driver-picker-row" data-search="بدون طيار لا">
+                  <input type="radio" name="admDriverPick" class="driver-rb" id="admDriverPickNone" value="" {% if not order.driver_id %}checked{% endif %}>
+                  <span class="tp-row-main">— بدون طيار —</span>
+                </label>
+                {% for d in drivers %}
+                <label class="table-picker-row adm-driver-picker-row" data-search="{{ d.name|lower }} {{ d.phone }} {{ d.name }}">
+                  <input type="radio" name="admDriverPick" class="driver-rb" value="{{ d.id }}" {% if order.driver_id == d.id %}checked{% endif %}>
+                  <span class="tp-row-main">{{ d.name }} — {{ d.phone }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="admSaveOrderDriver()" style="width:100%;margin-top:8px;background:#fff;color:var(--text);border:1.5px solid var(--border);padding:9px;border-radius:10px;font-weight:800;cursor:pointer;font-family:inherit;font-size:.78rem">
+            <i class="fas fa-save"></i> حفظ الطيار
+          </button>
+          {% endif %}
+        </div>
       </div>
       {% else %}
       <div style="padding:10px;background:#f0fdf4;border-radius:9px;margin-bottom:10px;font-size:.82rem">
-        <div>🪑 <strong id="admTablesDisplay">{{ order.tables_label }}</strong></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="color:var(--muted);font-weight:800">الطاولة</span>
+          <strong id="admTablesDisplay" style="text-align:left;flex:1;font-weight:800">{{ order.tables_label }}</strong>
+        </div>
         {% if order.status in 'open,printed' %}
         <p class="adm-tbl-hint">افتح القائمة للبحث واختيار عدة طاولات.</p>
         <div class="table-picker adm-table-picker" id="admTablePicker" style="margin-top:6px">
@@ -236,6 +278,9 @@
           {% if order.waiter %}
           <div class="inv-mr"><span>الويتر</span><strong>{{ order.waiter }}</strong></div>
           {% endif %}
+          {% if order.order_type == 'delivery' %}
+          <div class="inv-mr"><span>الطيار</span><strong id="admInvoiceDriverVal">{% if order.driver %}{{ order.driver }}{% else %}—{% endif %}</strong></div>
+          {% endif %}
         </div>
         {% if order.order_type == 'delivery' %}
         <div class="inv-dlv">
@@ -289,6 +334,61 @@
 
 <script>
 const ADM_ORDER_ID={{ order.id }};
+function admUpdateDriverPickerSummary(){
+  const el=document.querySelector('#admDriverPickerList input.driver-rb:checked');
+  const label=document.getElementById('admDriverPickerLabel');
+  if(!label)return;
+  const row=el&&el.closest('.adm-driver-picker-row');
+  const main=row&&row.querySelector('.tp-row-main');
+  label.textContent=main?main.textContent.trim():'تعديل الطيار…';
+}
+function admFilterDriverPickerList(){
+  const inp=document.getElementById('admDriverPickerSearch');
+  const raw=(inp&&inp.value||'').trim().toLowerCase();
+  const q=raw.replace(/\s+/g,' ');
+  const rows=[...document.querySelectorAll('#admDriverPickerList .adm-driver-picker-row')];
+  let anyVis=false;
+  rows.forEach(row=>{
+    if(row.querySelector('#admDriverPickNone')){
+      row.style.display='';
+      anyVis=true;
+      return;
+    }
+    const hay=(row.getAttribute('data-search')||'').toLowerCase();
+    const ok=!q||hay.includes(q);
+    row.style.display=ok?'':'none';
+    if(ok)anyVis=true;
+  });
+  const list=document.getElementById('admDriverPickerList');
+  if(list)list.classList.toggle('is-empty',rows.length>0&&!anyVis);
+}
+function admResetDriverPickerPanelLayout(){
+  const p=document.getElementById('admDriverPickerPanel');
+  if(!p)return;
+  ['position','left','top','width','right','zIndex','maxHeight'].forEach(k=>{p.style[k]='';});
+}
+function admSyncDriverPickerPanelPosition(){
+  const root=document.getElementById('admDriverPicker');
+  const panel=document.getElementById('admDriverPickerPanel');
+  const trig=document.getElementById('admDriverPickerTrigger');
+  if(!root||!panel||!trig||!root.classList.contains('open'))return;
+  const r=trig.getBoundingClientRect();
+  const pad=8;
+  const maxH=Math.max(140,Math.min(300,window.innerHeight-r.bottom-pad*2));
+  const w=Math.min(Math.max(r.width,220),window.innerWidth-pad*2);
+  panel.style.position='fixed';
+  panel.style.left=Math.max(pad,r.left)+'px';
+  panel.style.width=w+'px';
+  panel.style.top=r.bottom+6+'px';
+  panel.style.maxHeight=maxH+'px';
+}
+function admCloseDriverPicker(){
+  const root=document.getElementById('admDriverPicker');
+  const trig=document.getElementById('admDriverPickerTrigger');
+  if(root)root.classList.remove('open');
+  if(trig)trig.setAttribute('aria-expanded','false');
+  admResetDriverPickerPanelLayout();
+}
 function admUpdateTablePickerSummary(){
   const list=document.getElementById('admTablePickerList');
   if(!list)return;
@@ -385,6 +485,7 @@ function admCloseTablePicker(){
     e.stopPropagation();
     const o=!root.classList.contains('open');
     if(o){
+      admCloseDriverPicker();
       root.classList.add('open');
       trig.setAttribute('aria-expanded','true');
       admFilterTablePickerList();
@@ -416,7 +517,39 @@ function admCloseTablePicker(){
   window.addEventListener('resize',admSyncTablePickerPanelPosition);
   window.addEventListener('scroll',admSyncTablePickerPanelPosition,true);
   document.addEventListener('click',()=>admCloseTablePicker());
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')admCloseTablePicker();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){admCloseTablePicker();admCloseDriverPicker();}});
+})();
+(function initAdmDriverPicker(){
+  const root=document.getElementById('admDriverPicker');
+  const trig=document.getElementById('admDriverPickerTrigger');
+  const panel=document.getElementById('admDriverPickerPanel');
+  const list=document.getElementById('admDriverPickerList');
+  const search=document.getElementById('admDriverPickerSearch');
+  if(!root||!trig||!panel||!list)return;
+  admUpdateDriverPickerSummary();
+  trig.addEventListener('click',e=>{
+    e.stopPropagation();
+    const o=!root.classList.contains('open');
+    if(o){
+      admCloseTablePicker();
+      root.classList.add('open');
+      trig.setAttribute('aria-expanded','true');
+      admFilterDriverPickerList();
+      admSyncDriverPickerPanelPosition();
+      setTimeout(()=>{if(search){search.focus();try{search.select();}catch(_){}}admSyncDriverPickerPanelPosition();},40);
+    }else admCloseDriverPicker();
+  });
+  panel.addEventListener('click',e=>e.stopPropagation());
+  search&&search.addEventListener('input',admFilterDriverPickerList);
+  list.addEventListener('change',e=>{
+    if(e.target&&e.target.classList&&e.target.classList.contains('driver-rb')){
+      admUpdateDriverPickerSummary();
+      setTimeout(admCloseDriverPicker,120);
+    }
+  });
+  window.addEventListener('resize',admSyncDriverPickerPanelPosition);
+  window.addEventListener('scroll',admSyncDriverPickerPanelPosition,true);
+  document.addEventListener('click',()=>admCloseDriverPicker());
 })();
 async function admSaveOrderTables(){
   const ids=[...document.querySelectorAll('#admTablePickerList .table-cb-real:checked:not(:disabled)')].map(x=>parseInt(x.value,10));
@@ -433,6 +566,30 @@ async function admSaveOrderTables(){
     if(b)b.textContent=d.tables_label||'';
     admUpdateTablePickerSummary();
     admCloseTablePicker();
+  }else showToast(d.error||'خطأ','war');
+}
+async function admSaveOrderDriver(){
+  const el=document.querySelector('#admDriverPickerList input.driver-rb:checked');
+  const raw=el?el.value:'';
+  const driver_id=raw===''?null:parseInt(raw,10);
+  if(raw!==''&&(driver_id===undefined||isNaN(driver_id))){
+    showToast('اختيار الطيار غير صالح','war');
+    return;
+  }
+  const r=await fetch('/api/order/'+ADM_ORDER_ID+'/driver/',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+    body:JSON.stringify({driver_id}),
+  });
+  const d=await r.json();
+  if(d.success){
+    showToast('تم تحديث الطيار','suc');
+    const disp=document.getElementById('admDriverDisplay');
+    if(disp)disp.textContent=d.driver_label||'';
+    const inv=document.getElementById('admInvoiceDriverVal');
+    if(inv)inv.textContent=d.driver_id?d.driver_label:'—';
+    admUpdateDriverPickerSummary();
+    admCloseDriverPicker();
   }else showToast(d.error||'خطأ','war');
 }
 function openInvoiceOverlay(){document.getElementById('invoiceOverlay').classList.add('open');}

@@ -149,13 +149,19 @@
 .tp-row-main{flex:1;min-width:0;color:var(--text)}
 .table-picker-empty{padding:16px;text-align:center;font-size:.72rem;color:var(--muted);font-weight:600;display:none}
 .table-picker-list.is-empty .table-picker-empty{display:block}
-.info-row.od-tbl-row{align-items:flex-start}
 .od-tbl-hint{font-size:.65rem;color:var(--muted);line-height:1.4;margin-top:8px}
 .od-table-picker.table-picker{z-index:25}
 .od-table-picker .table-picker-trigger{padding:8px 10px}
 .od-table-picker .table-picker-trigger-ic{width:32px;height:32px;font-size:.78rem}
 .od-table-picker .table-picker-trigger-text{font-size:.74rem;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis}
 .od-table-picker .table-picker-row:has(input:disabled){opacity:.45;cursor:not-allowed}
+.od-driver-picker.table-picker{z-index:24}
+.od-driver-picker.table-picker.open{z-index:10050}
+.od-driver-picker .table-picker-trigger-ic{background:linear-gradient(145deg,#ffedd5,#fdba74);color:#9a3412}
+.od-driver-picker .table-picker-row:has(.driver-rb:checked){background:linear-gradient(90deg,#fff7ed,#ffedd5)}
+.od-driver-picker .table-picker-row input.driver-rb{margin:0;width:16px;height:16px;accent-color:#ea580c;flex-shrink:0}
+.od-drv-edit,.od-tbl-edit{padding:0 16px 12px;border-bottom:1px solid #f4f6fb}
+.od-drv-edit .od-tbl-hint,.od-tbl-edit .od-tbl-hint{margin-top:0}
 </style>{% endblock %}
 
 {% block content %}
@@ -265,53 +271,88 @@
       <div class="info-hdr">معلومات الطلب</div>
       <div class="info-row"><span style="color:var(--muted)">النوع</span><strong>{% if order.order_type == 'delivery' %}🛵 ديليفري{% else %}🪑 داخلي{% endif %}</strong></div>
       {% if order.order_type == 'dine_in' %}
-      <div class="info-row od-tbl-row">
-        <span style="color:var(--muted);padding-top:3px">الطاولة</span>
-        <div>
-          <strong id="odTablesDisplay">{{ order.tables_label }}</strong>
-          {% if order.status in 'open,printed' %}
-          <p class="od-tbl-hint" style="margin-top:8px">تعديل الطاولات: افتح القائمة، ابحث، ثم احفظ.</p>
-          <div class="table-picker od-table-picker" id="odTablePicker" style="margin-top:6px">
-            <button type="button" class="table-picker-trigger" id="odTablePickerTrigger" aria-expanded="false" aria-haspopup="listbox">
-              <span class="table-picker-trigger-ic"><i class="fas fa-chair"></i></span>
-              <span class="table-picker-trigger-text" id="odTablePickerLabel">تعديل اختيار الطاولات…</span>
-              <span class="table-picker-trigger-badge" id="odTablePickerCount">0</span>
-              <i class="fas fa-chevron-down table-picker-chev"></i>
-            </button>
-            <div class="table-picker-panel" id="odTablePickerPanel" role="listbox">
-              <div class="table-picker-search-wrap">
-                <i class="fas fa-search"></i>
-                <input type="search" id="odTablePickerSearch" placeholder="بحث…" autocomplete="off">
-              </div>
-              <div class="table-picker-actions">
-                <button type="button" class="tp-act" onclick="odTablePickerSelectVisible()">تحديد الظاهر</button>
-                <button type="button" class="tp-act" onclick="odTablePickerClearAll()">مسح</button>
-              </div>
-              <div class="table-picker-list" id="odTablePickerList">
-                <div class="table-picker-empty" id="odTablePickerEmpty">لا نتائج</div>
-                <label class="table-picker-row table-picker-row-none" data-search="بدون طاولة لا">
-                  <input type="checkbox" class="table-cb table-cb-none" id="odTablePickNone" {% if not table_edit_selected_ids %}checked{% endif %}>
-                  <span class="tp-row-main">— بدون طاولة —</span>
-                </label>
-                {% for t in tables_for_edit %}
-                <label class="table-picker-row" data-search="{{ t.number }} {{ t.name|default:'' }} {{ t }}">
-                  <input type="checkbox" class="table-cb table-cb-real" name="odTbl" value="{{ t.id }}" {% if t.id in table_edit_selected_ids %}checked{% endif %}{% if t.id in table_edit_busy_ids %} disabled{% endif %}>
-                  <span class="tp-row-main">{{ t }}</span>
-                </label>
-                {% endfor %}
-              </div>
+      <div class="info-row">
+        <span style="color:var(--muted)">الطاولة</span>
+        <strong id="odTablesDisplay">{{ order.tables_label }}</strong>
+      </div>
+      {% if order.status in 'open,printed' %}
+      <div class="od-tbl-edit">
+        <p class="od-tbl-hint" style="margin-bottom:8px">تعديل الطاولات: افتح القائمة، ابحث، ثم احفظ.</p>
+        <div class="table-picker od-table-picker" id="odTablePicker">
+          <button type="button" class="table-picker-trigger" id="odTablePickerTrigger" aria-expanded="false" aria-haspopup="listbox">
+            <span class="table-picker-trigger-ic"><i class="fas fa-chair"></i></span>
+            <span class="table-picker-trigger-text" id="odTablePickerLabel">تعديل اختيار الطاولات…</span>
+            <span class="table-picker-trigger-badge" id="odTablePickerCount">0</span>
+            <i class="fas fa-chevron-down table-picker-chev"></i>
+          </button>
+          <div class="table-picker-panel" id="odTablePickerPanel" role="listbox">
+            <div class="table-picker-search-wrap">
+              <i class="fas fa-search"></i>
+              <input type="search" id="odTablePickerSearch" placeholder="بحث…" autocomplete="off">
+            </div>
+            <div class="table-picker-actions">
+              <button type="button" class="tp-act" onclick="odTablePickerSelectVisible()">تحديد الظاهر</button>
+              <button type="button" class="tp-act" onclick="odTablePickerClearAll()">مسح</button>
+            </div>
+            <div class="table-picker-list" id="odTablePickerList">
+              <div class="table-picker-empty" id="odTablePickerEmpty">لا نتائج</div>
+              <label class="table-picker-row table-picker-row-none" data-search="بدون طاولة لا">
+                <input type="checkbox" class="table-cb table-cb-none" id="odTablePickNone" {% if not table_edit_selected_ids %}checked{% endif %}>
+                <span class="tp-row-main">— بدون طاولة —</span>
+              </label>
+              {% for t in tables_for_edit %}
+              <label class="table-picker-row" data-search="{{ t.number }} {{ t.name|default:'' }} {{ t }}">
+                <input type="checkbox" class="table-cb table-cb-real" name="odTbl" value="{{ t.id }}" {% if t.id in table_edit_selected_ids %}checked{% endif %}{% if t.id in table_edit_busy_ids %} disabled{% endif %}>
+                <span class="tp-row-main">{{ t }}</span>
+              </label>
+              {% endfor %}
             </div>
           </div>
-          <button type="button" class="btn btn-out btn-sm" style="width:100%;margin-top:8px" onclick="saveOrderTables()"><i class="fas fa-save"></i> حفظ الطاولات</button>
-          {% endif %}
         </div>
+        <button type="button" class="btn btn-out btn-sm" style="width:100%;margin-top:8px" onclick="saveOrderTables()"><i class="fas fa-save"></i> حفظ الطاولات</button>
       </div>
+      {% endif %}
       {% if order.waiter %}<div class="info-row"><span style="color:var(--muted)">الويتر</span><strong>{{ order.waiter }}</strong></div>{% endif %}
       {% else %}
       <div class="info-row"><span style="color:var(--muted)">العميل</span><strong>{{ order.customer_name }}</strong></div>
       <div class="info-row"><span style="color:var(--muted)">الهاتف</span><strong>{{ order.customer_phone }}</strong></div>
       <div class="info-row"><span style="color:var(--muted)">العنوان</span><strong style="font-size:.8rem">{{ order.customer_address }}</strong></div>
-      {% if order.driver %}<div class="info-row"><span style="color:var(--muted)">الطيار</span><strong>{{ order.driver }}</strong></div>{% endif %}
+      <div class="info-row">
+        <span style="color:var(--muted)">الطيار</span>
+        <strong id="odDriverDisplay">{% if order.driver %}{{ order.driver }}{% else %}— بدون طيار —{% endif %}</strong>
+      </div>
+      {% if order.status in 'open,printed' %}
+      <div class="od-drv-edit">
+        <p class="od-tbl-hint" style="margin-bottom:8px">اختر الطيار من القائمة ثم احفظ.</p>
+        <div class="table-picker od-driver-picker" id="odDriverPicker">
+          <button type="button" class="table-picker-trigger" id="odDriverPickerTrigger" aria-expanded="false" aria-haspopup="listbox">
+            <span class="table-picker-trigger-ic"><i class="fas fa-motorcycle"></i></span>
+            <span class="table-picker-trigger-text" id="odDriverPickerLabel">تعديل الطيار…</span>
+            <i class="fas fa-chevron-down table-picker-chev"></i>
+          </button>
+          <div class="table-picker-panel" id="odDriverPickerPanel" role="listbox">
+            <div class="table-picker-search-wrap">
+              <i class="fas fa-search"></i>
+              <input type="search" id="odDriverPickerSearch" placeholder="بحث باسم أو هاتف…" autocomplete="off">
+            </div>
+            <div class="table-picker-list" id="odDriverPickerList">
+              <div class="table-picker-empty" id="odDriverPickerEmpty">لا نتائج</div>
+              <label class="table-picker-row od-driver-picker-row" data-search="بدون طيار لا">
+                <input type="radio" name="odDriverPick" class="driver-rb" id="odDriverPickNone" value="" {% if not order.driver_id %}checked{% endif %}>
+                <span class="tp-row-main">— بدون طيار —</span>
+              </label>
+              {% for d in drivers %}
+              <label class="table-picker-row od-driver-picker-row" data-search="{{ d.name|lower }} {{ d.phone }} {{ d.name }}">
+                <input type="radio" name="odDriverPick" class="driver-rb" value="{{ d.id }}" {% if order.driver_id == d.id %}checked{% endif %}>
+                <span class="tp-row-main">{{ d.name }} — {{ d.phone }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-out btn-sm" style="width:100%;margin-top:8px" onclick="saveOrderDriver()"><i class="fas fa-save"></i> حفظ الطيار</button>
+      </div>
+      {% endif %}
       {% endif %}
       <div class="info-row"><span style="color:var(--muted)">الوقت</span><strong>{{ order.created_at|time:"H:i" }}</strong></div>
       {% if order.status == 'cancelled' and order.cancellation_reason %}
@@ -396,6 +437,9 @@
           {% endif %}
           {% if order.waiter %}
           <div class="inv-mr"><span>الويتر</span><strong>{{ order.waiter }}</strong></div>
+          {% endif %}
+          {% if order.order_type == 'delivery' %}
+          <div class="inv-mr"><span>الطيار</span><strong id="invoiceDriverVal">{% if order.driver %}{{ order.driver }}{% else %}—{% endif %}</strong></div>
           {% endif %}
         </div>
         {% if order.order_type == 'delivery' %}
@@ -709,6 +753,67 @@ function initOdAddPanel(){
   renderCats();
   apply();
 }
+function odUpdateDriverPickerSummary(){
+  const el=document.querySelector('#odDriverPickerList input.driver-rb:checked');
+  const label=document.getElementById('odDriverPickerLabel');
+  if(!label)return;
+  const row=el&&el.closest('.od-driver-picker-row');
+  const main=row&&row.querySelector('.tp-row-main');
+  label.textContent=main?main.textContent.trim():'تعديل الطيار…';
+}
+function odFilterDriverPickerList(){
+  const inp=document.getElementById('odDriverPickerSearch');
+  const raw=(inp&&inp.value||'').trim().toLowerCase();
+  const q=raw.replace(/\s+/g,' ');
+  const rows=[...document.querySelectorAll('#odDriverPickerList .od-driver-picker-row')];
+  let anyVis=false;
+  rows.forEach(row=>{
+    if(row.querySelector('#odDriverPickNone')){
+      row.style.display='';
+      anyVis=true;
+      return;
+    }
+    const hay=(row.getAttribute('data-search')||'').toLowerCase();
+    const ok=!q||hay.includes(q);
+    row.style.display=ok?'':'none';
+    if(ok)anyVis=true;
+  });
+  const list=document.getElementById('odDriverPickerList');
+  if(list)list.classList.toggle('is-empty',rows.length>0&&!anyVis);
+}
+function odResetDriverPickerPanelLayout(){
+  const panel=document.getElementById('odDriverPickerPanel');
+  if(!panel)return;
+  panel.style.position='';
+  panel.style.left='';
+  panel.style.top='';
+  panel.style.width='';
+  panel.style.right='';
+  panel.style.maxHeight='';
+}
+function odSyncDriverPickerPanelPosition(){
+  const root=document.getElementById('odDriverPicker');
+  const panel=document.getElementById('odDriverPickerPanel');
+  const trig=document.getElementById('odDriverPickerTrigger');
+  if(!panel||!trig||!root||!root.classList.contains('open'))return;
+  const r=trig.getBoundingClientRect();
+  const pad=8;
+  const maxH=Math.max(140,Math.min(280,window.innerHeight-r.bottom-pad*2));
+  const w=Math.min(Math.max(r.width,200),window.innerWidth-pad*2);
+  panel.style.position='fixed';
+  panel.style.left=Math.max(pad,r.left)+'px';
+  panel.style.width=w+'px';
+  panel.style.top=r.bottom+6+'px';
+  panel.style.right='auto';
+  panel.style.maxHeight=maxH+'px';
+}
+function odCloseDriverPicker(){
+  const root=document.getElementById('odDriverPicker');
+  const trig=document.getElementById('odDriverPickerTrigger');
+  if(root)root.classList.remove('open');
+  if(trig)trig.setAttribute('aria-expanded','false');
+  odResetDriverPickerPanelLayout();
+}
 function odUpdateTablePickerSummary(){
   const list=document.getElementById('odTablePickerList');
   if(!list)return;
@@ -811,6 +916,7 @@ function odCloseTablePicker(){
     e.stopPropagation();
     const o=!root.classList.contains('open');
     if(o){
+      odCloseDriverPicker();
       root.classList.add('open');
       trig.setAttribute('aria-expanded','true');
       odFilterTablePickerList();
@@ -842,7 +948,39 @@ function odCloseTablePicker(){
   window.addEventListener('resize',odSyncTablePickerPanelPosition);
   window.addEventListener('scroll',odSyncTablePickerPanelPosition,true);
   document.addEventListener('click',()=>odCloseTablePicker());
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')odCloseTablePicker();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){odCloseTablePicker();odCloseDriverPicker();}});
+})();
+(function initOdDriverPicker(){
+  const root=document.getElementById('odDriverPicker');
+  const trig=document.getElementById('odDriverPickerTrigger');
+  const panel=document.getElementById('odDriverPickerPanel');
+  const list=document.getElementById('odDriverPickerList');
+  const search=document.getElementById('odDriverPickerSearch');
+  if(!root||!trig||!panel||!list)return;
+  odUpdateDriverPickerSummary();
+  trig.addEventListener('click',e=>{
+    e.stopPropagation();
+    const o=!root.classList.contains('open');
+    if(o){
+      odCloseTablePicker();
+      root.classList.add('open');
+      trig.setAttribute('aria-expanded','true');
+      odFilterDriverPickerList();
+      odSyncDriverPickerPanelPosition();
+      setTimeout(()=>{if(search){search.focus();try{search.select();}catch(_){}}odSyncDriverPickerPanelPosition();},40);
+    }else odCloseDriverPicker();
+  });
+  panel.addEventListener('click',e=>e.stopPropagation());
+  search&&search.addEventListener('input',odFilterDriverPickerList);
+  list.addEventListener('change',e=>{
+    if(e.target&&e.target.classList&&e.target.classList.contains('driver-rb')){
+      odUpdateDriverPickerSummary();
+      setTimeout(odCloseDriverPicker,120);
+    }
+  });
+  window.addEventListener('resize',odSyncDriverPickerPanelPosition);
+  window.addEventListener('scroll',odSyncDriverPickerPanelPosition,true);
+  document.addEventListener('click',()=>odCloseDriverPicker());
 })();
 initOdAddPanel();
 
@@ -861,6 +999,31 @@ async function saveOrderTables(){
     if(b)b.textContent=d.tables_label||'';
     odUpdateTablePickerSummary();
     odCloseTablePicker();
+  }else showToast(d.error||'خطأ','err');
+}
+
+async function saveOrderDriver(){
+  const el=document.querySelector('#odDriverPickerList input.driver-rb:checked');
+  const raw=el?el.value:'';
+  const driver_id=raw===''?null:parseInt(raw,10);
+  if(raw!==''&&(driver_id===undefined||isNaN(driver_id))){
+    showToast('اختيار الطيار غير صالح','err');
+    return;
+  }
+  const r=await fetch(`/api/order/${ORDER_ID}/driver/`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+    body:JSON.stringify({driver_id}),
+  });
+  const d=await r.json();
+  if(d.success){
+    showToast('تم تحديث الطيار','suc');
+    const disp=document.getElementById('odDriverDisplay');
+    if(disp)disp.textContent=d.driver_label||'';
+    const inv=document.getElementById('invoiceDriverVal');
+    if(inv)inv.textContent=d.driver_id?d.driver_label:'—';
+    odUpdateDriverPickerSummary();
+    odCloseDriverPicker();
   }else showToast(d.error||'خطأ','err');
 }
 

@@ -90,6 +90,7 @@ urlpatterns = [
     path('api/order/<int:order_id>/cancel/',      cashier_views.cancel_order,   name='api_cancel'),
     path('api/order/<int:order_id>/reprint/',     cashier_views.reprint_order,  name='api_reprint'),
     path('api/order/<int:order_id>/tables/',      cashier_views.update_order_tables, name='api_order_tables'),
+    path('api/order/<int:order_id>/driver/',      cashier_views.update_order_driver, name='api_order_driver'),
     path('api/drawer/open/',                cashier_views.open_drawer,       name='api_drawer'),
     path('cashier/shift/end/',              cashier_views.end_shift,         name='cashier_end_shift'),
     path('cashier/shift/end/submit/',       cashier_views.submit_shift_end,  name='cashier_submit_shift'),

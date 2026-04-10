@@ -1009,6 +1009,7 @@ def order_history_detail(request, order_id):
     busy = set()
     if order.status in ('open', 'printed') and order.order_type == 'dine_in':
         busy = busy_table_ids_global(exclude_order_id=order.id)
+    drivers = DeliveryDriver.objects.filter(is_active=True).order_by('name')
     return render(
         request,
         'pos/admin/order_detail.html',
@@ -1017,6 +1018,7 @@ def order_history_detail(request, order_id):
             'tables_for_edit': all_tables,
             'table_edit_busy_ids': busy,
             'table_edit_selected_ids': selected_tids,
+            'drivers': drivers,
         },
     )
 

@@ -229,8 +229,8 @@
 .table-multi-hint{font-size:.65rem;color:var(--muted);line-height:1.4;margin:0;padding:0 2px}
 /* طبقة القائمة المفتوحة فوق أي مكوّن تحتها (مثلاً زر الويتر) */
 .table-picker{position:relative;z-index:2}
-.waiter-picker.table-picker{z-index:1}
-.table-picker.open,.waiter-picker.open{z-index:10050}
+.waiter-picker.table-picker,.driver-picker.table-picker{z-index:1}
+.table-picker.open,.waiter-picker.open,.driver-picker.open{z-index:10050}
 .table-picker-trigger{
   width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1.5px solid #e2e8f0;
   background:linear-gradient(180deg,#fff 0%,#f8fafc 100%);cursor:pointer;font-family:inherit;text-align:start;
@@ -290,6 +290,13 @@
   background:linear-gradient(90deg,#eef2ff,#faf5ff);border:1px solid rgba(99,102,241,.18);margin-bottom:2px;
 }
 .table-picker-row input.waiter-rb{margin:0;width:17px;height:17px;accent-color:#4f46e5;flex-shrink:0}
+.driver-picker .table-picker-trigger-ic{
+  background:linear-gradient(145deg,#ffedd5,#fdba74);color:#9a3412;
+}
+.table-picker-row:has(.driver-rb:checked){
+  background:linear-gradient(90deg,#fff7ed,#ffedd5);border:1px solid rgba(234,88,12,.2);margin-bottom:2px;
+}
+.table-picker-row input.driver-rb{margin:0;width:17px;height:17px;accent-color:#ea580c;flex-shrink:0}
 .tp-row-main{flex:1;min-width:0;color:var(--text)}
 .table-picker-empty{padding:20px 14px;text-align:center;font-size:.74rem;color:var(--muted);font-weight:600;display:none}
 .table-picker-list.is-empty .table-picker-empty{display:block}
@@ -668,10 +675,33 @@
         <p class="delivery-hint">رقم مسجّل مسبقاً يملأ الاسم والعنوان تلقائياً (قابل للتعديل). يُحفظ السجل بعد تأكيد الطلب.</p>
         <p class="delivery-lookup-status" id="deliveryLookupStatus" style="display:none" aria-live="polite"></p>
         <input class="sel" id="custAddr" placeholder="العنوان *" autocomplete="street-address">
-        <select class="sel" id="driverSelect" aria-label="الطيار">
-          <option value="">الطيار (اختياري)…</option>
-          {% for d in drivers %}<option value="{{ d.id }}">{{ d.name }} — {{ d.phone }}</option>{% endfor %}
-        </select>
+        <p class="table-multi-hint" style="margin-top:10px;margin-bottom:0">الطيار (اختياري)</p>
+        <div class="table-picker driver-picker" id="driverPicker" style="margin-top:6px">
+          <button type="button" class="table-picker-trigger" id="driverPickerTrigger" aria-expanded="false" aria-haspopup="listbox">
+            <span class="table-picker-trigger-ic"><i class="fas fa-motorcycle"></i></span>
+            <span class="table-picker-trigger-text" id="driverPickerLabel">الطيار…</span>
+            <i class="fas fa-chevron-down table-picker-chev" aria-hidden="true"></i>
+          </button>
+          <div class="table-picker-panel" id="driverPickerPanel" role="listbox">
+            <div class="table-picker-search-wrap">
+              <i class="fas fa-search" aria-hidden="true"></i>
+              <input type="search" id="driverPickerSearch" placeholder="بحث باسم أو هاتف الطيار…" autocomplete="off" aria-label="بحث الطيار">
+            </div>
+            <div class="table-picker-list" id="driverPickerList">
+              <div class="table-picker-empty" id="driverPickerEmpty">لا توجد نتائج مطابقة</div>
+              <label class="table-picker-row driver-picker-row" data-search="بدون طيار لا أحد">
+                <input type="radio" name="driverPick" class="driver-rb" id="driverPickNone" value="" checked>
+                <span class="tp-row-main">— بدون طيار —</span>
+              </label>
+              {% for d in drivers %}
+              <label class="table-picker-row driver-picker-row" data-search="{{ d.name|lower }} {{ d.phone }} {{ d.name }}">
+                <input type="radio" name="driverPick" class="driver-rb" value="{{ d.id }}">
+                <span class="tp-row-main">{{ d.name }} — {{ d.phone }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -821,6 +851,74 @@ function clearTableSelection(){
   filterTablePickerList();
   closeTablePicker();
 }
+function getDriverId(){
+  const el=document.querySelector('#driverPickerList input.driver-rb:checked');
+  if(!el)return null;
+  const v=el.value;
+  return v?String(v):null;
+}
+function updateDriverPickerSummary(){
+  const el=document.querySelector('#driverPickerList input.driver-rb:checked');
+  const label=document.getElementById('driverPickerLabel');
+  if(!label)return;
+  const row=el&&el.closest('.driver-picker-row');
+  const main=row&&row.querySelector('.tp-row-main');
+  label.textContent=main?main.textContent.trim():'الطيار…';
+}
+function filterDriverPickerList(){
+  const inp=document.getElementById('driverPickerSearch');
+  const raw=(inp&&inp.value||'').trim().toLowerCase();
+  const q=raw.replace(/\s+/g,' ');
+  const rows=[...document.querySelectorAll('#driverPickerList .driver-picker-row')];
+  let anyVis=false;
+  rows.forEach(row=>{
+    if(row.querySelector('#driverPickNone')){
+      row.style.display='';
+      anyVis=true;
+      return;
+    }
+    const hay=(row.getAttribute('data-search')||'').toLowerCase();
+    const ok=!q||hay.includes(q);
+    row.style.display=ok?'':'none';
+    if(ok)anyVis=true;
+  });
+  const list=document.getElementById('driverPickerList');
+  if(list)list.classList.toggle('is-empty',rows.length>0&&!anyVis);
+}
+function resetDriverPickerPanelLayout(){
+  const panel=document.getElementById('driverPickerPanel');
+  if(!panel)return;
+  panel.style.position='';
+  panel.style.left='';
+  panel.style.top='';
+  panel.style.width='';
+  panel.style.right='';
+  panel.style.zIndex='';
+  panel.style.maxHeight='';
+}
+function syncDriverPickerPanelPosition(){
+  const root=document.getElementById('driverPicker');
+  const panel=document.getElementById('driverPickerPanel');
+  const trig=document.getElementById('driverPickerTrigger');
+  if(!panel||!trig||!root||!root.classList.contains('open'))return;
+  const r=trig.getBoundingClientRect();
+  const pad=8;
+  const maxH=Math.max(160,Math.min(280,window.innerHeight-r.bottom-pad*2));
+  const w=Math.min(r.width,window.innerWidth-pad*2);
+  panel.style.position='fixed';
+  panel.style.left=Math.max(pad,r.left)+'px';
+  panel.style.width=w+'px';
+  panel.style.top=r.bottom+6+'px';
+  panel.style.right='auto';
+  panel.style.maxHeight=maxH+'px';
+}
+function closeDriverPicker(){
+  const root=document.getElementById('driverPicker');
+  const trig=document.getElementById('driverPickerTrigger');
+  if(root)root.classList.remove('open');
+  if(trig)trig.setAttribute('aria-expanded','false');
+  resetDriverPickerPanelLayout();
+}
 (function initTablePicker(){
   const root=document.getElementById('tablePicker');
   const trig=document.getElementById('tablePickerTrigger');
@@ -833,6 +931,7 @@ function clearTableSelection(){
     const o=!root.classList.contains('open');
     if(o){
       closeWaiterPicker();
+      closeDriverPicker();
       root.classList.add('open');
       trig.setAttribute('aria-expanded','true');
       filterTablePickerList();
@@ -870,7 +969,7 @@ function clearTableSelection(){
   window.addEventListener('resize',syncTablePickerPanelPosition);
   window.addEventListener('scroll',syncTablePickerPanelPosition,true);
   document.addEventListener('click',()=>closeTablePicker());
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTablePicker();closeWaiterPicker();}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTablePicker();closeWaiterPicker();closeDriverPicker();}});
 })();
 function getWaiterId(){
   const el=document.querySelector('#waiterPickerList input.waiter-rb:checked');
@@ -962,6 +1061,7 @@ function clearWaiterSelection(){
     const o=!root.classList.contains('open');
     if(o){
       closeTablePicker();
+      closeDriverPicker();
       root.classList.add('open');
       trig.setAttribute('aria-expanded','true');
       filterWaiterPickerList();
@@ -980,6 +1080,39 @@ function clearWaiterSelection(){
   window.addEventListener('resize',syncWaiterPickerPanelPosition);
   window.addEventListener('scroll',syncWaiterPickerPanelPosition,true);
   document.addEventListener('click',()=>closeWaiterPicker());
+})();
+(function initDriverPicker(){
+  const root=document.getElementById('driverPicker');
+  const trig=document.getElementById('driverPickerTrigger');
+  const panel=document.getElementById('driverPickerPanel');
+  const list=document.getElementById('driverPickerList');
+  const search=document.getElementById('driverPickerSearch');
+  if(!root||!trig||!panel||!list)return;
+  updateDriverPickerSummary();
+  trig.addEventListener('click',e=>{
+    e.stopPropagation();
+    const o=!root.classList.contains('open');
+    if(o){
+      closeTablePicker();
+      closeWaiterPicker();
+      root.classList.add('open');
+      trig.setAttribute('aria-expanded','true');
+      filterDriverPickerList();
+      syncDriverPickerPanelPosition();
+      setTimeout(()=>{if(search){search.focus();try{search.select();}catch(_){}}syncDriverPickerPanelPosition();},40);
+    }else closeDriverPicker();
+  });
+  panel.addEventListener('click',e=>e.stopPropagation());
+  search&&search.addEventListener('input',filterDriverPickerList);
+  list.addEventListener('change',e=>{
+    if(e.target&&e.target.classList&&e.target.classList.contains('driver-rb')){
+      updateDriverPickerSummary();
+      setTimeout(closeDriverPicker,120);
+    }
+  });
+  window.addEventListener('resize',syncDriverPickerPanelPosition);
+  window.addEventListener('scroll',syncDriverPickerPanelPosition,true);
+  document.addEventListener('click',()=>closeDriverPicker());
 })();
 window.addEventListener('pageshow',function(ev){if(ev.persisted)window.location.reload();});
 const MENU_CATALOG=JSON.parse(document.getElementById('menu-catalog-data').textContent);
@@ -1215,6 +1348,7 @@ function setType(type){
   orderType=type;
   closeTablePicker();
   closeWaiterPicker();
+  closeDriverPicker();
   clearTimeout(deliveryLookupTimer);
   document.getElementById('tab-dine').className='type-tab'+(type==='dine_in'?' active dine':'');
   document.getElementById('tab-delivery').className='type-tab delivery'+(type==='delivery'?' active':'');
@@ -1383,7 +1517,7 @@ async function openPreview(){
         customer_name:document.getElementById('custName')?.value||'',
         customer_phone:document.getElementById('custPhone')?.value||'',
         customer_address:document.getElementById('custAddr')?.value||'',
-        driver_id:document.getElementById('driverSelect')?.value||null,
+        driver_id:getDriverId(),
         notes:document.getElementById('orderNotes').value,
         items:payloadItems(),
       })
@@ -1455,7 +1589,7 @@ async function confirmPrint(){
         customer_name:document.getElementById('custName')?.value||'',
         customer_phone:document.getElementById('custPhone')?.value||'',
         customer_address:document.getElementById('custAddr')?.value||'',
-        driver_id:document.getElementById('driverSelect')?.value||null,
+        driver_id:getDriverId(),
         notes:document.getElementById('orderNotes').value,
         items:payloadItems(),
       })
