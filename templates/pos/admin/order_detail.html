@@ -24,8 +24,8 @@
 .inv-page *{color:#000}
 .inv-hdr{padding:14px 10px 8px;text-align:center}
 .inv-hdr img{width:5cm;height:auto;margin-bottom:4px}
-.inv-hdr-brand{font-size:.85rem;font-weight:900}
-.inv-hdr-sub{font-size:.6rem;letter-spacing:.08em}
+.inv-hdr-brand{font-size:1rem;font-weight:900}
+.inv-hdr-sub{font-size:.75rem;font-weight:800;letter-spacing:.06em;line-height:1.5}
 .inv-sep{border:none;border-top:1px dashed #000;margin:6px 8px}
 .inv-sep-solid{border:none;border-top:1.5px solid #000;margin:6px 8px}
 .inv-meta{padding:4px 10px}
@@ -42,8 +42,8 @@
 .inv-iname{font-weight:700;font-size:.68rem}
 .inv-idet{font-size:.58rem;margin-top:1px;line-height:1.25}
 .inv-iqty{text-align:center;font-weight:800;font-size:.68rem}
-.inv-iprice{font-size:.66rem}
-.inv-itotal{font-weight:800;font-size:.68rem}
+.inv-iprice{font-size:.68rem;font-weight:800;text-align:left}
+.inv-itotal{font-weight:800;font-size:.68rem;text-align:left}
 .inv-notes-box{margin:4px 10px;padding:4px 6px;border:1px solid #000;border-radius:3px;font-size:.64rem}
 .inv-total-row{margin:6px 8px 2px;padding:8px 10px;border-top:2px solid #000;border-bottom:2px solid #000;display:flex;justify-content:space-between;align-items:center}
 .inv-total-lbl{font-size:.78rem;font-weight:800}
@@ -51,7 +51,7 @@
 .inv-ftr{text-align:center;padding:8px 10px 2px}
 .inv-phones{display:flex;justify-content:center;gap:12px;margin-bottom:4px;font-size:.7rem;font-weight:800;direction:ltr}
 .inv-thx{font-size:.72rem;font-weight:900;margin-bottom:2px}
-.inv-tag{font-size:.58rem}
+.inv-tag{font-size:.7rem;font-weight:800}
 
 </style>{% endblock %}
 {% block content %}
@@ -144,7 +144,7 @@
     <div class="invoice-modal-body">
       <div class="inv-page" id="invoicePrintArea">
         <div class="inv-hdr">
-          <img src="{% static 'img/logo.png' %}" alt="New Lamory">
+          <img src="{% static 'img/logoblack.png' %}" alt="New Lamory">
           <div class="inv-hdr-brand">New Lamory</div>
           <div class="inv-hdr-sub">مطعم &amp; كافيه<br>RESTAURANT &amp; CAFE</div>
         </div>
@@ -173,7 +173,7 @@
         <div class="inv-items">
           <div class="inv-items-ttl">تفاصيل الطلب</div>
           <table class="inv-t">
-            <thead><tr><th style="width:44%">الصنف</th><th style="text-align:center;width:14%">الكمية</th><th style="width:20%">السعر</th><th style="width:22%">الإجمالي</th></tr></thead>
+            <thead><tr><th style="width:40%">الصنف</th><th style="text-align:center;width:12%">الكمية</th><th style="text-align:left;width:22%">السعر</th><th style="text-align:left;width:26%">الإجمالي</th></tr></thead>
             <tbody>
               {% for item in order.items.all %}
               <tr>
@@ -227,8 +227,8 @@ function printInvoice(){
   w.document.write('.inv-page *{color:#000}');
   w.document.write('.inv-hdr{padding:14px 10px 8px;text-align:center}');
   w.document.write('.inv-hdr img{width:4cm;height:auto;margin-bottom:4px}');
-  w.document.write('.inv-hdr-brand{font-size:.85rem;font-weight:900}');
-  w.document.write('.inv-hdr-sub{font-size:.6rem;letter-spacing:.08em}');
+  w.document.write('.inv-hdr-brand{font-size:1rem;font-weight:900}');
+  w.document.write('.inv-hdr-sub{font-size:.75rem;font-weight:800;letter-spacing:.06em;line-height:1.5}');
   w.document.write('.inv-sep{border:none;border-top:1px dashed #000;margin:6px 8px}');
   w.document.write('.inv-sep-solid{border:none;border-top:1.5px solid #000;margin:6px 8px}');
   w.document.write('.inv-meta{padding:4px 10px}');
@@ -245,8 +245,8 @@ function printInvoice(){
   w.document.write('.inv-iname{font-weight:700;font-size:.68rem}');
   w.document.write('.inv-idet{font-size:.58rem;margin-top:1px;line-height:1.25}');
   w.document.write('.inv-iqty{text-align:center;font-weight:800;font-size:.68rem}');
-  w.document.write('.inv-iprice{font-size:.66rem}');
-  w.document.write('.inv-itotal{font-weight:800;font-size:.68rem}');
+  w.document.write('.inv-iprice{font-size:.68rem;font-weight:800;text-align:left}');
+  w.document.write('.inv-itotal{font-weight:800;font-size:.68rem;text-align:left}');
   w.document.write('.inv-notes-box{margin:4px 10px;padding:4px 6px;border:1px solid #000;border-radius:3px;font-size:.64rem}');
   w.document.write('.inv-total-row{margin:6px 8px 2px;padding:8px 10px;border-top:2px solid #000;border-bottom:2px solid #000;display:flex;justify-content:space-between;align-items:center}');
   w.document.write('.inv-total-lbl{font-size:.78rem;font-weight:800}');
@@ -254,7 +254,7 @@ function printInvoice(){
   w.document.write('.inv-ftr{text-align:center;padding:8px 10px 2px}');
   w.document.write('.inv-phones{display:flex;justify-content:center;gap:12px;margin-bottom:4px;font-size:.7rem;font-weight:800;direction:ltr}');
   w.document.write('.inv-thx{font-size:.72rem;font-weight:900;margin-bottom:2px}');
-  w.document.write('.inv-tag{font-size:.58rem}');
+  w.document.write('.inv-tag{font-size:.7rem;font-weight:800}');
   w.document.write('</style></head><body>');
   w.document.write('<div class="inv-page">'+content+'</div>');
   w.document.write('</body></html>');
