@@ -16,8 +16,5 @@ if errorlevel 1 (
 :: Wait 2 seconds
 timeout /t 2 /nobreak >nul
 
-:: Open browser
-start "" http://localhost:8000
-
 :: Start Django server
 waitress-serve --host=0.0.0.0 --port=8000 pos_system.wsgi:application
