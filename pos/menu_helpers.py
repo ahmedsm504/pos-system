@@ -175,14 +175,19 @@ def order_item_display_name(oi: OrderItem) -> str:
     return n
 
 
-def order_item_print_notes(oi: OrderItem) -> str:
+def order_item_print_notes(oi, *, show_addon_prices=True) -> str:
     parts = []
-    if oi.drink_detail:
-        parts.append(oi.drink_detail)
-    ex = oi.extras_json or {}
+    drink = getattr(oi, 'drink_detail', '')
+    if drink:
+        parts.append(drink)
+    ex = getattr(oi, 'extras_json', None) or {}
     for a in ex.get('addons', []):
-        parts.append(f'+ {a.get("name", "")} ({a.get("price", "0")} ج)')
-    if oi.notes:
-        parts.append(oi.notes)
+        if show_addon_prices:
+            parts.append(f'+ {a.get("name", "")} ({a.get("price", "0")} ج)')
+        else:
+            parts.append(f'+ {a.get("name", "")}')
+    notes = getattr(oi, 'notes', '')
+    if notes:
+        parts.append(notes)
     return ' · '.join(p for p in parts if p)
 

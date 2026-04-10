@@ -649,7 +649,10 @@ def remove_item(request, order_id):
     try:
         order = get_object_or_404(Order, id=order_id)
         data  = json.loads(request.body)
-        item  = get_object_or_404(OrderItem, id=data['item_id'], order=order)
+        item  = get_object_or_404(
+            OrderItem.objects.select_related('menu_item__category'),
+            id=data['item_id'], order=order,
+        )
 
         admin_user = authenticate(
             request,
@@ -659,13 +662,33 @@ def remove_item(request, order_id):
         if not admin_user or not admin_user.is_staff:
             return JsonResponse({'success': False, 'error': 'يلزم تاكيد المدير', 'need_admin': True})
 
-        if int(data.get('qty', 1)) >= item.quantity:
+        had_gone_to_stations = order.printed_at is not None
+        remove_qty = int(data.get('qty', 1))
+
+        removed_info = {
+            'name': order_item_display_name(item),
+            'qty': min(remove_qty, item.quantity),
+            'notes': order_item_print_notes(item, show_addon_prices=False),
+            'cat_type': item.menu_item.category.category_type,
+        }
+
+        if remove_qty >= item.quantity:
             item.delete()
         else:
-            item.quantity -= int(data.get('qty', 1))
+            item.quantity -= remove_qty
             item.save()
 
-        return JsonResponse({'success': True, 'total': float(order.total)})
+        print_ok = None
+        if had_gone_to_stations:
+            remaining = list(
+                order.items.select_related('menu_item__category').all()
+            )
+            print_ok = _send_item_removal_to_printer(order, removed_info, remaining)
+
+        out = {'success': True, 'total': float(order.total)}
+        if print_ok is not None:
+            out['print_success'] = print_ok
+        return JsonResponse(out)
     except Exception as e:
         log.error(f'remove_item: {e}')
         return JsonResponse({'success': False, 'error': str(e)})
@@ -749,12 +772,13 @@ def cancel_order(request, order_id):
             order_print = prefetch_order_tables(
                 Order.objects.select_related('waiter', 'driver', 'cashier')
                 .prefetch_related('items__menu_item__category')
-                .get(pk=order.pk)
-            )
-            print_success = _send_order_cancel_to_printer(
-                order_print,
-                order_print.cancellation_reason or '',
-            )
+                .filter(pk=order.pk)
+            ).first()
+            if order_print:
+                print_success = _send_order_cancel_to_printer(
+                    order_print,
+                    order_print.cancellation_reason or '',
+                )
 
         out = {'success': True}
         if print_success is not None:
@@ -1378,7 +1402,7 @@ def _build_section_lines_for_items(order, cat_type, items, action_label=''):
             {'text': str(item.quantity), 'width': 0.15, 'align': 'left', 'bold': True},
             {'text': disp, 'width': 0.85, 'align': 'right', 'bold': True},
         ], 'size': 'large', 'bold': True})
-        extra = order_item_print_notes(item)
+        extra = order_item_print_notes(item, show_addon_prices=False)
         if extra:
             lines.append({'text': f'  * {extra}', 'align': 'right', 'bold': True})
         lines.append({'divider': True, 'divider_style': 'dashed'})
@@ -1435,6 +1459,91 @@ def _send_order_cancel_to_printer(order, reason: str = '') -> bool:
         return False
     except Exception as e:
         log.error(f'_send_order_cancel_to_printer: {e}')
+        return False
+
+
+def _build_remove_item_station_lines(order, cat_type, removed_info, remaining_items):
+    """سطور مطبخ/بار لإشعار حذف صنف مع عرض المتبقي للعمل."""
+    if removed_info['cat_type'] != cat_type:
+        return []
+
+    label = 'المطبخ' if cat_type == 'food' else 'البار'
+    now_time = timezone.localtime(order.created_at).strftime('%H:%M')
+    type_label = 'داخلي' if order.order_type == 'dine_in' else 'ديليفري'
+
+    lines = [
+        {'spacer': True, 'height': 5},
+        {'text': f'{label} — حذف صنف', 'align': 'center', 'bold': True, 'size': 'xlarge'},
+        {'divider': True, 'divider_style': 'double'},
+        {'cols': [
+            {'text': now_time, 'width': 0.3, 'align': 'left'},
+            {'text': f'طلب #{order.display_number}', 'width': 0.4, 'align': 'center', 'bold': True},
+            {'text': type_label, 'width': 0.3, 'align': 'right'},
+        ], 'bold': True},
+        {'text': 'تنبيه: تم حذف صنف من الطلب', 'align': 'center', 'bold': True},
+        {'divider': True, 'divider_style': 'dashed'},
+    ]
+
+    if order.order_type == 'dine_in':
+        lines.append({'text': f'الطاولة: {order.tables_label()}', 'align': 'center', 'bold': True})
+    elif order.order_type == 'delivery' and order.customer_name:
+        lines.append({'text': f'العميل: {order.customer_name}', 'align': 'center', 'bold': True})
+
+    lines.append({'divider': True, 'divider_style': 'double'})
+
+    lines.append({'text': '✖ تم الحذف:', 'align': 'right', 'bold': True, 'size': 'large'})
+    lines.append({'divider': True, 'divider_style': 'dashed'})
+    lines.append({'cols': [
+        {'text': str(removed_info['qty']), 'width': 0.15, 'align': 'left', 'bold': True},
+        {'text': removed_info['name'], 'width': 0.85, 'align': 'right', 'bold': True},
+    ], 'size': 'large', 'bold': True})
+    if removed_info.get('notes'):
+        lines.append({'text': f'  * {removed_info["notes"]}', 'align': 'right', 'bold': True})
+
+    lines.append({'divider': True, 'divider_style': 'double'})
+
+    remaining = [i for i in remaining_items if i.menu_item.category.category_type == cat_type]
+    if remaining:
+        lines.append({'text': '▶ المتبقي للعمل:', 'align': 'right', 'bold': True, 'size': 'large'})
+        lines.append({'divider': True, 'divider_style': 'dashed'})
+        for item in remaining:
+            disp = order_item_display_name(item)
+            lines.append({'cols': [
+                {'text': str(item.quantity), 'width': 0.15, 'align': 'left', 'bold': True},
+                {'text': disp, 'width': 0.85, 'align': 'right', 'bold': True},
+            ], 'size': 'large', 'bold': True})
+            extra = order_item_print_notes(item, show_addon_prices=False)
+            if extra:
+                lines.append({'text': f'  * {extra}', 'align': 'right', 'bold': True})
+            lines.append({'divider': True, 'divider_style': 'dashed'})
+    else:
+        lines.append({'text': 'لا يوجد أصناف متبقية لهذا القسم', 'align': 'center', 'bold': True})
+
+    lines.append({'spacer': True, 'height': 10})
+    return lines
+
+
+def _send_item_removal_to_printer(order, removed_info, remaining_items) -> bool:
+    """يُبلّغ المطبخ/البار بحذف صنف من الطلب مع عرض المتبقي."""
+    if not http_requests:
+        return False
+    try:
+        kitchen_lines = _build_remove_item_station_lines(order, 'food', removed_info, remaining_items)
+        bar_lines = _build_remove_item_station_lines(order, 'drink', removed_info, remaining_items)
+        if not kitchen_lines and not bar_lines:
+            return True
+        payload = {
+            'main_lines': [],
+            'kitchen_lines': kitchen_lines,
+            'bar_lines': bar_lines,
+            'open_drawer': False,
+        }
+        r = http_requests.post(settings.PRINT_SERVICE_URL, json=payload, timeout=6)
+        if r.status_code == 200:
+            return bool(r.json().get('success', False))
+        return False
+    except Exception as e:
+        log.error(f'_send_item_removal_to_printer: {e}')
         return False
 
 

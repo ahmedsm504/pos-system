@@ -671,7 +671,12 @@ function removeItem(itemId, orderId, qty){
       method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
       body:JSON.stringify({item_id:itemId,qty:1,admin_username:au||'',admin_password:ap||''})
     }).then(r=>r.json()).then(d=>{
-      if(d.success){showToast('تم حذف الصنف','suc');location.reload();}
+      if(d.success){
+        if(d.print_success===true)showToast('تم حذف الصنف وإبلاغ المطبخ/البار ✓','suc');
+        else if(d.print_success===false)showToast('تم حذف الصنف — تحقق من طباعة الإشعار','war',4200);
+        else showToast('تم حذف الصنف','suc');
+        location.reload();
+      }
       else showToast(d.error||'خطأ','err');
     });
   };
