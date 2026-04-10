@@ -1,7 +1,7 @@
 {% extends 'pos/cashier/base.html' %}
-{% block title %}طلبات اليوم{% endblock %}
+{% block title %}طلبات الشيفت{% endblock %}
 {% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
-{% block page_title %}طلبات اليوم{% endblock %}
+{% block page_title %}طلبات الشيفت{% endblock %}
 
 {% block extra_css %}<style>
 .od-wrap{max-width:920px;margin:0 auto}
@@ -100,7 +100,7 @@
 <div class="od-wrap">
   <div class="od-head">
     <div class="od-head-t">
-      <h2>طلبات اليوم</h2>
+      <h2>طلبات الشيفت</h2>
       <p>فلترة حسب الحالة (الكل/انتظار/مكتمل/ملغي) ونوع الطلب (الكل/داخلي/ديليفري)</p>
     </div>
     <div class="od-filters">
@@ -136,7 +136,7 @@
   <div class="od-list" id="odList">
     {% for o in orders %}
     <div class="od-row" data-order-type="{{ o.order_type }}" data-status-group="{% if o.status == 'completed' %}completed{% elif o.status == 'open' or o.status == 'printed' %}waiting{% elif o.status == 'cancelled' %}cancelled{% else %}other{% endif %}" onclick="location.href='{% url 'cashier_order_detail' o.id %}'">
-      <div class="od-id"><span>#</span>{{ o.id }}</div>
+      <div class="od-id"><span>#</span>{{ o.display_number }}</div>
       <div class="od-body">
         <div class="od-title">
           {% if o.order_type == 'delivery' %}
@@ -177,7 +177,7 @@
   {% else %}
   <div class="od-empty">
     <i class="fas fa-receipt"></i>
-    <p>مفيش طلبات اليوم</p>
+    <p>مفيش طلبات في الشيفت الحالي</p>
     <span>ابدأ بأول طلب من شاشة الكاشير</span>
     <a href="{% url 'cashier_new_order' %}" class="btn btn-suc"><i class="fas fa-plus"></i> طلب جديد</a>
   </div>

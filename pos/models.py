@@ -167,6 +167,8 @@ class Order(models.Model):
     TYPE_CHOICES = [('dine_in','داخلي'),('delivery','ديليفري')]
 
     cashier          = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='orders', verbose_name='الكاشير')
+    shift            = models.ForeignKey('Shift', on_delete=models.SET_NULL, null=True, blank=True, related_name='orders', verbose_name='الشيفت')
+    shift_order_number = models.PositiveIntegerField(null=True, blank=True, verbose_name='رقم الطلب في الشيفت')
     order_type       = models.CharField(max_length=20, choices=TYPE_CHOICES, default='dine_in', verbose_name='نوع الطلب')
     status           = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open', verbose_name='الحالة')
     notes            = models.TextField(blank=True, verbose_name='ملاحظات')
@@ -189,7 +191,12 @@ class Order(models.Model):
     class Meta:
         verbose_name='طلب'; verbose_name_plural='الطلبات'; ordering=['-created_at']
 
-    def __str__(self): return f"طلب #{self.id}"
+    def __str__(self): return f"طلب #{self.display_number}"
+
+    @property
+    def display_number(self):
+        """رقم الطلب داخل الشيفت (أو ID عمومي fallback)."""
+        return self.shift_order_number if self.shift_order_number else self.id
 
     def tables_ordered(self):
         """طاولات الطلب بالترتيب المحفوظ."""

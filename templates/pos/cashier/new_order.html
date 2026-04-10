@@ -1597,7 +1597,8 @@ async function confirmPrint(){
     const d=await r.json();
     if(d.success){
       closePreview();
-      showToast(d.print_success?`طلب #${d.order_id} تم طباعته`:`طلب #${d.order_id} محفوظ (تحقق من الطابعة)`,'suc',3200);
+      const oNum=d.order_number||d.order_id;
+      showToast(d.print_success?`طلب #${oNum} تم طباعته`:`طلب #${oNum} محفوظ (تحقق من الطابعة)`,'suc',3200);
       setTimeout(function(){ window.location.reload(); }, 480);
       return;
     }else showToast(d.error||'خطأ','err');

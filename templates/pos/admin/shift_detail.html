@@ -73,7 +73,7 @@
 <div class="sd-card" id="order-{{ obj.id }}">
   <div class="sd-card-h">
     <div>
-      <div class="sd-time"><i class="fas fa-clock"></i> {{ obj.created_at|date:"H:i:s" }} — طلب #{{ obj.id }}</div>
+      <div class="sd-time"><i class="fas fa-clock"></i> {{ obj.created_at|date:"H:i:s" }} — طلب #{{ obj.display_number }}</div>
       <div class="sd-badges" style="margin-top:8px">
         {% if obj.status == 'completed' %}<span class="badge b-suc">{{ obj.get_status_display }}</span>
         {% elif obj.status == 'cancelled' %}<span class="badge b-dan">{{ obj.get_status_display }}</span>

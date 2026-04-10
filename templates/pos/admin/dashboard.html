@@ -104,7 +104,7 @@
     <tbody>
       {% for o in recent_orders %}
       <tr onclick="location.href='{% url 'admin_order_detail' o.id %}'">
-        <td><strong style="color:var(--pri)">#{{ o.id }}</strong></td>
+        <td><strong style="color:var(--pri)">#{{ o.display_number }}</strong></td>
         <td>{% if o.order_type == 'delivery' %}<span class="badge b-war">ديليفري</span>{% else %}<span class="badge b-grey">داخلي</span>{% endif %}</td>
         <td>{{ o.cashier.username|default:"—" }}</td>
         <td>{% if o.order_type == 'delivery' %}{{ o.customer_name|default:"—" }}{% else %}{{ o.tables_label }}{% endif %}</td>

@@ -88,19 +88,23 @@ def get_profile(user):
 
 @cashier_required
 def dashboard(request):
-    today = date.today()
-    orders_today = Order.objects.filter(cashier=request.user, created_at__date=today)
-    active_orders = prefetch_order_tables(
-        Order.objects.filter(cashier=request.user, status__in=['open', 'printed'])
-        .select_related('waiter')
-        .prefetch_related('items')
-    )
-
     profile = get_profile(request.user)
     shift = Shift.objects.filter(cashier=request.user, status='open').first()
 
+    if shift:
+        shift_orders = Order.objects.filter(cashier=request.user, shift=shift)
+        active_orders = prefetch_order_tables(
+            shift_orders.filter(status__in=['open', 'printed'])
+            .select_related('waiter')
+            .prefetch_related('items')
+        )
+        orders_count = shift_orders.count()
+    else:
+        active_orders = Order.objects.none()
+        orders_count = 0
+
     return render(request, 'pos/cashier/dashboard.html', {
-        'orders_count': orders_today.count(),
+        'orders_count': orders_count,
         'active_orders': active_orders,
         'profile': profile,
         'shift': shift,
@@ -138,6 +142,11 @@ def _cashier_menu_queryset():
 
 @cashier_required
 def new_order(request):
+    shift = Shift.objects.filter(cashier=request.user, status='open').first()
+    if not shift:
+        from django.contrib import messages
+        messages.error(request, 'لازم تفتح شيفت الأول قبل ما تعمل طلب جديد.')
+        return redirect('cashier_dashboard')
     categories = _cashier_menu_queryset()
     catalog = menu_catalog_payload(categories)
     tables = list(available_tables_qs(for_new_order=True).order_by('number'))
@@ -213,11 +222,13 @@ def customer_invoice(request, order_id):
 
 @cashier_required
 def orders_list(request):
-    today = date.today()
+    shift = Shift.objects.filter(cashier=request.user, status='open').first()
+    if shift:
+        base_qs = Order.objects.filter(cashier=request.user, shift=shift)
+    else:
+        base_qs = Order.objects.none()
     orders = prefetch_order_tables(
-        Order.objects.filter(cashier=request.user, created_at__date=today)
-        .select_related('waiter')
-        .order_by('-created_at')
+        base_qs.select_related('waiter').order_by('-created_at')
     )
     order_stats = orders.aggregate(
         total=Count('id'),
@@ -362,9 +373,25 @@ def create_order(request):
             if not ok:
                 return JsonResponse({'success': False, 'error': err})
 
+        current_shift = Shift.objects.filter(cashier=request.user, status='open').first()
+        if not current_shift:
+            return JsonResponse({'success': False, 'error': 'لازم تفتح شيفت الأول قبل ما تعمل طلب'})
+
         with transaction.atomic():
+            last_num = (
+                Order.objects
+                .filter(shift=current_shift)
+                .select_for_update()
+                .order_by('-shift_order_number')
+                .values_list('shift_order_number', flat=True)
+                .first()
+            ) or 0
+            next_num = last_num + 1
+
             order = Order.objects.create(
                 cashier=request.user,
+                shift=current_shift,
+                shift_order_number=next_num,
                 order_type=order_type,
                 status='open',
                 notes=data.get('notes', ''),
@@ -419,7 +446,7 @@ def create_order(request):
         order.printed_at = timezone.now()
         order.save()
 
-        return JsonResponse({'success': True, 'order_id': order.id, 'print_success': print_ok})
+        return JsonResponse({'success': True, 'order_id': order.id, 'order_number': order.display_number, 'print_success': print_ok})
     except ValueError as err:
         return JsonResponse({'success': False, 'error': str(err)})
     except Exception as e:
@@ -868,9 +895,9 @@ def cashier_inventory_submit(request):
 
 
 def _shift_orders_qs(cashier, shift, *, close_snapshot_at=None):
-    """طلبات الشيفت (مطبوع + مكتمل) ضمن [بداية الشيفت، نهايته] فقط عند الإغلاق."""
+    """طلبات الشيفت (مطبوع + مكتمل) المرتبطة مباشرةً بالشيفت."""
     return prefetch_order_tables(
-        shift_orders_qs(cashier, shift, close_snapshot_at=close_snapshot_at)
+        shift_orders_qs(cashier, shift)
         .select_related('waiter', 'driver')
         .prefetch_related('items__menu_item__category')
     )
@@ -879,8 +906,7 @@ def _shift_orders_qs(cashier, shift, *, close_snapshot_at=None):
 def _shift_incomplete_orders_count(cashier, shift):
     """مفتوح أو قيد الانتظار — يمنع إغلاق الشيفت حتى تُكمّل الطلبات."""
     return Order.objects.filter(
-        cashier=cashier,
-        created_at__gte=shift.start_time,
+        shift=shift,
         status__in=['open', 'printed'],
     ).count()
 
@@ -1246,7 +1272,7 @@ def _build_main_lines(order):
             {'text': label, 'width': 0.55, 'align': 'right', 'bold': True},
         ]}
 
-    lines.append(_info_row('طلب رقم', f'#{order.id}'))
+    lines.append(_info_row('طلب رقم', f'#{order.display_number}'))
     lines.append(_info_row('النوع', type_label))
 
     if order.order_type == 'dine_in':
@@ -1324,7 +1350,7 @@ def _build_section_lines_for_items(order, cat_type, items, action_label=''):
         {'divider': True, 'divider_style': 'double'},
         {'cols': [
             {'text': now_time, 'width': 0.3, 'align': 'left'},
-            {'text': f'طلب #{order.id}', 'width': 0.4, 'align': 'center', 'bold': True},
+            {'text': f'طلب #{order.display_number}', 'width': 0.4, 'align': 'center', 'bold': True},
             {'text': type_label, 'width': 0.3, 'align': 'right'},
         ], 'bold': True},
     ]

@@ -1,8 +1,8 @@
 {% extends 'pos/cashier/base.html' %}
 {% load static %}
-{% block title %}طلب #{{ order.id }}{% endblock %}
+{% block title %}طلب #{{ order.display_number }}{% endblock %}
 {% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
-{% block page_title %}طلب #{{ order.id }}{% endblock %}
+{% block page_title %}طلب #{{ order.display_number }}{% endblock %}
 
 {% block extra_css %}<style>
 .od-layout{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
@@ -416,7 +416,7 @@
 <div class="invoice-overlay" id="invoiceOverlay" onclick="if(event.target===this)closeInvoiceOverlay()">
   <div class="invoice-modal" onclick="event.stopPropagation()">
     <div class="invoice-modal-hdr">
-      <h3><i class="fas fa-file-invoice"></i> نسخة العميل — طلب #{{ order.id }}</h3>
+      <h3><i class="fas fa-file-invoice"></i> نسخة العميل — طلب #{{ order.display_number }}</h3>
       <button class="invoice-modal-close" onclick="closeInvoiceOverlay()">&times;</button>
     </div>
     <div class="invoice-modal-body">
@@ -428,7 +428,7 @@
         </div>
         <hr class="inv-sep-solid">
         <div class="inv-meta">
-          <div class="inv-mr"><span>رقم الفاتورة</span><strong>#{{ order.id }}</strong></div>
+          <div class="inv-mr"><span>رقم الفاتورة</span><strong>#{{ order.display_number }}</strong></div>
           <div class="inv-mr"><span>التاريخ</span><strong>{{ order.created_at|date:"Y/m/d" }}</strong></div>
           <div class="inv-mr"><span>الوقت</span><strong>{{ order.created_at|time:"h:i A" }}</strong></div>
           <div class="inv-mr"><span>نوع الطلب</span><strong>{% if order.order_type == 'delivery' %}ديليفري{% else %}داخلي{% endif %}</strong></div>

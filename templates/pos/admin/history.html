@@ -133,7 +133,7 @@
 
 {% for o in orders %}
 <div class="orow" role="link" tabindex="0" onclick="location.href='{% url 'admin_order_detail' o.id %}'" onkeydown="if(event.key==='Enter')location.href='{% url 'admin_order_detail' o.id %}'">
-  <div class="orow-id"><span style="font-size:.6rem;color:var(--muted)">#</span><span>{{ o.id }}</span></div>
+  <div class="orow-id"><span style="font-size:.6rem;color:var(--muted)">#</span><span>{{ o.display_number }}</span></div>
   <div class="orow-body">
     <div class="orow-main">
       {% if o.order_type == 'delivery' %}<i class="fas fa-motorcycle" style="color:var(--pri);margin-inline-end:6px"></i> {{ o.customer_name|default:"ديليفري" }}{% else %}<i class="fas fa-chair" style="color:var(--war);margin-inline-end:6px"></i> {{ o.tables_label }}{% endif %}

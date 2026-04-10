@@ -175,7 +175,7 @@ a.dash-kpi:hover{transform:translateY(-3px);box-shadow:0 16px 40px -16px rgba(0,
     </div>
     {% for o in active_orders %}
     <div class="d-orow" onclick="location.href='{% url 'cashier_order_detail' o.id %}'">
-      <div class="d-oid"><span>#</span>{{ o.id }}</div>
+      <div class="d-oid"><span>#</span>{{ o.display_number }}</div>
       <div class="d-ob">
         <div class="d-ot">
           {% if o.order_type == 'delivery' %}🛵 {{ o.customer_name|default:"ديليفري" }}{% else %}🪑 {{ o.tables_label }}{% endif %}{% if o.waiter %} · {{ o.waiter }}{% endif %}

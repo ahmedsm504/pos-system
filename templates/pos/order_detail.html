@@ -1,7 +1,7 @@
 {% extends 'pos/base.html' %}
-{% block title %}طلب #{{ order.id }}{% endblock %}
+{% block title %}طلب #{{ order.display_number }}{% endblock %}
 {% block page_icon %}<i class="fas fa-receipt"></i>{% endblock %}
-{% block page_title %}تفاصيل طلب #{{ order.id }}{% endblock %}
+{% block page_title %}تفاصيل طلب #{{ order.display_number }}{% endblock %}
 
 {% block extra_css %}<style>
 .back{margin-bottom:18px}
