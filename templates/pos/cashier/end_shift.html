@@ -7,8 +7,7 @@
   <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;padding:24px;color:#fff;margin-bottom:20px;text-align:center">
     <i class="fas fa-clock" style="font-size:2.5rem;margin-bottom:12px;display:block;opacity:.9"></i>
     <h2 style="font-size:1.2rem;margin-bottom:6px">إنهاء الشيفت</h2>
-    <p style="opacity:.8;font-size:.85rem">نجمّع من السيستم كل طلباتك (مطبوع + مكتمل). <strong>واردات الشيفت</strong> تُضاف لمجموع المطابقة مع الطلبات ومقارنتها بالدرج. <strong>إيراد التقارير:</strong> مبيعات السيستم + <strong>زيادة الدرج</strong> فقط إن وُجدت؛ عند العجز الإيراد = المبيعات فقط. بعد التأكيد يُطبَع التقرير ثم <strong>تسجيل خروج تلقائي</strong>.</p>
-    {% if shift %}<p style="opacity:.7;font-size:.8rem;margin-top:6px">بدأ: {{ shift.start_time|date:"H:i" }}</p>{% endif %}
+    {% if shift %}<p style="opacity:.85;font-size:.85rem;margin-top:4px">بدأ: {{ shift.start_time|date:"H:i" }}</p>{% endif %}
   </div>
 
   {% if shift and pending_orders_count %}
@@ -24,20 +23,11 @@
   {% endif %}
 
   <div class="card" id="inputCard" {% if shift and pending_orders_count %}style="opacity:.65" aria-disabled="true"{% endif %}>
-    {% if shift and orders_total is not None and inventory_out is not None %}
-    <div style="margin-bottom:18px;padding:14px 16px;border-radius:14px;background:linear-gradient(180deg,#f0fdfa,#ecfdf5);border:1px solid #99f6e4;font-size:.8rem;font-weight:700;color:#0f766e;line-height:1.55">
-      <div style="font-size:.72rem;opacity:.85;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">من السيستم (قبل ما تعدّ الدرج)</div>
-      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(15,118,110,.25)"><span><strong>مفروض المبيعات</strong> <span style="font-size:.68rem;font-weight:600;opacity:.85">(طلبات مطبوعة ومكتملة — النقد المتوقع منها)</span></span><strong dir="ltr">{{ orders_total|floatformat:2 }} ج</strong></div>
-      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(15,118,110,.25)"><span>واردات الشيفت <span style="font-size:.68rem;font-weight:600;opacity:.85">(فلوس خرجت للمخزون — تُجمع مع المبيعات في المطابقة)</span></span><strong dir="ltr" style="color:#b45309">+ {{ inventory_out|floatformat:2 }} ج</strong></div>
-      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:6px 0;padding-top:8px"><span><strong>مجموع المطابقة</strong> <span style="font-size:.68rem;font-weight:600;opacity:.85">(مفروض المبيعات + واردات — يُقارَن بالدرج بعد العدّ)</span></span><strong dir="ltr">{{ orders_total|add:inventory_out|floatformat:2 }} ج</strong></div>
-      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:8px 0 0;margin-top:6px;border-top:1px dashed rgba(15,118,110,.3)"><span><strong>طلبات ملغاة</strong> <span style="font-size:.68rem;font-weight:600;opacity:.85">(لا تُحسب في المبيعات — تظهر في تقرير الإغلاق)</span></span><strong dir="ltr" style="color:#991b1b">{{ cancelled_in_shift }}</strong></div>
-    </div>
-    {% endif %}
     <div class="fg">
       <label style="font-size:1rem;font-weight:800;margin-bottom:10px">عدّ الدرج واكتب المبلغ اللي عندك فعلاً (ج)</label>
       <input type="number" id="cashInput" step="0.01" placeholder="0.00" style="font-size:1.5rem;text-align:center;padding:16px;direction:ltr" {% if shift and pending_orders_count %}disabled{% endif %}>
     </div>
-    <p style="font-size:.74rem;color:var(--muted);font-weight:600;margin:-4px 0 8px;line-height:1.5">بعد التأكيد: <strong>الفرق = الدرج بعد العدّ − مجموع المطابقة</strong> (مفروض المبيعات + واردات). <strong>موجب</strong> = زيادة في الدرج، <strong>سالب</strong> = عجز.</p>
+    <p style="font-size:.74rem;color:var(--muted);font-weight:600;margin:-4px 0 8px;line-height:1.5">اكتب المبلغ الفعلي بعد عدّ النقد في الدرج، ثم اضغط «احسب الشيفت». تفاصيل المطابقة والإيراد تظهر بعد التأكيد.</p>
     <button type="button" class="btn btn-pri btn-lg" style="width:100%;justify-content:center;margin-top:10px" onclick="submitShift()" {% if shift and pending_orders_count %}disabled{% endif %}>
       <i class="fas fa-calculator"></i> احسب الشيفت
     </button>
