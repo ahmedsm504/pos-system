@@ -107,7 +107,7 @@
         <td><strong style="color:var(--pri)">#{{ o.id }}</strong></td>
         <td>{% if o.order_type == 'delivery' %}<span class="badge b-war">ديليفري</span>{% else %}<span class="badge b-grey">داخلي</span>{% endif %}</td>
         <td>{{ o.cashier.username|default:"—" }}</td>
-        <td>{% if o.order_type == 'delivery' %}{{ o.customer_name|default:"—" }}{% else %}{{ o.table|default:"—" }}{% endif %}</td>
+        <td>{% if o.order_type == 'delivery' %}{{ o.customer_name|default:"—" }}{% else %}{{ o.tables_label }}{% endif %}</td>
         <td>
           {% if o.status == 'open' %}<span class="badge b-war">مفتوح</span>
           {% elif o.status == 'printed' %}<span class="badge b-pri">انتظار</span>

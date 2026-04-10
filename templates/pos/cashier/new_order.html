@@ -218,6 +218,81 @@
 .op-grid-2{
   display:grid;grid-template-columns:1fr 1fr;gap:6px;
 }
+.delivery-hint{
+  font-size:.68rem;color:var(--muted);line-height:1.4;margin:0;padding:0 2px;
+}
+.delivery-lookup-status{
+  font-size:.7rem;font-weight:700;margin:0;padding:2px 4px;border-radius:8px;
+}
+.delivery-lookup-status.found{background:#d1fae5;color:#065f46}
+.delivery-lookup-status.new{background:#f1f5f9;color:var(--text2)}
+.table-multi-hint{font-size:.65rem;color:var(--muted);line-height:1.4;margin:0;padding:0 2px}
+/* طبقة القائمة المفتوحة فوق أي مكوّن تحتها (مثلاً زر الويتر) */
+.table-picker{position:relative;z-index:2}
+.waiter-picker.table-picker{z-index:1}
+.table-picker.open,.waiter-picker.open{z-index:10050}
+.table-picker-trigger{
+  width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1.5px solid #e2e8f0;
+  background:linear-gradient(180deg,#fff 0%,#f8fafc 100%);cursor:pointer;font-family:inherit;text-align:start;
+  box-shadow:0 1px 3px rgba(15,23,42,.06);transition:border .18s,box-shadow .18s;
+}
+.table-picker-trigger:hover{border-color:rgba(201,162,39,.45);box-shadow:0 2px 10px rgba(15,23,42,.08)}
+.table-picker-trigger:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,39,.18)}
+.table-picker-trigger-ic{
+  flex-shrink:0;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,var(--gold-soft),var(--gold));color:#2d2608;font-size:.85rem;
+}
+.table-picker-trigger-text{flex:1;min-width:0;font-size:.78rem;font-weight:700;color:var(--text);line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.table-picker-trigger-badge{
+  flex-shrink:0;min-width:22px;height:22px;padding:0 7px;border-radius:999px;font-size:.65rem;font-weight:800;
+  background:#047857;color:#fff;align-items:center;justify-content:center;display:none;
+}
+.table-picker-chev{flex-shrink:0;font-size:.65rem;color:var(--muted);transition:transform .2s var(--ease-out)}
+.table-picker.open .table-picker-chev{transform:rotate(-180deg)}
+.table-picker-panel{
+  display:none;
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  box-shadow:0 16px 48px -8px rgba(15,23,42,.18),0 0 0 1px rgba(15,23,42,.04);
+  overflow:hidden;flex-direction:column;
+}
+.table-picker.open .table-picker-panel{display:flex}
+.table-picker-search-wrap{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fafbff;border-bottom:1px solid var(--border);
+}
+.table-picker-search-wrap i{color:var(--muted);font-size:.8rem}
+.table-picker-search-wrap input{
+  flex:1;border:none;background:transparent;font-size:.78rem;font-family:inherit;font-weight:600;color:var(--text);
+}
+.table-picker-search-wrap input::placeholder{color:#94a3b8;font-weight:500}
+.table-picker-search-wrap input:focus{outline:none}
+.table-picker-actions{
+  display:flex;gap:8px;padding:8px 10px;border-bottom:1px solid #f1f5f9;background:#fff;
+}
+.table-picker-actions .tp-act{
+  flex:1;padding:7px 8px;border-radius:8px;border:1px solid var(--border);background:#fff;
+  font-size:.68rem;font-weight:800;font-family:inherit;color:var(--text2);cursor:pointer;transition:background .15s,border .15s;
+}
+.table-picker-actions .tp-act:hover{background:var(--pri-l);border-color:rgba(201,162,39,.35);color:var(--gold-dim)}
+.table-picker-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding:4px 0}
+.table-picker-row{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;font-size:.78rem;font-weight:600;
+  border-bottom:1px solid #f4f6fb;transition:background .12s;margin:0 6px;border-radius:10px;
+}
+.table-picker-row:last-child{border-bottom:none}
+.table-picker-row:hover{background:#f8fafc}
+.table-picker-row:has(.table-cb-real:checked){background:linear-gradient(90deg,#ecfdf5,#f0fdf4);border:1px solid rgba(4,120,87,.12);margin-bottom:2px}
+.table-picker-row-none:has(.table-cb-none:checked){background:#f1f5f9;border:1px dashed #cbd5e1}
+.table-picker-row input.table-cb{margin:0;width:17px;height:17px;accent-color:#047857;flex-shrink:0}
+.waiter-picker .table-picker-trigger-ic{
+  background:linear-gradient(145deg,#e0e7ff,#c7d2fe);color:#312e81;
+}
+.table-picker-row:has(.waiter-rb:checked){
+  background:linear-gradient(90deg,#eef2ff,#faf5ff);border:1px solid rgba(99,102,241,.18);margin-bottom:2px;
+}
+.table-picker-row input.waiter-rb{margin:0;width:17px;height:17px;accent-color:#4f46e5;flex-shrink:0}
+.tp-row-main{flex:1;min-width:0;color:var(--text)}
+.table-picker-empty{padding:20px 14px;text-align:center;font-size:.74rem;color:var(--muted);font-weight:600;display:none}
+.table-picker-list.is-empty .table-picker-empty{display:block}
 @media(max-width:380px){.op-grid-2{grid-template-columns:1fr}}
 .sel{
   width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:10px;font-size:.76rem;
@@ -525,15 +600,64 @@
         </div>
       </div>
       <div class="dine-fields op-field-box show" id="dine-fields">
-        <div class="op-grid-2">
-          <select class="sel" id="tableSelect" aria-label="الطاولة">
-            <option value="">الطاولة…</option>
-            {% for t in tables %}<option value="{{ t.id }}">{{ t }}</option>{% endfor %}
-          </select>
-          <select class="sel" id="waiterSelect" aria-label="الويتر">
-            <option value="">الويتر…</option>
-            {% for w in waiters %}<option value="{{ w.id }}">{{ w.name }}</option>{% endfor %}
-          </select>
+        <p class="table-multi-hint">يمكنك اختيار طاولة أو أكثر. الطاولات المشغولة بطلب مفتوح لا تظهر.</p>
+        <div class="table-picker" id="tablePicker">
+          <button type="button" class="table-picker-trigger" id="tablePickerTrigger" aria-expanded="false" aria-haspopup="listbox" aria-controls="tablePickerPanel">
+            <span class="table-picker-trigger-ic"><i class="fas fa-chair"></i></span>
+            <span class="table-picker-trigger-text" id="tablePickerLabel">بدون طاولة</span>
+            <span class="table-picker-trigger-badge" id="tablePickerCount" aria-hidden="true">0</span>
+            <i class="fas fa-chevron-down table-picker-chev" aria-hidden="true"></i>
+          </button>
+          <div class="table-picker-panel" id="tablePickerPanel" role="listbox" aria-multiselectable="true">
+            <div class="table-picker-search-wrap">
+              <i class="fas fa-search" aria-hidden="true"></i>
+              <input type="search" id="tablePickerSearch" placeholder="بحث برقم أو اسم الطاولة…" autocomplete="off" aria-label="بحث الطاولات">
+            </div>
+            <div class="table-picker-actions">
+              <button type="button" class="tp-act" onclick="tablePickerSelectVisible()">تحديد الظاهر</button>
+              <button type="button" class="tp-act" onclick="tablePickerClearAll()">مسح الكل</button>
+            </div>
+            <div class="table-picker-list" id="tablePickerList">
+              <div class="table-picker-empty" id="tablePickerEmpty">لا توجد نتائج مطابقة</div>
+              <label class="table-picker-row table-picker-row-none" role="option" data-search="بدون طاولة لا">
+                <input type="checkbox" class="table-cb table-cb-none" id="tablePickNone" checked>
+                <span class="tp-row-main">— بدون طاولة —</span>
+              </label>
+              {% for t in tables %}
+              <label class="table-picker-row" role="option" data-search="{{ t.number }} {{ t.name|default:'' }} {{ t }}">
+                <input type="checkbox" class="table-cb table-cb-real" value="{{ t.id }}">
+                <span class="tp-row-main">{{ t }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <p class="table-multi-hint" style="margin-top:10px;margin-bottom:0">الويتر (اختياري)</p>
+        <div class="table-picker waiter-picker" id="waiterPicker">
+          <button type="button" class="table-picker-trigger" id="waiterPickerTrigger" aria-expanded="false" aria-haspopup="listbox">
+            <span class="table-picker-trigger-ic"><i class="fas fa-user-tie"></i></span>
+            <span class="table-picker-trigger-text" id="waiterPickerLabel">الويتر…</span>
+            <i class="fas fa-chevron-down table-picker-chev" aria-hidden="true"></i>
+          </button>
+          <div class="table-picker-panel" id="waiterPickerPanel" role="listbox">
+            <div class="table-picker-search-wrap">
+              <i class="fas fa-search" aria-hidden="true"></i>
+              <input type="search" id="waiterPickerSearch" placeholder="بحث باسم الويتر…" autocomplete="off" aria-label="بحث الويتر">
+            </div>
+            <div class="table-picker-list" id="waiterPickerList">
+              <div class="table-picker-empty" id="waiterPickerEmpty">لا توجد نتائج مطابقة</div>
+              <label class="table-picker-row waiter-picker-row" data-search="بدون ويتر لا أحد">
+                <input type="radio" name="waiterPick" class="waiter-rb" id="waiterPickNone" value="" checked>
+                <span class="tp-row-main">— بدون ويتر —</span>
+              </label>
+              {% for w in waiters %}
+              <label class="table-picker-row waiter-picker-row" data-search="{{ w.name|lower }} {{ w.name }}">
+                <input type="radio" name="waiterPick" class="waiter-rb" value="{{ w.id }}">
+                <span class="tp-row-main">{{ w.name }}</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
         </div>
       </div>
       <div class="delivery-fields op-field-box" id="delivery-fields">
@@ -541,6 +665,8 @@
           <input class="sel" id="custName" placeholder="اسم العميل" autocomplete="name">
           <input class="sel" id="custPhone" placeholder="هاتف *" style="direction:ltr" inputmode="tel" autocomplete="tel">
         </div>
+        <p class="delivery-hint">رقم مسجّل مسبقاً يملأ الاسم والعنوان تلقائياً (قابل للتعديل). يُحفظ السجل بعد تأكيد الطلب.</p>
+        <p class="delivery-lookup-status" id="deliveryLookupStatus" style="display:none" aria-live="polite"></p>
         <input class="sel" id="custAddr" placeholder="العنوان *" autocomplete="street-address">
         <select class="sel" id="driverSelect" aria-label="الطيار">
           <option value="">الطيار (اختياري)…</option>
@@ -597,7 +723,325 @@
 {% block extra_js %}<script>
 let menuKind=null, currentCat='all', orderType='dine_in';
 let cartLines=[];
+function selectedTableIds(){
+  return [...document.querySelectorAll('#tablePickerList .table-cb-real:checked')].map(x=>parseInt(x.value,10)).filter(x=>!isNaN(x));
+}
+function updateTablePickerSummary(){
+  const reals=[...document.querySelectorAll('#tablePickerList .table-cb-real:checked')];
+  const label=document.getElementById('tablePickerLabel');
+  const badge=document.getElementById('tablePickerCount');
+  if(!label)return;
+  if(!reals.length){
+    label.textContent='بدون طاولة';
+    if(badge){badge.style.display='none';badge.textContent='0';}
+    return;
+  }
+  const texts=reals.map(cb=>{
+    const row=cb.closest('.table-picker-row');
+    const m=row&&row.querySelector('.tp-row-main');
+    return m?m.textContent.trim():'';
+  }).filter(Boolean);
+  label.textContent=texts.join('، ');
+  if(badge){badge.textContent=String(reals.length);badge.style.display='inline-flex';}
+}
+function filterTablePickerList(){
+  const inp=document.getElementById('tablePickerSearch');
+  const raw=(inp&&inp.value||'').trim().toLowerCase();
+  const q=raw.replace(/\s+/g,' ');
+  const rows=[...document.querySelectorAll('#tablePickerList .table-picker-row')];
+  let anyVis=false;
+  rows.forEach(row=>{
+    if(row.classList.contains('table-picker-row-none')){
+      row.style.display='';
+      anyVis=true;
+      return;
+    }
+    const hay=(row.getAttribute('data-search')||'').toLowerCase();
+    const ok=!q||hay.includes(q);
+    row.style.display=ok?'':'none';
+    if(ok)anyVis=true;
+  });
+  const list=document.getElementById('tablePickerList');
+  if(list)list.classList.toggle('is-empty',rows.length>0&&!anyVis);
+}
+function tablePickerSelectVisible(){
+  const none=document.getElementById('tablePickNone');
+  if(none)none.checked=false;
+  document.querySelectorAll('#tablePickerList .table-picker-row').forEach(row=>{
+    if(row.classList.contains('table-picker-row-none'))return;
+    if(row.style.display==='none')return;
+    const cb=row.querySelector('.table-cb-real');
+    if(cb&&!cb.disabled)cb.checked=true;
+  });
+  updateTablePickerSummary();
+}
+function tablePickerClearAll(){
+  document.querySelectorAll('#tablePickerList .table-cb-real').forEach(cb=>{cb.checked=false;});
+  const none=document.getElementById('tablePickNone');
+  if(none)none.checked=true;
+  updateTablePickerSummary();
+}
+function resetTablePickerPanelLayout(){
+  const panel=document.getElementById('tablePickerPanel');
+  if(!panel)return;
+  panel.style.position='';
+  panel.style.left='';
+  panel.style.top='';
+  panel.style.width='';
+  panel.style.right='';
+  panel.style.maxHeight='';
+}
+function syncTablePickerPanelPosition(){
+  const root=document.getElementById('tablePicker');
+  const panel=document.getElementById('tablePickerPanel');
+  const trig=document.getElementById('tablePickerTrigger');
+  if(!panel||!trig||!root||!root.classList.contains('open'))return;
+  const r=trig.getBoundingClientRect();
+  const pad=8;
+  const maxH=Math.max(160,Math.min(320,window.innerHeight-r.bottom-pad*2));
+  const w=Math.min(r.width,window.innerWidth-pad*2);
+  panel.style.position='fixed';
+  panel.style.left=Math.max(pad,r.left)+'px';
+  panel.style.width=w+'px';
+  panel.style.top=r.bottom+6+'px';
+  panel.style.right='auto';
+  panel.style.maxHeight=maxH+'px';
+}
+function closeTablePicker(){
+  const root=document.getElementById('tablePicker');
+  const trig=document.getElementById('tablePickerTrigger');
+  if(root)root.classList.remove('open');
+  if(trig)trig.setAttribute('aria-expanded','false');
+  resetTablePickerPanelLayout();
+}
+function clearTableSelection(){
+  tablePickerClearAll();
+  const s=document.getElementById('tablePickerSearch');
+  if(s)s.value='';
+  filterTablePickerList();
+  closeTablePicker();
+}
+(function initTablePicker(){
+  const root=document.getElementById('tablePicker');
+  const trig=document.getElementById('tablePickerTrigger');
+  const panel=document.getElementById('tablePickerPanel');
+  const list=document.getElementById('tablePickerList');
+  const search=document.getElementById('tablePickerSearch');
+  if(!root||!trig||!panel||!list)return;
+  trig.addEventListener('click',e=>{
+    e.stopPropagation();
+    const o=!root.classList.contains('open');
+    if(o){
+      closeWaiterPicker();
+      root.classList.add('open');
+      trig.setAttribute('aria-expanded','true');
+      filterTablePickerList();
+      syncTablePickerPanelPosition();
+      setTimeout(()=>{if(search){search.focus();try{search.select();}catch(_){}}syncTablePickerPanelPosition();},40);
+    }else{
+      closeTablePicker();
+    }
+  });
+  panel.addEventListener('click',e=>e.stopPropagation());
+  search&&search.addEventListener('input',filterTablePickerList);
+  list.addEventListener('change',function(e){
+    const t=e.target;
+    if(!t||!t.classList)return;
+    if(t.classList.contains('table-cb-none')){
+      if(t.checked){
+        list.querySelectorAll('.table-cb-real').forEach(cb=>{cb.checked=false;});
+      }else{
+        t.checked=true;
+      }
+      updateTablePickerSummary();
+      return;
+    }
+    if(t.classList.contains('table-cb-real')){
+      const none=document.getElementById('tablePickNone');
+      if(t.checked){if(none)none.checked=false;}
+      else{
+        const any=[...list.querySelectorAll('.table-cb-real:checked')].length;
+        if(!any&&none)none.checked=true;
+      }
+      updateTablePickerSummary();
+    }
+  });
+  updateTablePickerSummary();
+  window.addEventListener('resize',syncTablePickerPanelPosition);
+  window.addEventListener('scroll',syncTablePickerPanelPosition,true);
+  document.addEventListener('click',()=>closeTablePicker());
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTablePicker();closeWaiterPicker();}});
+})();
+function getWaiterId(){
+  const el=document.querySelector('#waiterPickerList input.waiter-rb:checked');
+  if(!el)return null;
+  const v=el.value;
+  return v?String(v):null;
+}
+function updateWaiterPickerSummary(){
+  const el=document.querySelector('#waiterPickerList input.waiter-rb:checked');
+  const label=document.getElementById('waiterPickerLabel');
+  if(!label)return;
+  const row=el&&el.closest('.waiter-picker-row');
+  const main=row&&row.querySelector('.tp-row-main');
+  label.textContent=main?main.textContent.trim():'الويتر…';
+}
+function filterWaiterPickerList(){
+  const inp=document.getElementById('waiterPickerSearch');
+  const raw=(inp&&inp.value||'').trim().toLowerCase();
+  const q=raw.replace(/\s+/g,' ');
+  const rows=[...document.querySelectorAll('#waiterPickerList .waiter-picker-row')];
+  let anyVis=false;
+  rows.forEach(row=>{
+    if(row.querySelector('#waiterPickNone')){
+      row.style.display='';
+      anyVis=true;
+      return;
+    }
+    const hay=(row.getAttribute('data-search')||'').toLowerCase();
+    const ok=!q||hay.includes(q);
+    row.style.display=ok?'':'none';
+    if(ok)anyVis=true;
+  });
+  const list=document.getElementById('waiterPickerList');
+  if(list)list.classList.toggle('is-empty',rows.length>0&&!anyVis);
+}
+function resetWaiterPickerPanelLayout(){
+  const panel=document.getElementById('waiterPickerPanel');
+  if(!panel)return;
+  panel.style.position='';
+  panel.style.left='';
+  panel.style.top='';
+  panel.style.width='';
+  panel.style.right='';
+  panel.style.zIndex='';
+  panel.style.maxHeight='';
+}
+function syncWaiterPickerPanelPosition(){
+  const root=document.getElementById('waiterPicker');
+  const panel=document.getElementById('waiterPickerPanel');
+  const trig=document.getElementById('waiterPickerTrigger');
+  if(!panel||!trig||!root||!root.classList.contains('open'))return;
+  const r=trig.getBoundingClientRect();
+  const pad=8;
+  const maxH=Math.max(160,Math.min(280,window.innerHeight-r.bottom-pad*2));
+  const w=Math.min(r.width,window.innerWidth-pad*2);
+  panel.style.position='fixed';
+  panel.style.left=Math.max(pad,r.left)+'px';
+  panel.style.width=w+'px';
+  panel.style.top=r.bottom+6+'px';
+  panel.style.right='auto';
+  panel.style.maxHeight=maxH+'px';
+}
+function closeWaiterPicker(){
+  const root=document.getElementById('waiterPicker');
+  const trig=document.getElementById('waiterPickerTrigger');
+  if(root)root.classList.remove('open');
+  if(trig)trig.setAttribute('aria-expanded','false');
+  resetWaiterPickerPanelLayout();
+}
+function clearWaiterSelection(){
+  const none=document.getElementById('waiterPickNone');
+  if(none)none.checked=true;
+  updateWaiterPickerSummary();
+  const s=document.getElementById('waiterPickerSearch');
+  if(s)s.value='';
+  filterWaiterPickerList();
+  closeWaiterPicker();
+}
+(function initWaiterPicker(){
+  const root=document.getElementById('waiterPicker');
+  const trig=document.getElementById('waiterPickerTrigger');
+  const panel=document.getElementById('waiterPickerPanel');
+  const list=document.getElementById('waiterPickerList');
+  const search=document.getElementById('waiterPickerSearch');
+  if(!root||!trig||!panel||!list)return;
+  updateWaiterPickerSummary();
+  trig.addEventListener('click',e=>{
+    e.stopPropagation();
+    const o=!root.classList.contains('open');
+    if(o){
+      closeTablePicker();
+      root.classList.add('open');
+      trig.setAttribute('aria-expanded','true');
+      filterWaiterPickerList();
+      syncWaiterPickerPanelPosition();
+      setTimeout(()=>{if(search){search.focus();try{search.select();}catch(_){}}syncWaiterPickerPanelPosition();},40);
+    }else closeWaiterPicker();
+  });
+  panel.addEventListener('click',e=>e.stopPropagation());
+  search&&search.addEventListener('input',filterWaiterPickerList);
+  list.addEventListener('change',e=>{
+    if(e.target&&e.target.classList&&e.target.classList.contains('waiter-rb')){
+      updateWaiterPickerSummary();
+      setTimeout(closeWaiterPicker,120);
+    }
+  });
+  window.addEventListener('resize',syncWaiterPickerPanelPosition);
+  window.addEventListener('scroll',syncWaiterPickerPanelPosition,true);
+  document.addEventListener('click',()=>closeWaiterPicker());
+})();
+window.addEventListener('pageshow',function(ev){if(ev.persisted)window.location.reload();});
 const MENU_CATALOG=JSON.parse(document.getElementById('menu-catalog-data').textContent);
+const DELIVERY_MIN_PHONE_DIGITS=9;
+let deliveryLookupTimer=null;
+
+function normalizeDeliveryPhone(raw){
+  let d=String(raw||'').replace(/\D/g,'');
+  if(!d)return'';
+  if(d.startsWith('00')&&d.length>2)d=d.slice(2);
+  if(d.length>=12&&d.startsWith('20'))d=d.slice(2);
+  if(d.length===10&&d[0]==='1')d='0'+d;
+  return d.slice(0,32);
+}
+
+function setDeliveryLookupStatus(state,msg){
+  const el=document.getElementById('deliveryLookupStatus');
+  if(!el)return;
+  if(!msg){el.style.display='none';el.textContent='';el.className='delivery-lookup-status';return;}
+  el.style.display='block';
+  el.className='delivery-lookup-status'+(state==='found'?' found':state==='new'?' new':'');
+  el.textContent=msg;
+}
+
+async function runDeliveryLookup(){
+  if(orderType!=='delivery')return;
+  const phoneEl=document.getElementById('custPhone');
+  const nameEl=document.getElementById('custName');
+  const addrEl=document.getElementById('custAddr');
+  if(!phoneEl||!nameEl||!addrEl)return;
+  const raw=phoneEl.value;
+  const key=normalizeDeliveryPhone(raw);
+  if(key.length<DELIVERY_MIN_PHONE_DIGITS){
+    setDeliveryLookupStatus('','');
+    return;
+  }
+  try{
+    const r=await fetch('/api/delivery/customer/?phone='+encodeURIComponent(raw),{credentials:'same-origin'});
+    const d=await r.json();
+    if(!d.success){setDeliveryLookupStatus('','');return;}
+    if(orderType!=='delivery')return;
+    const cur=normalizeDeliveryPhone(document.getElementById('custPhone').value);
+    if(cur!==key)return;
+    if(d.found){
+      nameEl.value=d.name||'';
+      addrEl.value=d.address||'';
+      setDeliveryLookupStatus('found','عميل مسجّل — يمكنك تعديل الاسم أو العنوان.');
+    }else{
+      nameEl.value='';
+      addrEl.value='';
+      setDeliveryLookupStatus('new','عميل جديد — املأ الاسم والعنوان.');
+    }
+  }catch(e){
+    setDeliveryLookupStatus('','');
+  }
+}
+
+function scheduleDeliveryLookup(){
+  clearTimeout(deliveryLookupTimer);
+  if(orderType!=='delivery')return;
+  deliveryLookupTimer=setTimeout(runDeliveryLookup,420);
+}
 
 const kindLabels={food:'أكل',drink:'مشروبات',other:'أخرى'};
 
@@ -769,10 +1213,23 @@ function filterItemsVisible(){
 
 function setType(type){
   orderType=type;
+  closeTablePicker();
+  closeWaiterPicker();
+  clearTimeout(deliveryLookupTimer);
   document.getElementById('tab-dine').className='type-tab'+(type==='dine_in'?' active dine':'');
   document.getElementById('tab-delivery').className='type-tab delivery'+(type==='delivery'?' active':'');
   document.getElementById('dine-fields').className='dine-fields op-field-box'+(type==='dine_in'?' show':'');
   document.getElementById('delivery-fields').className='delivery-fields op-field-box'+(type==='delivery'?' show':'');
+  if(type==='delivery'){
+    setTimeout(function(){
+      if(normalizeDeliveryPhone(document.getElementById('custPhone')?.value||'').length>=DELIVERY_MIN_PHONE_DIGITS)
+        runDeliveryLookup();
+      else
+        setDeliveryLookupStatus('','');
+    },0);
+  }else{
+    setDeliveryLookupStatus('','');
+  }
 }
 
 function qtyForItemOnMenu(itemId){
@@ -921,8 +1378,8 @@ async function openPreview(){
       headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
       body:JSON.stringify({
         order_type:orderType,
-        table_id:document.getElementById('tableSelect')?.value||null,
-        waiter_id:document.getElementById('waiterSelect')?.value||null,
+        table_ids:orderType==='dine_in'?selectedTableIds():[],
+        waiter_id:getWaiterId(),
         customer_name:document.getElementById('custName')?.value||'',
         customer_phone:document.getElementById('custPhone')?.value||'',
         customer_address:document.getElementById('custAddr')?.value||'',
@@ -973,6 +1430,16 @@ function renderReceipt(d){
 
 function closePreview(){document.getElementById('previewOverlay').classList.remove('open');}
 
+(function(){
+  const ph=document.getElementById('custPhone');
+  if(!ph)return;
+  ph.addEventListener('input',scheduleDeliveryLookup);
+  ph.addEventListener('blur',function(){
+    clearTimeout(deliveryLookupTimer);
+    runDeliveryLookup();
+  });
+})();
+
 async function confirmPrint(){
   const btn=document.getElementById('confirmBtn');
   btn.disabled=true;
@@ -983,8 +1450,8 @@ async function confirmPrint(){
       headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
       body:JSON.stringify({
         order_type:orderType,
-        table_id:document.getElementById('tableSelect')?.value||null,
-        waiter_id:document.getElementById('waiterSelect')?.value||null,
+        table_ids:orderType==='dine_in'?selectedTableIds():[],
+        waiter_id:getWaiterId(),
         customer_name:document.getElementById('custName')?.value||'',
         customer_phone:document.getElementById('custPhone')?.value||'',
         customer_address:document.getElementById('custAddr')?.value||'',
@@ -996,12 +1463,9 @@ async function confirmPrint(){
     const d=await r.json();
     if(d.success){
       closePreview();
-      showToast(d.print_success?`طلب #${d.order_id} تم طباعته`:`طلب #${d.order_id} محفوظ (تحقق من الطابعة)`,'suc',4000);
-      cartLines=[];
-      renderCart();
-      document.getElementById('orderNotes').value='';
-      document.getElementById('tableSelect').value='';
-      document.getElementById('waiterSelect').value='';
+      showToast(d.print_success?`طلب #${d.order_id} تم طباعته`:`طلب #${d.order_id} محفوظ (تحقق من الطابعة)`,'suc',3200);
+      setTimeout(function(){ window.location.reload(); }, 480);
+      return;
     }else showToast(d.error||'خطأ','err');
   }catch(e){showToast('خطأ في الاتصال','err');}
   btn.disabled=false;

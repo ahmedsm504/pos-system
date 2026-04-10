@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -33,6 +33,7 @@ from .models import (
     Table,
     Waiter,
     DeliveryDriver,
+    DeliveryCustomer,
     Order,
     OrderItem,
     Shift,
@@ -49,6 +50,16 @@ from .menu_helpers import (
     merge_key_from_payload,
     order_item_display_name,
     order_item_print_notes,
+)
+from .order_table_utils import (
+    available_tables_qs,
+    busy_table_ids_global,
+    parse_table_ids_payload,
+    prefetch_order_tables,
+    preview_tables_label,
+    sync_order_tables,
+    validate_table_ids_for_existing_order,
+    validate_table_ids_for_new_order,
 )
 
 
@@ -79,9 +90,11 @@ def get_profile(user):
 def dashboard(request):
     today = date.today()
     orders_today = Order.objects.filter(cashier=request.user, created_at__date=today)
-    active_orders = Order.objects.filter(
-        cashier=request.user, status__in=['open', 'printed']
-    ).select_related('table', 'waiter').prefetch_related('items')
+    active_orders = prefetch_order_tables(
+        Order.objects.filter(cashier=request.user, status__in=['open', 'printed'])
+        .select_related('waiter')
+        .prefetch_related('items')
+    )
 
     profile = get_profile(request.user)
     shift = Shift.objects.filter(cashier=request.user, status='open').first()
@@ -127,7 +140,7 @@ def _cashier_menu_queryset():
 def new_order(request):
     categories = _cashier_menu_queryset()
     catalog = menu_catalog_payload(categories)
-    tables = Table.objects.filter(is_active=True)
+    tables = list(available_tables_qs(for_new_order=True).order_by('number'))
     waiters = Waiter.objects.filter(is_active=True)
     drivers = DeliveryDriver.objects.filter(is_active=True)
     return render(
@@ -150,10 +163,12 @@ def new_order(request):
 @cashier_required
 def order_detail(request, order_id):
     order = get_object_or_404(
-        Order.objects.select_related('table', 'waiter', 'driver')
-        .prefetch_related(
-            'items__menu_item__category',
-            'items__selected_size',
+        prefetch_order_tables(
+            Order.objects.select_related('waiter', 'driver')
+            .prefetch_related(
+                'items__menu_item__category',
+                'items__selected_size',
+            ),
         ),
         id=order_id,
         cashier=request.user,
@@ -161,6 +176,11 @@ def order_detail(request, order_id):
     categories = _cashier_menu_queryset()
     catalog = menu_catalog_payload(categories)
     profile = get_profile(request.user)
+    all_tables = Table.objects.filter(is_active=True).order_by('number')
+    selected_tids = {link.table_id for link in order.table_links.all()}
+    busy = set()
+    if order.status in ('open', 'printed') and order.order_type == 'dine_in':
+        busy = busy_table_ids_global(exclude_order_id=order.id)
     return render(
         request,
         'pos/cashier/order_detail.html',
@@ -169,6 +189,9 @@ def order_detail(request, order_id):
             'categories': categories,
             'menu_catalog': catalog,
             'profile': profile,
+            'tables_for_edit': all_tables,
+            'table_edit_busy_ids': busy,
+            'table_edit_selected_ids': selected_tids,
         },
     )
 
@@ -176,8 +199,10 @@ def order_detail(request, order_id):
 @cashier_required
 def customer_invoice(request, order_id):
     order = get_object_or_404(
-        Order.objects.select_related('table', 'waiter', 'driver')
-        .prefetch_related('items__menu_item__category', 'items__selected_size'),
+        prefetch_order_tables(
+            Order.objects.select_related('waiter', 'driver')
+            .prefetch_related('items__menu_item__category', 'items__selected_size'),
+        ),
         id=order_id,
         cashier=request.user,
     )
@@ -187,9 +212,11 @@ def customer_invoice(request, order_id):
 @cashier_required
 def orders_list(request):
     today = date.today()
-    orders = Order.objects.filter(
-        cashier=request.user, created_at__date=today
-    ).select_related('table', 'waiter').order_by('-created_at')
+    orders = prefetch_order_tables(
+        Order.objects.filter(cashier=request.user, created_at__date=today)
+        .select_related('waiter')
+        .order_by('-created_at')
+    )
     order_stats = orders.aggregate(
         total=Count('id'),
         dine_in=Count('id', filter=Q(order_type='dine_in')),
@@ -255,12 +282,15 @@ def preview_order(request):
                 'notes': line_note,
             })
 
-        table_label = 'بدون طاولة'
-        if data.get('table_id'):
-            try:
-                table_label = str(Table.objects.get(id=data['table_id']))
-            except Table.DoesNotExist:
-                pass
+        ot = data.get('order_type', 'dine_in')
+        table_ids = parse_table_ids_payload(data)
+        if ot == 'dine_in':
+            ok, err = validate_table_ids_for_new_order(table_ids)
+            if not ok:
+                return JsonResponse({'success': False, 'error': err})
+            table_label = preview_tables_label(table_ids)
+        else:
+            table_label = '—'
 
         return JsonResponse({
             'success':       True,
@@ -276,6 +306,33 @@ def preview_order(request):
     except Exception as e:
         log.error(f'preview_order: {e}')
         return JsonResponse({'success': False, 'error': str(e)})
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  API — DELIVERY CUSTOMER (lookup by phone)
+# ══════════════════════════════════════════════════════════════════════════
+
+_MIN_PHONE_DIGITS = 9
+
+
+@cashier_required
+@require_GET
+def delivery_customer_lookup(request):
+    """بحث عن عميل ديليفري محفوظ بالهاتف؛ تطبيع الرقم ليتطابق مع الحفظ عند الطباعة."""
+    raw = request.GET.get('phone', '')
+    key = DeliveryCustomer.normalize_phone(raw)
+    if not key or len(key) < _MIN_PHONE_DIGITS:
+        return JsonResponse({'success': True, 'found': False, 'too_short': True})
+    try:
+        c = DeliveryCustomer.objects.get(phone_key=key)
+        return JsonResponse({
+            'success': True,
+            'found': True,
+            'name': c.name or '',
+            'address': c.address or '',
+        })
+    except DeliveryCustomer.DoesNotExist:
+        return JsonResponse({'success': True, 'found': False})
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -297,19 +354,27 @@ def create_order(request):
             if not data.get('customer_phone') or not data.get('customer_address'):
                 return JsonResponse({'success': False, 'error': 'رقم الهاتف والعنوان مطلوبان للديليفري'})
 
+        table_ids = parse_table_ids_payload(data)
+        if order_type == 'dine_in':
+            ok, err = validate_table_ids_for_new_order(table_ids)
+            if not ok:
+                return JsonResponse({'success': False, 'error': err})
+
         with transaction.atomic():
             order = Order.objects.create(
                 cashier=request.user,
                 order_type=order_type,
                 status='open',
                 notes=data.get('notes', ''),
-                table_id=data.get('table_id') or None,
                 waiter_id=data.get('waiter_id') or None,
                 driver_id=data.get('driver_id') or None,
                 customer_name=data.get('customer_name', ''),
                 customer_phone=data.get('customer_phone', ''),
                 customer_address=data.get('customer_address', ''),
             )
+
+            if order_type == 'dine_in':
+                sync_order_tables(order, table_ids)
 
             for item_data in items_data:
                 mi = get_object_or_404(MenuItem, id=int(item_data['id']))
@@ -339,6 +404,13 @@ def create_order(request):
                     apply_meta_to_order_item(oi, meta)
                     oi.save()
 
+            if order_type == 'delivery':
+                DeliveryCustomer.upsert(
+                    data.get('customer_phone', ''),
+                    data.get('customer_name', ''),
+                    data.get('customer_address', ''),
+                )
+
         print_ok = _send_to_printer(order, open_drawer=False)
 
         order.status     = 'printed'
@@ -350,6 +422,32 @@ def create_order(request):
         return JsonResponse({'success': False, 'error': str(err)})
     except Exception as e:
         log.error(f'create_order: {e}')
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_POST
+def update_order_tables(request, order_id):
+    """تعديل طاولات طلب داخلي (كاشير على طلبه، أو مدير على أي طلب)."""
+    try:
+        order = get_object_or_404(Order, id=order_id)
+        if not request.user.is_staff and order.cashier_id != request.user.id:
+            return JsonResponse({'success': False, 'error': 'غير مصرح'}, status=403)
+        if order.status in ('completed', 'cancelled'):
+            return JsonResponse({'success': False, 'error': 'لا يمكن تعديل طلب منتهٍ أو ملغى'})
+        if order.order_type != 'dine_in':
+            return JsonResponse({'success': False, 'error': 'تعديل الطاولة للطلب الداخلي فقط'})
+        data = json.loads(request.body or '{}')
+        ids = parse_table_ids_payload(data)
+        ok, err = validate_table_ids_for_existing_order(order, ids)
+        if not ok:
+            return JsonResponse({'success': False, 'error': err})
+        with transaction.atomic():
+            sync_order_tables(order, ids)
+        order.refresh_from_db()
+        return JsonResponse({'success': True, 'tables_label': order.tables_label()})
+    except Exception as e:
+        log.error(f'update_order_tables: {e}')
         return JsonResponse({'success': False, 'error': str(e)})
 
 
@@ -583,8 +681,8 @@ def cancel_order(request, order_id):
 
         print_success = None
         if had_gone_to_stations:
-            order_print = (
-                Order.objects.select_related('table', 'waiter', 'driver', 'cashier')
+            order_print = prefetch_order_tables(
+                Order.objects.select_related('waiter', 'driver', 'cashier')
                 .prefetch_related('items__menu_item__category')
                 .get(pk=order.pk)
             )
@@ -733,9 +831,9 @@ def cashier_inventory_submit(request):
 
 def _shift_orders_qs(cashier, shift, *, close_snapshot_at=None):
     """طلبات الشيفت (مطبوع + مكتمل) ضمن [بداية الشيفت، نهايته] فقط عند الإغلاق."""
-    return (
+    return prefetch_order_tables(
         shift_orders_qs(cashier, shift, close_snapshot_at=close_snapshot_at)
-        .select_related('waiter', 'table', 'driver')
+        .select_related('waiter', 'driver')
         .prefetch_related('items__menu_item__category')
     )
 
@@ -1114,7 +1212,7 @@ def _build_main_lines(order):
     lines.append(_info_row('النوع', type_label))
 
     if order.order_type == 'dine_in':
-        lines.append(_info_row('الطاولة', order.table or 'بدون'))
+        lines.append(_info_row('الطاولة', order.tables_label()))
         lines.append(_info_row('الويتر', order.waiter or '-'))
     else:
         lines.append(_info_row('العميل', order.customer_name or '-'))
@@ -1203,8 +1301,8 @@ def _build_section_lines_for_items(order, cat_type, items, action_label=''):
             lines.append({'text': f'تنبيه: {action_label} على طلب موجود', 'align': 'center', 'bold': True})
         lines.append({'divider': True, 'divider_style': 'dashed'})
 
-    if order.order_type == 'dine_in' and order.table:
-        lines.append({'text': f'الطاولة: {order.table}', 'align': 'center', 'bold': True})
+    if order.order_type == 'dine_in':
+        lines.append({'text': f'الطاولة: {order.tables_label()}', 'align': 'center', 'bold': True})
     elif order.order_type == 'delivery' and order.customer_name:
         lines.append({'text': f'العميل: {order.customer_name}', 'align': 'center', 'bold': True})
 

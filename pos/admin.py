@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, MenuItem, Table, Order, OrderItem
+from .models import Category, MenuItem, Table, Order, OrderItem, DeliveryCustomer
 
 
 @admin.register(Category)
@@ -29,7 +29,18 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['id', 'table', 'cashier', 'status', 'total', 'created_at']
+    list_display = ['id', 'tables_label_display', 'cashier', 'status', 'total', 'created_at']
     list_filter = ['status', 'created_at']
     readonly_fields = ['created_at', 'completed_at']
     inlines = [OrderItemInline]
+
+    @admin.display(description='الطاولة')
+    def tables_label_display(self, obj):
+        return obj.tables_label()
+
+
+@admin.register(DeliveryCustomer)
+class DeliveryCustomerAdmin(admin.ModelAdmin):
+    list_display = ['phone_key', 'display_phone', 'name', 'updated_at']
+    search_fields = ['phone_key', 'display_phone', 'name', 'address']
+    readonly_fields = ['created_at', 'updated_at']

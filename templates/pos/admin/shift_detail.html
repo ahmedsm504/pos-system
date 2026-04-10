@@ -96,7 +96,7 @@
   </div>
   {% else %}
   <div class="sd-sub">
-    <strong>طاولة:</strong> {{ obj.table|default:"بدون" }}{% if obj.waiter %} — <strong>ويتر:</strong> {{ obj.waiter }}{% endif %}
+    <strong>طاولة:</strong> {{ obj.tables_label }}{% if obj.waiter %} — <strong>ويتر:</strong> {{ obj.waiter }}{% endif %}
   </div>
   {% endif %}
   {% if obj.printed_at or obj.completed_at or obj.cancelled_at %}

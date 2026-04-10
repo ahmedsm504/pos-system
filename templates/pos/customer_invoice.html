@@ -228,10 +228,10 @@ body{
       <span>نوع الطلب</span>
       <strong>{% if order.order_type == 'delivery' %}ديليفري{% else %}داخلي{% endif %}</strong>
     </div>
-    {% if order.order_type == 'dine_in' and order.table %}
+    {% if order.order_type == 'dine_in' %}
     <div class="inv-meta-row">
       <span>الطاولة</span>
-      <strong>{{ order.table }}</strong>
+      <strong>{{ order.tables_label }}</strong>
     </div>
     {% endif %}
     {% if order.waiter %}

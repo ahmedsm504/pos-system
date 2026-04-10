@@ -106,6 +106,56 @@
 .itemcfg-add label{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;border:1px solid #e8ecf2;cursor:pointer;font-weight:600;margin-bottom:6px}
 .itemcfg-ta{width:100%;min-height:56px;padding:10px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:.8rem;resize:vertical}
 .itemcfg-ftr{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;background:#fafbff}
+.table-picker{position:relative;z-index:30}
+.table-picker-trigger{
+  width:100%;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;border:1.5px solid #e2e8f0;
+  background:linear-gradient(180deg,#fff 0%,#f8fafc 100%);cursor:pointer;font-family:inherit;text-align:start;
+  box-shadow:0 1px 3px rgba(15,23,42,.06);transition:border .18s,box-shadow .18s;
+}
+.table-picker-trigger:hover{border-color:rgba(201,162,39,.45)}
+.table-picker-trigger:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,39,.18)}
+.table-picker-trigger-ic{
+  flex-shrink:0;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,var(--gold-soft),var(--gold));color:#2d2608;font-size:.85rem;
+}
+.table-picker-trigger-text{flex:1;min-width:0;font-size:.78rem;font-weight:700;color:var(--text);line-height:1.35;overflow:hidden;text-overflow:ellipsis}
+.table-picker-trigger-badge{
+  flex-shrink:0;min-width:22px;height:22px;padding:0 7px;border-radius:999px;font-size:.65rem;font-weight:800;
+  background:#047857;color:#fff;align-items:center;justify-content:center;display:none;
+}
+.table-picker-chev{flex-shrink:0;font-size:.65rem;color:var(--muted)}
+.table-picker.open .table-picker-chev{transform:rotate(-180deg);transition:transform .2s ease}
+.table-picker-panel{
+  display:none;background:#fff;border:1px solid var(--border);border-radius:14px;
+  box-shadow:0 16px 48px -8px rgba(15,23,42,.18);overflow:hidden;flex-direction:column;
+}
+.table-picker.open .table-picker-panel{display:flex}
+.table-picker-search-wrap{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fafbff;border-bottom:1px solid var(--border)}
+.table-picker-search-wrap i{color:var(--muted);font-size:.75rem}
+.table-picker-search-wrap input{flex:1;border:none;background:transparent;font-size:.74rem;font-family:inherit;font-weight:600}
+.table-picker-search-wrap input:focus{outline:none}
+.table-picker-actions{display:flex;gap:6px;padding:6px 8px;border-bottom:1px solid #f1f5f9;background:#fff}
+.table-picker-actions .tp-act{
+  flex:1;padding:6px 6px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:.65rem;font-weight:800;font-family:inherit;cursor:pointer;
+}
+.table-picker-actions .tp-act:hover{background:var(--pri-l)}
+.table-picker-list{flex:1;overflow-y:auto;min-height:0;padding:4px 0;max-height:200px}
+.table-picker-row{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:.74rem;font-weight:600;border-bottom:1px solid #f4f6fb;margin:0 4px;border-radius:8px}
+.table-picker-row:hover{background:#f8fafc}
+.table-picker-row:has(.table-cb-real:checked){background:linear-gradient(90deg,#ecfdf5,#f0fdf4)}
+.table-picker-row-none:has(.table-cb-none:checked){background:#f1f5f9;border:1px dashed #cbd5e1}
+.table-picker-row input.table-cb{margin:0;width:16px;height:16px;accent-color:#047857;flex-shrink:0}
+.od-table-picker.table-picker.open{z-index:10050}
+.tp-row-main{flex:1;min-width:0;color:var(--text)}
+.table-picker-empty{padding:16px;text-align:center;font-size:.72rem;color:var(--muted);font-weight:600;display:none}
+.table-picker-list.is-empty .table-picker-empty{display:block}
+.info-row.od-tbl-row{align-items:flex-start}
+.od-tbl-hint{font-size:.65rem;color:var(--muted);line-height:1.4;margin-top:8px}
+.od-table-picker.table-picker{z-index:25}
+.od-table-picker .table-picker-trigger{padding:8px 10px}
+.od-table-picker .table-picker-trigger-ic{width:32px;height:32px;font-size:.78rem}
+.od-table-picker .table-picker-trigger-text{font-size:.74rem;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis}
+.od-table-picker .table-picker-row:has(input:disabled){opacity:.45;cursor:not-allowed}
 </style>{% endblock %}
 
 {% block content %}
@@ -215,7 +265,47 @@
       <div class="info-hdr">معلومات الطلب</div>
       <div class="info-row"><span style="color:var(--muted)">النوع</span><strong>{% if order.order_type == 'delivery' %}🛵 ديليفري{% else %}🪑 داخلي{% endif %}</strong></div>
       {% if order.order_type == 'dine_in' %}
-      <div class="info-row"><span style="color:var(--muted)">الطاولة</span><strong>{{ order.table|default:"—" }}</strong></div>
+      <div class="info-row od-tbl-row">
+        <span style="color:var(--muted);padding-top:3px">الطاولة</span>
+        <div>
+          <strong id="odTablesDisplay">{{ order.tables_label }}</strong>
+          {% if order.status in 'open,printed' %}
+          <p class="od-tbl-hint" style="margin-top:8px">تعديل الطاولات: افتح القائمة، ابحث، ثم احفظ.</p>
+          <div class="table-picker od-table-picker" id="odTablePicker" style="margin-top:6px">
+            <button type="button" class="table-picker-trigger" id="odTablePickerTrigger" aria-expanded="false" aria-haspopup="listbox">
+              <span class="table-picker-trigger-ic"><i class="fas fa-chair"></i></span>
+              <span class="table-picker-trigger-text" id="odTablePickerLabel">تعديل اختيار الطاولات…</span>
+              <span class="table-picker-trigger-badge" id="odTablePickerCount">0</span>
+              <i class="fas fa-chevron-down table-picker-chev"></i>
+            </button>
+            <div class="table-picker-panel" id="odTablePickerPanel" role="listbox">
+              <div class="table-picker-search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="search" id="odTablePickerSearch" placeholder="بحث…" autocomplete="off">
+              </div>
+              <div class="table-picker-actions">
+                <button type="button" class="tp-act" onclick="odTablePickerSelectVisible()">تحديد الظاهر</button>
+                <button type="button" class="tp-act" onclick="odTablePickerClearAll()">مسح</button>
+              </div>
+              <div class="table-picker-list" id="odTablePickerList">
+                <div class="table-picker-empty" id="odTablePickerEmpty">لا نتائج</div>
+                <label class="table-picker-row table-picker-row-none" data-search="بدون طاولة لا">
+                  <input type="checkbox" class="table-cb table-cb-none" id="odTablePickNone" {% if not table_edit_selected_ids %}checked{% endif %}>
+                  <span class="tp-row-main">— بدون طاولة —</span>
+                </label>
+                {% for t in tables_for_edit %}
+                <label class="table-picker-row" data-search="{{ t.number }} {{ t.name|default:'' }} {{ t }}">
+                  <input type="checkbox" class="table-cb table-cb-real" name="odTbl" value="{{ t.id }}" {% if t.id in table_edit_selected_ids %}checked{% endif %}{% if t.id in table_edit_busy_ids %} disabled{% endif %}>
+                  <span class="tp-row-main">{{ t }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-out btn-sm" style="width:100%;margin-top:8px" onclick="saveOrderTables()"><i class="fas fa-save"></i> حفظ الطاولات</button>
+          {% endif %}
+        </div>
+      </div>
       {% if order.waiter %}<div class="info-row"><span style="color:var(--muted)">الويتر</span><strong>{{ order.waiter }}</strong></div>{% endif %}
       {% else %}
       <div class="info-row"><span style="color:var(--muted)">العميل</span><strong>{{ order.customer_name }}</strong></div>
@@ -301,8 +391,8 @@
           <div class="inv-mr"><span>التاريخ</span><strong>{{ order.created_at|date:"Y/m/d" }}</strong></div>
           <div class="inv-mr"><span>الوقت</span><strong>{{ order.created_at|time:"h:i A" }}</strong></div>
           <div class="inv-mr"><span>نوع الطلب</span><strong>{% if order.order_type == 'delivery' %}ديليفري{% else %}داخلي{% endif %}</strong></div>
-          {% if order.order_type == 'dine_in' and order.table %}
-          <div class="inv-mr"><span>الطاولة</span><strong>{{ order.table }}</strong></div>
+          {% if order.order_type == 'dine_in' %}
+          <div class="inv-mr"><span>الطاولة</span><strong id="invoiceTableVal">{{ order.tables_label }}</strong></div>
           {% endif %}
           {% if order.waiter %}
           <div class="inv-mr"><span>الويتر</span><strong>{{ order.waiter }}</strong></div>
@@ -619,7 +709,160 @@ function initOdAddPanel(){
   renderCats();
   apply();
 }
+function odUpdateTablePickerSummary(){
+  const list=document.getElementById('odTablePickerList');
+  if(!list)return;
+  const reals=[...list.querySelectorAll('.table-cb-real:checked')];
+  const label=document.getElementById('odTablePickerLabel');
+  const badge=document.getElementById('odTablePickerCount');
+  if(!label)return;
+  if(!reals.length){
+    label.textContent='بدون طاولة';
+    if(badge){badge.style.display='none';badge.textContent='0';}
+    return;
+  }
+  const texts=reals.map(cb=>{
+    const row=cb.closest('.table-picker-row');
+    const m=row&&row.querySelector('.tp-row-main');
+    return m?m.textContent.trim():'';
+  }).filter(Boolean);
+  label.textContent=texts.join('، ');
+  if(badge){badge.textContent=String(reals.length);badge.style.display='inline-flex';}
+}
+function odFilterTablePickerList(){
+  const inp=document.getElementById('odTablePickerSearch');
+  const raw=(inp&&inp.value||'').trim().toLowerCase();
+  const q=raw.replace(/\s+/g,' ');
+  const rows=[...document.querySelectorAll('#odTablePickerList .table-picker-row')];
+  let anyVis=false;
+  rows.forEach(row=>{
+    if(row.classList.contains('table-picker-row-none')){
+      row.style.display='';
+      anyVis=true;
+      return;
+    }
+    const hay=(row.getAttribute('data-search')||'').toLowerCase();
+    const ok=!q||hay.includes(q);
+    row.style.display=ok?'':'none';
+    if(ok)anyVis=true;
+  });
+  const list=document.getElementById('odTablePickerList');
+  if(list)list.classList.toggle('is-empty',rows.length>0&&!anyVis);
+}
+function odTablePickerSelectVisible(){
+  const none=document.getElementById('odTablePickNone');
+  if(none)none.checked=false;
+  document.querySelectorAll('#odTablePickerList .table-picker-row').forEach(row=>{
+    if(row.classList.contains('table-picker-row-none'))return;
+    if(row.style.display==='none')return;
+    const cb=row.querySelector('.table-cb-real');
+    if(cb&&!cb.disabled)cb.checked=true;
+  });
+  odUpdateTablePickerSummary();
+}
+function odTablePickerClearAll(){
+  document.querySelectorAll('#odTablePickerList .table-cb-real:not(:disabled)').forEach(cb=>{cb.checked=false;});
+  const none=document.getElementById('odTablePickNone');
+  if(none)none.checked=true;
+  odUpdateTablePickerSummary();
+}
+function odResetTablePickerPanelLayout(){
+  const panel=document.getElementById('odTablePickerPanel');
+  if(!panel)return;
+  panel.style.position='';
+  panel.style.left='';
+  panel.style.top='';
+  panel.style.width='';
+  panel.style.right='';
+  panel.style.maxHeight='';
+}
+function odSyncTablePickerPanelPosition(){
+  const root=document.getElementById('odTablePicker');
+  const panel=document.getElementById('odTablePickerPanel');
+  const trig=document.getElementById('odTablePickerTrigger');
+  if(!panel||!trig||!root||!root.classList.contains('open'))return;
+  const r=trig.getBoundingClientRect();
+  const pad=8;
+  const maxH=Math.max(140,Math.min(280,window.innerHeight-r.bottom-pad*2));
+  const w=Math.min(Math.max(r.width,200),window.innerWidth-pad*2);
+  panel.style.position='fixed';
+  panel.style.left=Math.max(pad,r.left)+'px';
+  panel.style.width=w+'px';
+  panel.style.top=r.bottom+6+'px';
+  panel.style.right='auto';
+  panel.style.maxHeight=maxH+'px';
+}
+function odCloseTablePicker(){
+  const root=document.getElementById('odTablePicker');
+  const trig=document.getElementById('odTablePickerTrigger');
+  if(root)root.classList.remove('open');
+  if(trig)trig.setAttribute('aria-expanded','false');
+  odResetTablePickerPanelLayout();
+}
+(function initOdTablePicker(){
+  const root=document.getElementById('odTablePicker');
+  const trig=document.getElementById('odTablePickerTrigger');
+  const panel=document.getElementById('odTablePickerPanel');
+  const list=document.getElementById('odTablePickerList');
+  const search=document.getElementById('odTablePickerSearch');
+  if(!root||!trig||!panel||!list)return;
+  odUpdateTablePickerSummary();
+  trig.addEventListener('click',e=>{
+    e.stopPropagation();
+    const o=!root.classList.contains('open');
+    if(o){
+      root.classList.add('open');
+      trig.setAttribute('aria-expanded','true');
+      odFilterTablePickerList();
+      odSyncTablePickerPanelPosition();
+      setTimeout(()=>{if(search){search.focus();try{search.select();}catch(_){}}odSyncTablePickerPanelPosition();},40);
+    }else odCloseTablePicker();
+  });
+  panel.addEventListener('click',e=>e.stopPropagation());
+  search&&search.addEventListener('input',odFilterTablePickerList);
+  list.addEventListener('change',function(e){
+    const t=e.target;
+    if(!t||!t.classList)return;
+    if(t.classList.contains('table-cb-none')){
+      if(t.checked){list.querySelectorAll('.table-cb-real').forEach(cb=>{cb.checked=false;});}
+      else{t.checked=true;}
+      odUpdateTablePickerSummary();
+      return;
+    }
+    if(t.classList.contains('table-cb-real')){
+      const none=document.getElementById('odTablePickNone');
+      if(t.checked){if(none)none.checked=false;}
+      else{
+        const any=[...list.querySelectorAll('.table-cb-real:checked')].length;
+        if(!any&&none)none.checked=true;
+      }
+      odUpdateTablePickerSummary();
+    }
+  });
+  window.addEventListener('resize',odSyncTablePickerPanelPosition);
+  window.addEventListener('scroll',odSyncTablePickerPanelPosition,true);
+  document.addEventListener('click',()=>odCloseTablePicker());
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')odCloseTablePicker();});
+})();
 initOdAddPanel();
+
+async function saveOrderTables(){
+  const ids=[...document.querySelectorAll('#odTablePickerList .table-cb-real:checked:not(:disabled)')].map(x=>parseInt(x.value,10));
+  const r=await fetch(`/api/order/${ORDER_ID}/tables/`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+    body:JSON.stringify({table_ids:ids}),
+  });
+  const d=await r.json();
+  if(d.success){
+    showToast('تم تحديث الطاولات','suc');
+    const a=document.getElementById('odTablesDisplay'), b=document.getElementById('invoiceTableVal');
+    if(a)a.textContent=d.tables_label||'';
+    if(b)b.textContent=d.tables_label||'';
+    odUpdateTablePickerSummary();
+    odCloseTablePicker();
+  }else showToast(d.error||'خطأ','err');
+}
 
 function openInvoiceOverlay(){
   document.getElementById('invoiceOverlay').classList.add('open');

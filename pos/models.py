@@ -1,3 +1,5 @@
+import re
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -96,6 +98,55 @@ class DeliveryDriver(models.Model):
     def __str__(self): return f"{self.name} ({self.phone})"
 
 
+class DeliveryCustomer(models.Model):
+    """بيانات عميل الديليفري المحفوظة حسب الهاتف؛ تُحدَّث عند كل طلب ناجح."""
+    phone_key = models.CharField(max_length=32, unique=True, db_index=True, verbose_name='مفتاح الهاتف')
+    display_phone = models.CharField(max_length=30, blank=True, verbose_name='الهاتف المعروض')
+    name = models.CharField(max_length=150, blank=True, verbose_name='اسم العميل')
+    address = models.TextField(blank=True, verbose_name='العنوان')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'عميل ديليفري'
+        verbose_name_plural = 'عملاء الديليفري'
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f'{self.name or "—"} / {self.phone_key}'
+
+    @staticmethod
+    def normalize_phone(raw):
+        if raw is None:
+            return ''
+        digits = re.sub(r'\D', '', str(raw).strip())
+        if not digits:
+            return ''
+        if digits.startswith('00') and len(digits) > 2:
+            digits = digits[2:]
+        if len(digits) >= 12 and digits.startswith('20'):
+            digits = digits[2:]
+        if len(digits) == 10 and digits.startswith('1'):
+            digits = '0' + digits
+        return digits[:32]
+
+    @classmethod
+    def upsert(cls, phone_raw, name, address):
+        key = cls.normalize_phone(phone_raw)
+        if not key or len(key) < 8:
+            return None
+        display = (str(phone_raw) or '').strip()[:30]
+        obj, _ = cls.objects.update_or_create(
+            phone_key=key,
+            defaults={
+                'display_phone': display or key,
+                'name': (name or '')[:150],
+                'address': (address or '').strip(),
+            },
+        )
+        return obj
+
+
 class Table(models.Model):
     number    = models.PositiveIntegerField(unique=True, verbose_name='رقم الطاولة')
     name      = models.CharField(max_length=50, blank=True, verbose_name='الاسم')
@@ -119,7 +170,6 @@ class Order(models.Model):
     order_type       = models.CharField(max_length=20, choices=TYPE_CHOICES, default='dine_in', verbose_name='نوع الطلب')
     status           = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open', verbose_name='الحالة')
     notes            = models.TextField(blank=True, verbose_name='ملاحظات')
-    table            = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='الطاولة')
     waiter           = models.ForeignKey(Waiter, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='الويتر')
     customer_name    = models.CharField(max_length=150, blank=True, verbose_name='اسم العميل')
     customer_phone   = models.CharField(max_length=30, blank=True, verbose_name='رقم العميل')
@@ -141,6 +191,19 @@ class Order(models.Model):
 
     def __str__(self): return f"طلب #{self.id}"
 
+    def tables_ordered(self):
+        """طاولات الطلب بالترتيب المحفوظ."""
+        return [l.table for l in self.table_links.select_related('table').order_by('sort_order', 'id')]
+
+    def tables_label(self):
+        parts = [str(t) for t in self.tables_ordered()]
+        return '، '.join(parts) if parts else 'بدون طاولة'
+
+    @property
+    def primary_table(self):
+        link = self.table_links.select_related('table').order_by('sort_order', 'id').first()
+        return link.table if link else None
+
     @property
     def total(self):
         return sum(i.subtotal for i in self.items.all())
@@ -148,6 +211,24 @@ class Order(models.Model):
     @property
     def total_items(self):
         return sum(i.quantity for i in self.items.all())
+
+
+class OrderTable(models.Model):
+    """ربط طلب داخلي بواحدة أو أكثر من الطاولات."""
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='table_links', verbose_name='الطلب')
+    table = models.ForeignKey(Table, on_delete=models.CASCADE, related_name='order_links', verbose_name='الطاولة')
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name='الترتيب')
+
+    class Meta:
+        verbose_name = 'طاولة ضمن طلب'
+        verbose_name_plural = 'طاولات الطلب'
+        ordering = ['sort_order', 'id']
+        constraints = [
+            models.UniqueConstraint(fields=['order', 'table'], name='uniq_pos_ordertable_order_table'),
+        ]
+
+    def __str__(self):
+        return f'{self.order_id} → {self.table_id}'
 
 
 class OrderItem(models.Model):

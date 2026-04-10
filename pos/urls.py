@@ -80,6 +80,7 @@ urlpatterns = [
     path('cashier/inventory/submit/',         cashier_views.cashier_inventory_submit, name='cashier_inventory_submit'),
 
     # API
+    path('api/delivery/customer/',          cashier_views.delivery_customer_lookup, name='api_delivery_customer'),
     path('api/order/preview/',              cashier_views.preview_order,     name='api_preview'),
     path('api/order/create/',               cashier_views.create_order,      name='api_create_order'),
     path('api/order/<int:order_id>/add-item/',   cashier_views.add_item,     name='api_add_item'),
@@ -88,6 +89,7 @@ urlpatterns = [
     path('api/order/<int:order_id>/complete/',    cashier_views.complete_order, name='api_complete'),
     path('api/order/<int:order_id>/cancel/',      cashier_views.cancel_order,   name='api_cancel'),
     path('api/order/<int:order_id>/reprint/',     cashier_views.reprint_order,  name='api_reprint'),
+    path('api/order/<int:order_id>/tables/',      cashier_views.update_order_tables, name='api_order_tables'),
     path('api/drawer/open/',                cashier_views.open_drawer,       name='api_drawer'),
     path('cashier/shift/end/',              cashier_views.end_shift,         name='cashier_end_shift'),
     path('cashier/shift/end/submit/',       cashier_views.submit_shift_end,  name='cashier_submit_shift'),

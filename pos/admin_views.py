@@ -30,6 +30,7 @@ from .shift_helpers import (
     shift_all_orders_qs,
     shift_orders_qs,
 )
+from .order_table_utils import busy_table_ids_global, prefetch_order_tables
 from .models import (
     Category,
     CategoryAddon,
@@ -107,7 +108,13 @@ def dashboard(request):
                 .annotate(qty=Sum('quantity'))
                 .order_by('-qty').first())
 
-    recent_orders = Order.objects.filter(created_at__date=today).select_related('cashier','table','waiter','driver')[:8]
+    recent_orders = list(
+        prefetch_order_tables(
+            Order.objects.filter(created_at__date=today).select_related(
+                'cashier', 'waiter', 'driver'
+            )
+        )[:8]
+    )
 
     cancelled_orders_today = Order.objects.filter(
         created_at__date=today, status='cancelled'
@@ -949,10 +956,12 @@ def history(request):
         selected = today
 
     orders = list(
-        Order.objects.filter(created_at__date=selected)
-        .select_related('cashier', 'table', 'waiter', 'driver')
-        .prefetch_related('items__menu_item')
-        .order_by('-created_at')
+        prefetch_order_tables(
+            Order.objects.filter(created_at__date=selected)
+            .select_related('cashier', 'waiter', 'driver')
+            .prefetch_related('items__menu_item')
+            .order_by('-created_at')
+        )
     )
     day_revenue_orders = sum(
         Decimal(str(o.total)) for o in orders if o.status in ('printed', 'completed')
@@ -988,19 +997,40 @@ def history(request):
 @admin_required
 def order_history_detail(request, order_id):
     order = get_object_or_404(
-        Order.objects.select_related('cashier','table','waiter','driver')
-                     .prefetch_related('items__menu_item__category'),
-        id=order_id
+        prefetch_order_tables(
+            Order.objects.select_related('cashier', 'waiter', 'driver').prefetch_related(
+                'items__menu_item__category',
+            ),
+        ),
+        id=order_id,
     )
-    return render(request, 'pos/admin/order_detail.html', {'order': order})
+    all_tables = Table.objects.filter(is_active=True).order_by('number')
+    selected_tids = {link.table_id for link in order.table_links.all()}
+    busy = set()
+    if order.status in ('open', 'printed') and order.order_type == 'dine_in':
+        busy = busy_table_ids_global(exclude_order_id=order.id)
+    return render(
+        request,
+        'pos/admin/order_detail.html',
+        {
+            'order': order,
+            'tables_for_edit': all_tables,
+            'table_edit_busy_ids': busy,
+            'table_edit_selected_ids': selected_tids,
+        },
+    )
 
 
 @admin_required
 def admin_customer_invoice(request, order_id):
     order = get_object_or_404(
-        Order.objects.select_related('cashier', 'table', 'waiter', 'driver')
-                     .prefetch_related('items__menu_item__category', 'items__selected_size'),
-        id=order_id
+        prefetch_order_tables(
+            Order.objects.select_related('cashier', 'waiter', 'driver').prefetch_related(
+                'items__menu_item__category',
+                'items__selected_size',
+            ),
+        ),
+        id=order_id,
     )
     return render(request, 'pos/customer_invoice.html', {'order': order})
 
@@ -1065,9 +1095,11 @@ def shifts_list(request):
 def shift_detail(request, shift_id):
     shift = get_object_or_404(Shift.objects.select_related('cashier'), pk=shift_id)
     orders = list(
-        shift_all_orders_qs(shift.cashier, shift)
-        .select_related('table', 'waiter', 'driver')
-        .prefetch_related('items__menu_item__category')
+        prefetch_order_tables(
+            shift_all_orders_qs(shift.cashier, shift)
+            .select_related('waiter', 'driver')
+            .prefetch_related('items__menu_item__category')
+        )
     )
     inventory_entries = list(
         InventoryEntry.objects.filter(shift=shift)

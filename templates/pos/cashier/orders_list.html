@@ -142,7 +142,7 @@
           {% if o.order_type == 'delivery' %}
             🛵 {{ o.customer_name|default:"ديليفري" }}
           {% else %}
-            🪑 {{ o.table|default:"بدون طاولة" }}{% if o.waiter %} · {{ o.waiter }}{% endif %}
+            🪑 {{ o.tables_label }}{% if o.waiter %} · {{ o.waiter }}{% endif %}
           {% endif %}
         </div>
         <div class="od-meta">
