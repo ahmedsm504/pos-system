@@ -122,6 +122,7 @@ a.dash-kpi:hover{transform:translateY(-3px);box-shadow:0 16px 40px -16px rgba(0,
     <div class="dash-hero-in">
       <p class="dash-hello">أهلاً، {{ request.user.get_full_name|default:request.user.username }}</p>
       <p class="dash-sub"><i class="fas fa-bolt"></i> لوحة سريعة لشغل اليوم — طلبات، نشاط، وإنهاء الشيفت</p>
+      {% if shift %}<p style="font-size:.78rem;opacity:.85;margin-top:4px;font-weight:600"><i class="fas fa-play-circle" style="margin-inline-end:4px"></i> بدأ الشيفت: {{ shift.start_time|time12 }} — {{ shift.start_time|date:"d/m/Y" }}</p>{% endif %}
     </div>
   </div>
 

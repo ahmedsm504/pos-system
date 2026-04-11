@@ -265,6 +265,35 @@ class OrderItem(models.Model):
         super().save(*args, **kwargs)
 
 
+class OrderActivity(models.Model):
+    """سجل أنشطة الطلب: كل إجراء يُسجَّل بوقته."""
+    ACTION_CHOICES = [
+        ('created',       'إنشاء الطلب'),
+        ('printed',       'طباعة وإرسال'),
+        ('item_added',    'إضافة صنف'),
+        ('item_modified', 'تعديل صنف'),
+        ('item_removed',  'حذف صنف'),
+        ('completed',     'إنهاء الطلب'),
+        ('cancelled',     'إلغاء الطلب'),
+        ('reprinted',     'إعادة طباعة'),
+        ('tables_changed','تعديل الطاولات'),
+        ('driver_changed','تعديل الطيار'),
+    ]
+    order       = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='activities')
+    action      = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    description = models.CharField(max_length=500, blank=True)
+    user        = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'نشاط طلب'
+        verbose_name_plural = 'أنشطة الطلبات'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.get_action_display()} — طلب #{self.order_id}'
+
+
 class InventoryEntry(models.Model):
     name       = models.CharField(max_length=200, verbose_name='اسم الصنف')
     quantity   = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='الكمية')

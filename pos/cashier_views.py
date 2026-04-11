@@ -39,6 +39,13 @@ def _fmt12_raw(dt):
     return f'{h12}:{dt.minute:02d} {period}'
 
 
+def _log_activity(order, action, description='', user=None):
+    try:
+        OrderActivity.objects.create(order=order, action=action, description=description[:500], user=user)
+    except Exception:
+        pass
+
+
 from .shift_helpers import (
     revenue_booked_from_shift_close,
     shift_cancelled_orders_count,
@@ -53,6 +60,7 @@ from .models import (
     DeliveryDriver,
     DeliveryCustomer,
     Order,
+    OrderActivity,
     OrderItem,
     Shift,
     CashierProfile,
@@ -209,6 +217,7 @@ def order_detail(request, order_id):
     if order.status in ('open', 'printed') and order.order_type == 'dine_in':
         busy = busy_table_ids_global(exclude_order_id=order.id)
     drivers = DeliveryDriver.objects.filter(is_active=True).order_by('name')
+    activities = order.activities.select_related('user').order_by('created_at')
     return render(
         request,
         'pos/cashier/order_detail.html',
@@ -221,6 +230,7 @@ def order_detail(request, order_id):
             'table_edit_busy_ids': busy,
             'table_edit_selected_ids': selected_tids,
             'drivers': drivers,
+            'activities': activities,
         },
     )
 
@@ -458,11 +468,18 @@ def create_order(request):
                     data.get('customer_address', ''),
                 )
 
+        items_summary = ', '.join(
+            f'{oi.quantity}× {oi.menu_item.name}' for oi in order.items.select_related('menu_item').all()
+        )
+        _log_activity(order, 'created', f'طلب جديد: {items_summary}', request.user)
+
         print_ok = _send_to_printer(order, open_drawer=False)
 
         order.status     = 'printed'
         order.printed_at = timezone.now()
         order.save()
+
+        _log_activity(order, 'printed', 'طباعة وإرسال للمطبخ/البار', request.user)
 
         return JsonResponse({'success': True, 'order_id': order.id, 'order_number': order.display_number, 'print_success': print_ok})
     except ValueError as err:
@@ -492,6 +509,7 @@ def update_order_tables(request, order_id):
         with transaction.atomic():
             sync_order_tables(order, ids)
         order.refresh_from_db()
+        _log_activity(order, 'tables_changed', f'تعديل الطاولات: {order.tables_label()}', request.user)
         return JsonResponse({'success': True, 'tables_label': order.tables_label()})
     except Exception as e:
         log.error(f'update_order_tables: {e}')
@@ -528,6 +546,7 @@ def update_order_driver(request, order_id):
         order.save(update_fields=['driver_id'])
         order.refresh_from_db()
         label = str(order.driver) if order.driver else '— بدون طيار —'
+        _log_activity(order, 'driver_changed', f'تعيين الطيار: {label}', request.user)
         return JsonResponse({'success': True, 'driver_label': label, 'driver_id': order.driver_id})
     except Exception as e:
         log.error(f'update_order_driver: {e}')
@@ -595,6 +614,8 @@ def add_item(request, order_id):
             oi.save()
             changed_items.append(oi)
 
+        _log_activity(order, 'item_added', f'إضافة {qty}× {mi.name}', request.user)
+
         print_ok = None
         if order.status == 'printed':
             print_ok = _send_order_update_to_printer(
@@ -643,6 +664,8 @@ def update_item_meta(request, order_id):
         apply_meta_to_order_item(oi, meta)
         oi.save()
 
+        _log_activity(order, 'item_modified', f'تعديل {mi.name}', request.user)
+
         print_ok = None
         if order.status == 'printed':
             print_ok = _send_order_update_to_printer(
@@ -672,6 +695,19 @@ def remove_item(request, order_id):
             id=data['item_id'], order=order,
         )
 
+        remove_qty = int(data.get('qty', 1))
+
+        will_remove_all = remove_qty >= item.quantity
+        other_items_count = order.items.exclude(id=item.id).count()
+        is_last_item = will_remove_all and other_items_count == 0
+
+        if is_last_item and not data.get('cancellation_reason'):
+            return JsonResponse({
+                'success': False,
+                'will_cancel_order': True,
+                'error': 'هذا آخر صنف — سيتم إلغاء الطلب',
+            })
+
         admin_user = authenticate(
             request,
             username=data.get('admin_username', ''),
@@ -680,8 +716,36 @@ def remove_item(request, order_id):
         if not admin_user or not admin_user.is_staff:
             return JsonResponse({'success': False, 'error': 'يلزم تاكيد المدير', 'need_admin': True})
 
+        if is_last_item:
+            reason = (data.get('cancellation_reason') or '').strip()
+            if len(reason) < 2:
+                return JsonResponse({'success': False, 'error': 'اكتب سبب الإلغاء (نص واضح)'})
+
+            had_gone_to_stations = order.printed_at is not None
+
+            order.cancel_approved_by = admin_user
+            order.cancellation_reason = reason[:2000]
+            order.status = 'cancelled'
+            order.cancelled_at = timezone.now()
+            order.save()
+            _log_activity(order, 'cancelled', f'إلغاء (حذف آخر صنف) بواسطة {admin_user.username}: {reason[:200]}', request.user)
+
+            print_success = None
+            if had_gone_to_stations:
+                order_print = prefetch_order_tables(
+                    Order.objects.select_related('waiter', 'driver', 'cashier')
+                    .prefetch_related('items__menu_item__category')
+                    .filter(pk=order.pk)
+                ).first()
+                if order_print:
+                    print_success = _send_order_cancel_to_printer(order_print, reason)
+
+            out = {'success': True, 'order_cancelled': True}
+            if print_success is not None:
+                out['print_success'] = print_success
+            return JsonResponse(out)
+
         had_gone_to_stations = order.printed_at is not None
-        remove_qty = int(data.get('qty', 1))
 
         removed_info = {
             'name': order_item_display_name(item),
@@ -690,11 +754,13 @@ def remove_item(request, order_id):
             'cat_type': item.menu_item.category.category_type,
         }
 
-        if remove_qty >= item.quantity:
+        if will_remove_all:
             item.delete()
         else:
             item.quantity -= remove_qty
             item.save()
+
+        _log_activity(order, 'item_removed', f'حذف {removed_info["qty"]}× {removed_info["name"]}', request.user)
 
         print_ok = None
         if had_gone_to_stations:
@@ -727,6 +793,8 @@ def complete_order(request, order_id):
         order.status       = 'completed'
         order.completed_at = timezone.now()
         order.save()
+
+        _log_activity(order, 'completed', 'تم إنهاء الطلب وفتح الدرج', request.user)
 
         _open_drawer()
         return JsonResponse({'success': True})
@@ -785,6 +853,8 @@ def cancel_order(request, order_id):
         order.cancelled_at = timezone.now()
         order.save()
 
+        _log_activity(order, 'cancelled', f'إلغاء بواسطة {admin_user.username}: {reason[:200]}', request.user)
+
         print_success = None
         if had_gone_to_stations:
             order_print = prefetch_order_tables(
@@ -822,7 +892,8 @@ def reprint_order(request, order_id):
                 data = json.loads(request.body)
             except json.JSONDecodeError:
                 data = {}
-        ok = _send_to_printer(order, open_drawer=data.get('open_drawer', False))
+        ok = _reprint_main_only(order, open_drawer=data.get('open_drawer', False))
+        _log_activity(order, 'reprinted', f'إعادة طباعة (الحالة: {order.get_status_display()})', request.user)
         return JsonResponse({'success': ok})
     except Exception as e:
         log.error(f'reprint_order: {e}')
@@ -1311,16 +1382,20 @@ def _append_order_notes_for_station_ticket(lines, order):
     })
 
 
-def _build_main_lines(order):
+def _build_main_lines(order, *, show_status=False):
     items      = order.items.select_related('menu_item__category').all()
     now_date   = timezone.localtime(order.created_at).strftime('%Y-%m-%d')
     now_time   = _fmt12(order.created_at)
     type_label = 'داخلي' if order.order_type == 'dine_in' else 'ديليفري'
     cashier_name = order.cashier.get_full_name() or order.cashier.username
 
+    title = 'فاتورة بيع'
+    if show_status:
+        title = f'فاتورة بيع — {order.get_status_display()}'
+
     lines = [
         {'spacer': True, 'height': 5},
-        {'text': 'فاتورة بيع', 'align': 'center', 'bold': True, 'size': 'xlarge'},
+        {'text': title, 'align': 'center', 'bold': True, 'size': 'xlarge'},
         {'divider': True, 'divider_style': 'double'},
     ]
 
@@ -1398,7 +1473,7 @@ def _build_section_lines_for_items(order, cat_type, items, action_label=''):
         return []
 
     label = 'المطبخ' if cat_type == 'food' else 'البار'
-    now_time = _fmt12(order.created_at)
+    now_time = _fmt12(timezone.now()) if action_label else _fmt12(order.created_at)
     type_label = 'داخلي' if order.order_type == 'dine_in' else 'ديليفري'
     hdr = label if not action_label else f'{label} — {action_label}'
 
@@ -1504,7 +1579,7 @@ def _build_remove_item_station_lines(order, cat_type, removed_info, remaining_it
         return []
 
     label = 'المطبخ' if cat_type == 'food' else 'البار'
-    now_time = _fmt12(order.created_at)
+    now_time = _fmt12(timezone.now())
     type_label = 'داخلي' if order.order_type == 'dine_in' else 'ديليفري'
 
     lines = [
@@ -1637,6 +1712,26 @@ def _send_to_printer(order, open_drawer=False) -> bool:
         return False
     except Exception as e:
         log.error(f'_send_to_printer error: {e}')
+        return False
+
+
+def _reprint_main_only(order, open_drawer=False) -> bool:
+    """إعادة طباعة فاتورة الأوردر على الطابعة الأساسية فقط (بدون مطبخ/بار) مع عرض حالة الطلب."""
+    if not http_requests:
+        return False
+    try:
+        payload = {
+            'main_lines': _build_main_lines(order, show_status=True),
+            'kitchen_lines': [],
+            'bar_lines': [],
+            'open_drawer': open_drawer,
+        }
+        r = http_requests.post(settings.PRINT_SERVICE_URL, json=payload, timeout=4)
+        if r.status_code == 200:
+            return bool(r.json().get('success', False))
+        return False
+    except Exception as e:
+        log.error(f'_reprint_main_only: {e}')
         return False
 
 
