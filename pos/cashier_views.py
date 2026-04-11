@@ -738,7 +738,8 @@ def remove_item(request, order_id):
                     .filter(pk=order.pk)
                 ).first()
                 if order_print:
-                    print_success = _send_order_cancel_to_printer(order_print, reason)
+                    print_success = _send_order_cancel_to_printer(
+                        order_print, reason, cancel_label='إلغاء جميع الأصناف')
 
             out = {'success': True, 'order_cancelled': True}
             if print_success is not None:
@@ -1494,6 +1495,12 @@ def _build_section_lines_for_items(order, cat_type, items, action_label=''):
                 'align': 'center',
                 'bold': True,
             })
+        elif action_label == 'إلغاء جميع الأصناف':
+            lines.append({
+                'text': 'تنبيه: تم إلغاء جميع أصناف الطلب',
+                'align': 'center',
+                'bold': True,
+            })
         else:
             lines.append({'text': f'تنبيه: {action_label} على طلب موجود', 'align': 'center', 'bold': True})
         lines.append({'divider': True, 'divider_style': 'dashed'})
@@ -1530,7 +1537,7 @@ def _build_section_lines(order, cat_type):
     return _build_section_lines_for_items(order, cat_type, items)
 
 
-def _build_cancel_station_lines(order, cat_type, reason_note=''):
+def _build_cancel_station_lines(order, cat_type, reason_note='', cancel_label='إلغاء'):
     """سطور مطبخ/بار لإشعار إلغاء الطلب (نفس أسلوب الإضافة/التعديل)."""
     items = [
         i for i in order.items.select_related('menu_item__category').all()
@@ -1538,7 +1545,7 @@ def _build_cancel_station_lines(order, cat_type, reason_note=''):
     ]
     if not items:
         return []
-    lines = _build_section_lines_for_items(order, cat_type, items, action_label='إلغاء')
+    lines = _build_section_lines_for_items(order, cat_type, items, action_label=cancel_label)
     note = (reason_note or '').strip()
     if note:
         lines.insert(-1, {
@@ -1549,13 +1556,13 @@ def _build_cancel_station_lines(order, cat_type, reason_note=''):
     return lines
 
 
-def _send_order_cancel_to_printer(order, reason: str = '') -> bool:
+def _send_order_cancel_to_printer(order, reason: str = '', cancel_label='إلغاء') -> bool:
     """يُبلّغ المطبخ/البار بإلغاء الطلب إن وُجدت أصناف تخص كل قسم."""
     if not http_requests:
         return False
     try:
-        kitchen_lines = _build_cancel_station_lines(order, 'food', reason)
-        bar_lines = _build_cancel_station_lines(order, 'drink', reason)
+        kitchen_lines = _build_cancel_station_lines(order, 'food', reason, cancel_label)
+        bar_lines = _build_cancel_station_lines(order, 'drink', reason, cancel_label)
         if not kitchen_lines and not bar_lines:
             return True
         payload = {
