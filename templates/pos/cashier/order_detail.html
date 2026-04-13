@@ -94,18 +94,81 @@
 .mini-mi-name{font-weight:700;font-size:.75rem;display:block}
 .mini-mi-price{font-size:.72rem;color:var(--pri);font-weight:800}
 .od-item-extra{font-size:.72rem;color:var(--pri-d);margin-top:4px;line-height:1.35}
-.itemcfg-overlay{background:rgba(15,23,42,.55);z-index:400;position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:12px}
-.itemcfg-overlay.open{display:flex!important}
-.itemcfg-modal{width:min(420px,94vw);max-height:min(85dvh,640px);background:#fff;display:flex;flex-direction:column;border-radius:20px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.3)}
-.itemcfg-hdr{padding:14px 18px;background:linear-gradient(135deg,var(--gold-soft),var(--gold));border-bottom:1px solid rgba(0,0,0,.06)}
-.itemcfg-hdr h3{margin:0;font-size:.95rem;font-weight:800;color:#2d2608}
-.itemcfg-body{padding:14px 16px;overflow-y:auto;flex:1;font-size:.82rem}
-.itemcfg-sec{margin-bottom:14px}
+/* نافذة إلغاء الطلب — بدون كلاس overlay من القاعدة */
+.itemcfg-overlay:not(.overlay){
+  position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:450;
+  display:none;align-items:center;justify-content:center;padding:12px;
+}
+.itemcfg-overlay:not(.overlay).open{display:flex!important}
+/* دايلوج إضافة/تعديل صنف — مطابق لـ «طلب جديد» */
+#odItemCfgOv.overlay{z-index:1050;padding:max(12px,env(safe-area-inset-bottom))}
+#odItemCfgOv .modal.itemcfg-modal{
+  width:min(420px,94vw);max-width:95vw;max-height:min(85dvh,640px);
+  border-radius:20px;overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.32);
+}
+.itemcfg-hdr{
+  padding:14px 18px;
+  background:linear-gradient(135deg,var(--gold-soft),var(--gold));
+  border-bottom:1px solid rgba(0,0,0,.06);
+}
+.itemcfg-hdr h3{margin:0;font-size:.95rem;font-weight:800;color:#2d2608;display:flex;align-items:center;gap:9px;line-height:1.35}
+.itemcfg-body{
+  padding:16px 18px;overflow-y:auto;flex:1;font-size:.82rem;
+  scrollbar-width:thin;scrollbar-color:#cbd5e1 #f1f5f9;
+}
+.itemcfg-body::-webkit-scrollbar{width:8px}
+.itemcfg-body::-webkit-scrollbar-track{background:#f1f5f9;border-radius:99px}
+.itemcfg-body::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px;border:2px solid #f1f5f9}
+.itemcfg-sec{margin-bottom:16px}
+.itemcfg-sec:last-child{margin-bottom:4px}
 .itemcfg-sec h4{margin:0 0 8px;font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.itemcfg-sz label{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;font-weight:700;margin-bottom:8px}
-.itemcfg-add label{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;border:1px solid #e8ecf2;cursor:pointer;font-weight:600;margin-bottom:6px}
-.itemcfg-ta{width:100%;min-height:56px;padding:10px;border:1.5px solid var(--border);border-radius:12px;font-family:inherit;font-size:.8rem;resize:vertical}
-.itemcfg-ftr{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;background:#fafbff}
+.itemcfg-sz{display:flex;flex-direction:column;gap:8px}
+.itemcfg-sz label{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;font-weight:700;margin:0;
+  transition:border-color .15s,background .15s;
+}
+.itemcfg-sz label:hover{border-color:rgba(201,162,39,.45);background:#fffefb}
+.itemcfg-sz input{accent-color:#c9a227}
+.itemcfg-add{display:flex;flex-direction:column;gap:6px}
+.itemcfg-add label{
+  display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;border:1px solid #e8ecf2;
+  cursor:pointer;font-weight:600;margin:0;transition:background .15s,border-color .15s;
+}
+.itemcfg-add label:hover{background:#f8fafc;border-color:#e2e8f0}
+.itemcfg-add input{accent-color:#c9a227}
+.itemcfg-ta{
+  width:100%;min-height:56px;padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;
+  font-family:inherit;font-size:.82rem;resize:vertical;line-height:1.5;transition:border-color .2s,box-shadow .2s;
+}
+.itemcfg-ta:focus{outline:none;border-color:rgba(201,162,39,.55);box-shadow:0 0 0 3px rgba(201,162,39,.12)}
+/* تعليق البند */
+.itemcfg-note-wrap{
+  background:linear-gradient(180deg,#f8fafc,#fff);
+  border:1.5px solid #e2e8f0;border-radius:14px;padding:2px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.itemcfg-note-wrap:focus-within{
+  border-color:rgba(201,162,39,.55);
+  box-shadow:0 0 0 3px rgba(201,162,39,.12);
+  background:#fff;
+}
+textarea.itemcfg-note-ta{
+  min-height:52px;max-height:120px;border:none;background:transparent;padding:10px 12px;
+  font-size:.84rem;line-height:1.5;resize:vertical;
+}
+textarea.itemcfg-note-ta:focus{outline:none;box-shadow:none}
+.itemcfg-ftr{
+  padding:14px 16px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:stretch;
+  background:linear-gradient(180deg,#fafbff,#f4f6fb);
+}
+.itemcfg-ftr .btn{justify-content:center;border-radius:12px;padding:11px 14px;font-weight:800}
+.itemcfg-ftr .btn-pri{
+  background:linear-gradient(135deg,var(--pri),var(--pri-d));box-shadow:0 4px 14px rgba(201,162,39,.28);
+}
+.itemcfg-ftr .btn-pri:hover{filter:brightness(1.05);transform:translateY(-1px)}
+.itemcfg-ftr .btn-out{border-radius:12px}
 .table-picker{position:relative;z-index:30}
 .table-picker-trigger{
   width:100%;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;border:1.5px solid #e2e8f0;
@@ -162,6 +225,97 @@
 .od-driver-picker .table-picker-row input.driver-rb{margin:0;width:16px;height:16px;accent-color:#ea580c;flex-shrink:0}
 .od-drv-edit,.od-tbl-edit{padding:0 16px 12px;border-bottom:1px solid #f4f6fb}
 .od-drv-edit .od-tbl-hint,.od-tbl-edit .od-tbl-hint{margin-top:0}
+.od-pending-panel{display:none;margin-top:12px;padding:12px 14px;border-radius:12px;border:1.5px dashed #c9a227;background:#fffbeb}
+.od-pending-panel.od-pend-rm{border-color:#fda4af;background:#fff1f2}
+.od-pending-panel h5{margin:0 0 8px;font-size:.78rem;font-weight:800;color:var(--muted)}
+.od-pending-panel > ul{list-style:none;margin:0 0 10px;padding:0}
+#odPendingAddsList > li{display:block;border:none;padding:0;margin:0}
+
+/* —— سلة الإضافة المؤقتة (تصميم احترافي) —— */
+.od-cart-section{
+  display:none;margin-top:16px;border-radius:16px;overflow:hidden;
+  border:1px solid rgba(201,162,39,.35);
+  background:linear-gradient(165deg,#fffdf8 0%,#fff 48%,#faf8f3 100%);
+  box-shadow:0 4px 24px -6px rgba(15,23,42,.08),0 0 0 1px rgba(255,255,255,.8) inset;
+}
+.od-cart-section.is-visible{display:block!important}
+.od-cart-section-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 16px;background:linear-gradient(135deg,rgba(255,248,230,.95),rgba(255,251,235,.6));
+  border-bottom:1px solid rgba(201,162,39,.22);
+}
+.od-cart-section-title{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.od-cart-section-ic{
+  flex-shrink:0;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,var(--gold-soft),var(--gold));color:#2d2608;font-size:1rem;
+  box-shadow:0 2px 8px rgba(201,162,39,.35);
+}
+.od-cart-section-title strong{display:block;font-size:.88rem;font-weight:900;color:var(--text);letter-spacing:-.02em}
+.od-cart-section-sub{display:block;font-size:.68rem;color:var(--muted);font-weight:600;line-height:1.45;margin-top:3px;max-width:260px}
+.od-cart-count-badge{
+  flex-shrink:0;min-width:28px;height:28px;padding:0 9px;border-radius:999px;
+  background:#2d2608;color:#fff;font-size:.72rem;font-weight:900;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 6px rgba(45,38,8,.2);
+}
+.od-cart-list{list-style:none;margin:0;padding:12px 14px 4px;display:flex;flex-direction:column;gap:12px}
+.od-cart-line{
+  background:#fff;border-radius:14px;border:1px solid #e8e4dc;
+  box-shadow:0 2px 12px rgba(15,23,42,.04);
+  overflow:hidden;transition:box-shadow .2s,border-color .2s;
+}
+.od-cart-line:hover{border-color:rgba(201,162,39,.4);box-shadow:0 4px 20px rgba(15,23,42,.07)}
+.od-cart-line-hdr{
+  display:flex;align-items:flex-start;gap:10px;padding:13px 14px;
+  background:linear-gradient(180deg,#fff 0%,#fcfcfa 100%);
+}
+.od-cart-line-hdr .od-cart-line-toolbar{align-self:center}
+.od-cart-line-ic{
+  flex-shrink:0;width:32px;height:32px;border-radius:10px;background:#f1f5f9;color:#64748b;
+  display:flex;align-items:center;justify-content:center;font-size:.8rem;
+}
+.od-cart-line-title-wrap{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.od-cart-line-title-main{font-size:.83rem;font-weight:800;line-height:1.45;color:var(--text)}
+.od-cart-sec-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;line-height:1.45}
+.od-cart-sec-label{
+  flex-shrink:0;font-size:.62rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase;
+  color:#64748b;background:#f1f5f9;padding:3px 8px;border-radius:6px;border:1px solid #e2e8f0;
+}
+.od-cart-sec-text{font-size:.74rem;font-weight:600;color:#334155;flex:1;min-width:0;word-break:break-word}
+.od-cart-comment-row .od-cart-sec-label{color:#0f766e;background:#ecfdf5;border-color:#99f6e4}
+.od-cart-comment-row .od-cart-comment-text{font-weight:600;color:#115e59}
+.od-cart-line-toolbar{
+  display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:nowrap;
+  direction:ltr;
+}
+.od-cart-icon-btn{
+  width:34px;height:34px;padding:0;border-radius:10px;cursor:pointer;font-family:inherit;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--border);background:#fff;color:var(--text2);
+  font-size:1.05rem;font-weight:900;line-height:1;transition:background .15s,border-color .15s,color .15s;
+}
+.od-cart-icon-btn:hover{background:#f8fafc;border-color:#cbd5e1;color:#0f172a}
+.od-cart-icon-btn.od-cart-icon-btn-pri:hover{border-color:rgba(201,162,39,.55);color:#92400e;background:#fffbeb}
+.od-cart-icon-btn.od-cart-icon-btn-dan:hover{border-color:#fecaca;color:#b91c1c;background:#fef2f2}
+.od-cart-qty-val{
+  min-width:28px;text-align:center;font-size:.8rem;font-weight:900;font-variant-numeric:tabular-nums;
+  color:var(--text);padding:0 2px;
+}
+.od-cart-section-ftr{padding:12px 14px 14px;border-top:1px solid rgba(201,162,39,.15);background:rgba(255,255,255,.6)}
+.od-cart-section-ftr .btn-pri{
+  width:100%;padding:12px 16px;border-radius:12px;font-size:.86rem;font-weight:800;
+  box-shadow:0 4px 14px rgba(5,150,105,.25);
+}
+.od-cart-hint{font-size:.65rem;color:var(--muted);line-height:1.5;margin:10px 0 0;text-align:center}
+@media (max-width:520px){
+  .od-cart-section-head{flex-wrap:wrap;align-items:flex-start}
+  .od-cart-count-badge{margin-inline-start:auto}
+  .od-cart-section-sub{max-width:none}
+}
+#odPendingRemoveList li{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px dashed #fecdd3}
+#odPendingRemoveList li:last-child{border-bottom:none}
+.od-pend-rm .od-rm-line{flex:1;min-width:0}
+.od-pend-rm .od-rm-actions{display:flex;gap:4px;flex-shrink:0;align-items:flex-start;padding-top:2px}
+tr.od-line-hidden{display:none!important}
 </style>{% endblock %}
 
 {% block content %}
@@ -179,28 +333,29 @@
   <div class="items-card">
     <div class="ic-hdr">
       <h3><i class="fas fa-utensils" style="color:var(--pri)"></i> الأصناف</h3>
-      <span style="font-size:.8rem;color:var(--muted)">{{ order.total_items }} صنف</span>
+      <span style="font-size:.8rem;color:var(--muted)" id="odLiveItemBadge">{{ order.total_items }} قطعة بالطلب</span>
     </div>
 
     <table class="it-tbl">
       <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th>{% if order.status in 'open,printed' %}<th></th><th></th>{% endif %}</tr></thead>
       <tbody id="orderItemsTbody">
         {% for item in order.items.all %}
-        <tr id="row-{{ item.id }}">
+        <tr id="row-{{ item.id }}" class="od-order-line" data-order-line-id="{{ item.id }}">
           <td>
             <strong>{% if item.size_label %}{{ item.menu_item.name }} ({{ item.size_label }}){% else %}{{ item.menu_item.name }}{% endif %}</strong>
             {% if item.drink_detail %}<div class="od-item-extra">{{ item.drink_detail }}</div>{% endif %}
             {% if item.extras_json.addons %}
             <div class="od-item-extra" style="color:var(--muted)">{% for a in item.extras_json.addons %}+ {{ a.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
             {% endif %}
-            {% if item.notes %}<div style="font-size:.73rem;color:var(--muted)">{{ item.notes }}</div>{% endif %}
+            {% if item.notes %}<div class="od-line-note" style="font-size:.73rem;color:var(--muted)">{{ item.notes }}</div>{% endif %}
           </td>
-          <td><span style="background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:800">{{ item.quantity }}</span></td>
+          <td><span class="od-line-qty" style="background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:800">{{ item.quantity }}</span></td>
           <td style="color:var(--muted)">{{ item.price }} ج</td>
-          <td><strong>{{ item.subtotal|floatformat:2 }} ج</strong></td>
+          <td><strong class="od-line-sub">{{ item.subtotal|floatformat:2 }} ج</strong></td>
           {% if order.status in 'open,printed' %}
           <td>
             <button
+              type="button"
               class="btn btn-out btn-sm"
               onclick="startEditItem(
                 {{ item.id }},
@@ -216,7 +371,7 @@
             </button>
           </td>
           <td>
-            <button class="btn btn-dan btn-sm" onclick="removeItem({{ item.id }}, {{ order.id }}, {{ item.quantity }})">
+            <button type="button" class="btn btn-dan btn-sm" onclick="queueRemoveLine({{ item.id }})" title="نقل وحدة إلى سلة الحذف أدناه">
               <i class="fas fa-minus"></i>
             </button>
           </td>
@@ -236,6 +391,15 @@
       <span style="color:var(--muted);font-weight:600;font-size:.85rem">الإجمالي الكلي</span>
       <span style="font-size:1.3rem;font-weight:900" id="orderTotal">{{ order.total|floatformat:2 }} ج</span>
     </div>
+
+    {% if order.status in 'open,printed' %}
+    <div id="odPendingRemovePanel" class="od-pending-panel od-pend-rm" style="margin:0 16px 14px">
+      <h5><i class="fas fa-trash-alt"></i> سلة الحذف — لم يُنفَّذ بعد</h5>
+      <ul id="odPendingRemoveList"></ul>
+      <button type="button" class="btn btn-dan btn-sm" style="width:100%" onclick="confirmPendingRemovals()"><i class="fas fa-shield-halved"></i> تأكيد الحذف — موافقة المدير وإشعار واحد</button>
+      <p style="font-size:.65rem;color:var(--muted);margin:8px 0 0;line-height:1.4">الناقص بجانب أي صنف ينقل <strong>واحدة</strong> من الطلب إلى هذه السلة. الصف يختفي من الجدول عندما تصبح كميته صفر. أرجِع للطلب بزر <strong>+</strong> بجانب البند هنا. التنفيذ الفعلي فقط بعد «تأكيد الحذف».</p>
+    </div>
+    {% endif %}
 
     <!-- Add item (only if not completed/cancelled) -->
     {% if order.status in 'open,printed' %}
@@ -259,6 +423,23 @@
           </button>
           {% endif %}{% endfor %}
         {% endfor %}
+      </div>
+      <div id="odPendingAddsPanel" class="od-cart-section" aria-live="polite">
+        <div class="od-cart-section-head">
+          <div class="od-cart-section-title">
+            <span class="od-cart-section-ic" aria-hidden="true"><i class="fas fa-shopping-basket"></i></span>
+            <div>
+              <strong>سلة الإضافة المؤقتة</strong>
+              <span class="od-cart-section-sub">لم تُحفَظ على الطلب بعد — راجع التعليقات ثم أكّد دفعة واحدة</span>
+            </div>
+          </div>
+          <span class="od-cart-count-badge" id="odCartCountBadge" title="عدد الأصناف المعلّقة">0</span>
+        </div>
+        <ul id="odPendingAddsList" class="od-cart-list"></ul>
+        <div class="od-cart-section-ftr">
+          <button type="button" class="btn btn-pri btn-sm" onclick="submitPendingAdds()"><i class="fas fa-paper-plane"></i> تأكيد الإضافة للطلب — دفعة واحدة</button>
+          <p class="od-cart-hint">زر <i class="fas fa-sliders-h" style="opacity:.75"></i> يفتح الخيارات والتعليق على الصنف — ثم أكّد الإضافة دفعة واحدة.</p>
+        </div>
       </div>
     </div>
     {% endif %}
@@ -424,9 +605,9 @@
   </div>
 </div>
 
-<div class="itemcfg-overlay" id="odItemCfgOv" onclick="if(event.target===this)closeOdCfg()">
-  <div class="modal itemcfg-modal" onclick="event.stopPropagation()">
-    <div class="itemcfg-hdr"><h3 id="odCfgTitle"><i class="fas fa-sliders"></i></h3></div>
+<div class="overlay itemcfg-overlay" id="odItemCfgOv" style="display:none" onclick="if(event.target===this)closeOdCfg()">
+  <div class="modal itemcfg-modal" role="dialog" aria-modal="true" aria-labelledby="odCfgTitle" onclick="event.stopPropagation()">
+    <div class="itemcfg-hdr"><h3 id="odCfgTitle"></h3></div>
     <div class="itemcfg-body" id="odCfgBody"></div>
     <div class="itemcfg-ftr">
       <button type="button" class="btn btn-out" style="flex:1" onclick="closeOdCfg()">إلغاء</button>
@@ -533,9 +714,15 @@
 {% block extra_js %}<script>
 const MENU_OD=JSON.parse(document.getElementById('menu-catalog-data').textContent);
 const ORDER_ID={{ order.id }};
+const ORDER_LINE_META={
+  {% for item in order.items.all %}{{ item.id }}:{qty:{{ item.quantity }},price:Number('{{ item.price }}'),name:{% if item.size_label %}"{{ item.menu_item.name|escapejs }} ({{ item.size_label|escapejs }})"{% else %}"{{ item.menu_item.name|escapejs }}"{% endif %}},{% endfor %}
+};
 let odCfg=null;
 let odAddKind='food';
 let odAddCat='all';
+let odPendingAdds=[];
+let odPendingKey=0;
+const odPendingRemove={};
 
 function escOd(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -569,7 +756,7 @@ function startAddItem(menuItemId, orderId){
   const needAddons=cat.enable_addons&&(cat.addons||[]).length>0;
   const needDrink=cat.enable_drink_options&&cat.category_type==='drink';
   if(!needSize&&!needAddons&&!needDrink){
-    addItemToOrderApi(orderId,{
+    pushPendingAdd({
       menu_item_id:menuItemId,
       quantity:1,
       notes:'',
@@ -580,8 +767,33 @@ function startAddItem(menuItemId, orderId){
     });
     return;
   }
-  odCfg={mode:'add',orderId,cat,item,orderItemId:null,init:{sizeId:null,addonIds:[],notes:'',drinkCustom:''}};
+  odCfg={mode:'add',orderId,pendingAddEditKey:null,cat,item,orderItemId:null,init:{sizeId:null,addonIds:[],notes:'',drinkCustom:'',drinkPresetIds:[]}};
   document.getElementById('odCfgTitle').innerHTML='<i class="fas fa-circle-plus"></i> إضافة على الطلب — '+escOd(item.name);
+  renderOdCfg();
+}
+
+function startEditPendingAdd(key){
+  const ent=odPendingAdds.find(x=>x.key===key);
+  if(!ent){showToast('البند غير موجود في القائمة','err');return;}
+  const hit=findOdEntry(ent.payload.menu_item_id);
+  if(!hit){showToast('صنف غير متاح','err');return;}
+  const {cat,item}=hit;
+  const p=ent.payload;
+  odCfg={
+    mode:'add',
+    orderId:ORDER_ID,
+    pendingAddEditKey:key,
+    cat,item,
+    orderItemId:null,
+    init:{
+      sizeId:(p.size_id!=null&&p.size_id!=='')?Number(p.size_id):null,
+      addonIds:(p.addon_ids||[]).map(x=>Number(x)),
+      notes:p.notes||'',
+      drinkCustom:p.drink_custom||'',
+      drinkPresetIds:(p.drink_preset_ids||[]).map(x=>Number(x)),
+    }
+  };
+  document.getElementById('odCfgTitle').innerHTML='<i class="fas fa-pen"></i> تعديل بند معلّق — '+escOd(item.name);
   renderOdCfg();
 }
 
@@ -612,35 +824,48 @@ function renderOdCfg(){
   const body=document.getElementById('odCfgBody');
   let html='';
   if(cat.enable_sizes&&(item.sizes||[]).length){
-    html+='<div class="itemcfg-sec"><h4>الحجم</h4>';
+    html+='<div class="itemcfg-sec"><h4>الحجم</h4><div class="itemcfg-sz">';
     (item.sizes||[]).forEach((sz,i)=>{
       const checked = init.sizeId ? Number(init.sizeId)===Number(sz.id) : i===0;
       html+=`<label><span>${escOd(sz.name)}</span><span><input type="radio" name="od_sz" value="${sz.id}" ${checked?'checked':''}> <strong>${Number(sz.price).toFixed(2)} ج</strong></span></label>`;
     });
-    html+='</div>';
+    html+='</div></div>';
   }
   if(cat.enable_addons&&(cat.addons||[]).length){
-    html+='<div class="itemcfg-sec"><h4>إضافات</h4>';
+    html+='<div class="itemcfg-sec"><h4>إضافات</h4><div class="itemcfg-add">';
     (cat.addons||[]).forEach(a=>{
       const on = (init.addonIds||[]).includes(Number(a.id));
       html+=`<label><input type="checkbox" name="od_ad" value="${a.id}" ${on?'checked':''}> ${escOd(a.name)} <strong style="color:var(--pri-d)">+${Number(a.price).toFixed(2)} ج</strong></label>`;
     });
-    html+='</div>';
+    html+='</div></div>';
   }
   if(cat.enable_drink_options&&cat.category_type==='drink'){
-    html+='<div class="itemcfg-sec"><h4>تفاصيل المشروب</h4>';
+    const dpOn=(init.drinkPresetIds||[]).map(Number);
+    html+='<div class="itemcfg-sec"><h4>تفاصيل المشروب</h4><div class="itemcfg-add">';
     (cat.drink_presets||[]).forEach(p=>{
-      html+=`<label><input type="checkbox" name="od_dp" value="${p.id}"> ${escOd(p.label)}</label>`;
+      const on=dpOn.includes(Number(p.id));
+      html+=`<label><input type="checkbox" name="od_dp" value="${p.id}" ${on?'checked':''}> ${escOd(p.label)}</label>`;
     });
-    html+=`<textarea class="itemcfg-ta" id="odDrinkCustom" placeholder="نص حر…" rows="2">${escOd(init.drinkCustom||'')}</textarea></div>`;
+    html+='</div>';
+    html+=`<textarea class="itemcfg-ta" id="odDrinkCustom" placeholder="نص حر (مثال: سبايسي، بدون سكر…)" rows="2">${escOd(init.drinkCustom||'')}</textarea></div>`;
   }
-  html+='<div class="itemcfg-sec"><h4>تعليق على البند</h4><textarea class="itemcfg-ta" id="odItemNote" placeholder="ملاحظة على هذا البند..." rows="2">'+escOd(init.notes||'')+'</textarea></div>';
+  html+='<div class="itemcfg-sec itemcfg-note-sec"><h4>تعليق على البند</h4>';
+  html+='<div class="itemcfg-note-wrap"><textarea class="itemcfg-ta itemcfg-note-ta" id="odItemNote" maxlength="200" rows="2" placeholder="مثال: بدون بصل، تسخين خفيف، للأطفال…">'+escOd(init.notes||'')+'</textarea></div></div>';
   body.innerHTML=html;
-  document.getElementById('odItemCfgOv').classList.add('open');
+  const cfBtn=document.querySelector('#odItemCfgOv .itemcfg-ftr .btn-pri');
+  if(cfBtn){
+    if(odCfg.mode==='edit') cfBtn.innerHTML='<i class="fas fa-check"></i> حفظ التعديل';
+    else cfBtn.innerHTML='<i class="fas fa-cart-plus"></i> أضف لقائمة الإضافة المؤقتة';
+  }
+  const ov=document.getElementById('odItemCfgOv');
+  ov.style.display='flex';
+  ov.classList.add('open');
 }
 
 function closeOdCfg(){
-  document.getElementById('odItemCfgOv').classList.remove('open');
+  const ov=document.getElementById('odItemCfgOv');
+  ov.classList.remove('open');
+  ov.style.display='none';
   odCfg=null;
 }
 
@@ -663,29 +888,359 @@ function confirmOdCfg(){
   };
   if(mode==='edit'){
     updateItemMetaApi(orderId,{order_item_id:orderItemId,...payload});
-  }else{
-    addItemToOrderApi(orderId,{
-      menu_item_id:item.id,
-      quantity:1,
-      ...payload,
-    });
+    closeOdCfg();
+    return;
   }
+  const editKey=odCfg.pendingAddEditKey;
+  if(editKey!=null){
+    const ent=odPendingAdds.find(x=>x.key===editKey);
+    if(ent){
+      const keepQty=Math.max(1,parseInt(ent.payload.quantity,10)||1);
+      ent.payload={...ent.payload,
+        menu_item_id:item.id,
+        quantity:keepQty,
+        notes:(payload.notes||'').slice(0,200),
+        size_id:sizeId,
+        addon_ids:addonIds,
+        drink_preset_ids:presetIds,
+        drink_custom:payload.drink_custom||'',
+      };
+    }
+    closeOdCfg();
+    renderOdPendingAdds();
+    return;
+  }
+  pushPendingAdd({
+    menu_item_id:item.id,
+    quantity:1,
+    ...payload,
+  });
   closeOdCfg();
 }
 
-async function addItemToOrderApi(orderId, payload){
-  const r=await fetch(`/api/order/${orderId}/add-item/`,{
+function pendingAddMainLine(payload){
+  const hit=findOdEntry(payload.menu_item_id);
+  const base=hit?hit.item.name:('صنف #'+payload.menu_item_id);
+  const q=Math.max(1,parseInt(payload.quantity,10)||1);
+  let s=q+'× '+base;
+  if(!hit)return s;
+  const cat=hit.cat;
+  const item=hit.item;
+  if(cat.enable_sizes&&(item.sizes||[]).length&&payload.size_id!=null&&payload.size_id!==''){
+    const sz=(item.sizes||[]).find(x=>Number(x.id)===Number(payload.size_id));
+    if(sz) s+=' ('+sz.name+')';
+  }
+  return s;
+}
+
+function pendingAddAddonsText(payload){
+  const hit=findOdEntry(payload.menu_item_id);
+  if(!hit)return '';
+  const cat=hit.cat;
+  if(!(cat.addons||[]).length)return '';
+  const aids=payload.addon_ids||[];
+  if(!aids.length)return '';
+  const names=aids.map(id=>{
+    const a=(cat.addons||[]).find(x=>Number(x.id)===Number(id));
+    return a?a.name:null;
+  }).filter(Boolean);
+  return names.length?names.join(' · '):'';
+}
+
+function pendingAddDrinkText(payload){
+  const hit=findOdEntry(payload.menu_item_id);
+  if(!hit)return '';
+  const cat=hit.cat;
+  if(!cat.enable_drink_options||cat.category_type!=='drink')return '';
+  return buildDrinkOd(cat,payload.drink_preset_ids,payload.drink_custom)||'';
+}
+
+function pendingAddCommentLine(payload){
+  return (payload.notes||'').trim();
+}
+
+function pushPendingAdd(entryPayload){
+  odPendingKey+=1;
+  odPendingAdds.push({key:odPendingKey,payload:entryPayload});
+  renderOdPendingAdds();
+}
+
+function removePendingAddKey(key){
+  odPendingAdds=odPendingAdds.filter(x=>x.key!==key);
+  renderOdPendingAdds();
+}
+
+function adjustPendingAddQty(key,delta){
+  const ent=odPendingAdds.find(x=>x.key===key);
+  if(!ent)return;
+  let q=parseInt(ent.payload.quantity,10)||1;
+  q+=delta;
+  if(q<1)q=1;
+  if(q>99)q=99;
+  ent.payload.quantity=q;
+  renderOdPendingAdds();
+}
+
+function pendingAddLineIcon(key){
+  const ent=odPendingAdds.find(x=>x.key===key);
+  if(!ent)return 'fa-shopping-bag';
+  const hit=findOdEntry(ent.payload.menu_item_id);
+  if(!hit)return 'fa-shopping-bag';
+  const t=hit.cat.category_type;
+  if(t==='drink')return 'fa-mug-hot';
+  if(t==='food')return 'fa-utensils';
+  return 'fa-tag';
+}
+
+function renderOdPendingAdds(){
+  const panel=document.getElementById('odPendingAddsPanel');
+  const ul=document.getElementById('odPendingAddsList');
+  const badge=document.getElementById('odCartCountBadge');
+  if(!panel||!ul)return;
+  if(!odPendingAdds.length){
+    panel.classList.remove('is-visible');
+    if(badge) badge.textContent='0';
+    return;
+  }
+  panel.classList.add('is-visible');
+  if(badge) badge.textContent=String(odPendingAdds.length);
+  ul.innerHTML=odPendingAdds.map(({key})=>{
+    const ic=pendingAddLineIcon(key);
+    return '<li class="od-cart-line" data-pend-li="'+key+'">'+
+      '<div class="od-cart-line-hdr">'+
+      '<span class="od-cart-line-ic" aria-hidden="true"><i class="fas '+ic+'"></i></span>'+
+      '<div class="od-cart-line-title-wrap">'+
+      '<div class="od-cart-line-title-main od-pend-main-'+key+'"></div>'+
+      '<div class="od-cart-sec-row od-cart-addons-row od-pend-addons-wrap-'+key+'" style="display:none">'+
+      '<span class="od-cart-sec-label">إضافات</span>'+
+      '<span class="od-cart-sec-text od-pend-addons-'+key+'"></span></div>'+
+      '<div class="od-cart-sec-row od-cart-drink-row od-pend-drink-wrap-'+key+'" style="display:none">'+
+      '<span class="od-cart-sec-label">المشروب</span>'+
+      '<span class="od-cart-sec-text od-pend-drink-'+key+'"></span></div>'+
+      '<div class="od-cart-sec-row od-cart-comment-row od-pend-comment-wrap-'+key+'" style="display:none">'+
+      '<span class="od-cart-sec-label">تعليق</span>'+
+      '<span class="od-cart-sec-text od-cart-comment-text od-pend-comment-'+key+'"></span></div>'+
+      '</div>'+
+      '<div class="od-cart-line-toolbar">'+
+      '<button type="button" class="od-cart-icon-btn od-cart-icon-btn-pri" onclick="adjustPendingAddQty('+key+',-1)" title="أقل" aria-label="نقص الكمية">−</button>'+
+      '<span class="od-cart-qty-val od-pend-qty-'+key+'">1</span>'+
+      '<button type="button" class="od-cart-icon-btn od-cart-icon-btn-pri" onclick="adjustPendingAddQty('+key+',1)" title="أكثر" aria-label="زيادة الكمية">+</button>'+
+      '<button type="button" class="od-cart-icon-btn od-cart-icon-btn-pri" onclick="startEditPendingAdd('+key+')" title="الخيارات والتعليق" aria-label="الخيارات والتعليق"><i class="fas fa-sliders-h"></i></button>'+
+      '<button type="button" class="od-cart-icon-btn od-cart-icon-btn-dan" onclick="removePendingAddKey('+key+')" title="حذف من السلة" aria-label="حذف من السلة"><i class="fas fa-times"></i></button>'+
+      '</div></div></li>';
+  }).join('');
+  odPendingAdds.forEach(({key,payload})=>{
+    const mainEl=ul.querySelector('.od-pend-main-'+key);
+    const qtyEl=ul.querySelector('.od-pend-qty-'+key);
+    const addWrap=ul.querySelector('.od-pend-addons-wrap-'+key);
+    const addTxt=ul.querySelector('.od-pend-addons-'+key);
+    const drinkWrap=ul.querySelector('.od-pend-drink-wrap-'+key);
+    const drinkTxt=ul.querySelector('.od-pend-drink-'+key);
+    const comWrap=ul.querySelector('.od-pend-comment-wrap-'+key);
+    const comTxt=ul.querySelector('.od-pend-comment-'+key);
+    if(mainEl) mainEl.textContent=pendingAddMainLine(payload);
+    if(qtyEl) qtyEl.textContent=String(Math.max(1,parseInt(payload.quantity,10)||1));
+    const at=pendingAddAddonsText(payload);
+    if(addWrap&&addTxt){
+      if(at){ addTxt.textContent=at; addWrap.style.display='flex'; }
+      else{ addWrap.style.display='none'; addTxt.textContent=''; }
+    }
+    const dt=pendingAddDrinkText(payload);
+    if(drinkWrap&&drinkTxt){
+      if(dt){ drinkTxt.textContent=dt; drinkWrap.style.display='flex'; }
+      else{ drinkWrap.style.display='none'; drinkTxt.textContent=''; }
+    }
+    if(comWrap&&comTxt){
+      const c=pendingAddCommentLine(payload);
+      if(c){ comTxt.textContent=c; comWrap.style.display='flex'; }
+      else{ comTxt.textContent=''; comWrap.style.display='none'; }
+    }
+  });
+}
+
+async function submitPendingAdds(){
+  if(!odPendingAdds.length){showToast('لا توجد أصناف معلّقة','err');return;}
+  const items=odPendingAdds.map(x=>x.payload);
+  const r=await fetch(`/api/order/${ORDER_ID}/add-items-batch/`,{
     method:'POST',
     headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
-    body:JSON.stringify(payload),
+    body:JSON.stringify({items}),
   });
   const d=await r.json();
   if(d.success){
-    if(d.print_success===false)showToast('تمت الإضافة لكن الطباعة الجزئية لم تتم','war');
-    else showToast('تم إضافة الصنف ✓','suc');
+    if(d.print_success===false)showToast('تمت الإضافة لكن الطباعة لم تتم — تحقق من الطابعة','war',4200);
+    else showToast('تمت إضافة كل الأصناف دفعة واحدة ✓','suc');
     location.reload();
+  }else showToast(d.error||'خطأ','err');
+}
+
+function buildRemovalsArray(){
+  const removals=[];
+  Object.keys(odPendingRemove).forEach(id=>{
+    const q=odPendingRemove[id];
+    if(q>0) removals.push({item_id:parseInt(id,10),qty:q});
+  });
+  return removals;
+}
+
+function wouldEmptyOrder(){
+  let anyLeft=false;
+  Object.keys(ORDER_LINE_META).forEach(id=>{
+    const lineQty=ORDER_LINE_META[id].qty;
+    const pr=odPendingRemove[id]||0;
+    if(lineQty-pr>0) anyLeft=true;
+  });
+  return !anyLeft;
+}
+
+function computeLiveOrderTotals(){
+  let total=0,pieces=0;
+  Object.keys(ORDER_LINE_META).forEach(idStr=>{
+    const m=ORDER_LINE_META[idStr];
+    const eff=Math.max(0,m.qty-(odPendingRemove[idStr]||0));
+    total+=eff*Number(m.price);
+    pieces+=eff;
+  });
+  return {total,pieces};
+}
+
+function syncOrderLineVisuals(){
+  const {total,pieces}=computeLiveOrderTotals();
+  const totalEl=document.getElementById('orderTotal');
+  const badge=document.getElementById('odLiveItemBadge');
+  if(totalEl) totalEl.textContent=total.toFixed(2)+' ج';
+  if(badge) badge.textContent=pieces+' قطعة بالطلب';
+  Object.keys(ORDER_LINE_META).forEach(idStr=>{
+    const m=ORDER_LINE_META[idStr];
+    const row=document.getElementById('row-'+idStr);
+    if(!row)return;
+    const pend=odPendingRemove[idStr]||0;
+    const eff=Math.max(0,m.qty-pend);
+    if(eff<=0){
+      row.classList.add('od-line-hidden');
+    }else{
+      row.classList.remove('od-line-hidden');
+      const qtySpan=row.querySelector('.od-line-qty');
+      const subEl=row.querySelector('.od-line-sub');
+      if(qtySpan) qtySpan.textContent=String(eff);
+      if(subEl) subEl.textContent=(eff*Number(m.price)).toFixed(2)+' ج';
+    }
+  });
+}
+
+function queueRemoveLine(itemId){
+  const id=String(itemId);
+  const m=ORDER_LINE_META[id];
+  if(!m){showToast('بند غير معروف','err');return;}
+  const cur=odPendingRemove[id]||0;
+  if(cur>=m.qty){showToast('كل الكمية انتقلت لسلة الحذف','err');return;}
+  odPendingRemove[id]=cur+1;
+  syncOrderLineVisuals();
+  renderOdPendingRemove();
+}
+
+function adjustPendingRemove(itemId,delta){
+  const id=String(itemId);
+  const cur=odPendingRemove[id]||0;
+  const next=cur+delta;
+  const max=ORDER_LINE_META[id]?ORDER_LINE_META[id].qty:cur;
+  if(next<0)return;
+  if(next>max){showToast('تجاوزت الكمية المتاحة','err');return;}
+  if(next===0) delete odPendingRemove[id];
+  else odPendingRemove[id]=next;
+  syncOrderLineVisuals();
+  renderOdPendingRemove();
+}
+
+function renderOdPendingRemove(){
+  const panel=document.getElementById('odPendingRemovePanel');
+  const ul=document.getElementById('odPendingRemoveList');
+  if(!panel||!ul)return;
+  const removals=buildRemovalsArray();
+  if(!removals.length){panel.style.display='none';return;}
+  panel.style.display='block';
+  ul.innerHTML=removals.map(r=>{
+    const meta=ORDER_LINE_META[r.item_id];
+    const name=meta?meta.name:('#'+r.item_id);
+    return '<li><div class="od-rm-line"><strong>'+escOd(r.qty+'× '+name)+'</strong><span style="font-size:.68rem;color:var(--muted);display:block;margin-top:4px">في سلة الحذف — لم يُحذف من السيرفر بعد</span></div><div class="od-rm-actions"><button type="button" class="btn btn-out btn-sm" onclick="adjustPendingRemove('+r.item_id+',-1)" title="إرجاع وحدة للطلب"><i class="fas fa-plus"></i></button></div></li>';
+  }).join('');
+}
+
+function confirmPendingRemovals(){
+  const removals=buildRemovalsArray();
+  if(!removals.length){showToast('لا يوجد حذف معلّق','err');return;}
+  if(wouldEmptyOrder()){
+    const ov=document.getElementById('cancelOrderOv');
+    if(!ov)return;
+    const titleEl=ov.querySelector('.itemcfg-hdr h3');
+    const hint=ov.querySelector('.itemcfg-body p');
+    const procBtn=ov.querySelector('.itemcfg-ftr .btn-dan');
+    const backBtn=ov.querySelector('.itemcfg-ftr .btn-out');
+    const origTitle=titleEl?titleEl.innerHTML:'';
+    const origHint=hint?hint.innerHTML:'';
+    const origProcOnclick=procBtn?procBtn.getAttribute('onclick'):null;
+    const origBackOnclick=backBtn?backBtn.getAttribute('onclick'):null;
+    const origOvOnclick=ov.getAttribute('onclick');
+    if(titleEl) titleEl.innerHTML='<i class="fas fa-ban"></i> الحذف يفرّغ الطلب — إلغاء';
+    if(hint) hint.innerHTML='سيتم <strong>إلغاء الطلب بالكامل</strong> بعد موافقة المدير.<br>اكتب سبب الإلغاء.';
+    const ta=document.getElementById('cancelOrderReason');
+    if(ta) ta.value='';
+    function restoreBatchCancelOv(){
+      if(titleEl) titleEl.innerHTML=origTitle;
+      if(hint) hint.innerHTML=origHint;
+      if(procBtn){ procBtn.onclick=null; if(origProcOnclick) procBtn.setAttribute('onclick',origProcOnclick); }
+      if(backBtn){ backBtn.onclick=null; if(origBackOnclick) backBtn.setAttribute('onclick',origBackOnclick); }
+      if(origOvOnclick!==null) ov.setAttribute('onclick',origOvOnclick); else ov.removeAttribute('onclick');
+    }
+    if(procBtn){
+      procBtn.removeAttribute('onclick');
+      procBtn.onclick=function(){
+        const reason=(document.getElementById('cancelOrderReason').value||'').trim();
+        if(reason.length<2){showToast('اكتب سبب الإلغاء','err');return;}
+        closeCancelOrder();
+        restoreBatchCancelOv();
+        requireAdmin('إلغاء الطلب يتطلب موافقة المدير',function(au,ap){
+          fetch(`/api/order/${ORDER_ID}/remove-items-batch/`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+            body:JSON.stringify({removals,admin_username:au,admin_password:ap,cancellation_reason:reason}),
+          }).then(r=>r.json()).then(d=>{
+            if(d.success&&d.order_cancelled){
+              if(d.print_success===true) showToast('تم إلغاء الطلب وإشعار المطبخ/البار ✓','suc');
+              else if(d.print_success===false) showToast('تم الإلغاء — تحقق من الطباعة','war',4200);
+              else showToast('تم إلغاء الطلب','suc');
+              setTimeout(()=>location.href='{% url "cashier_dashboard" %}',900);
+            }else showToast(d.error||'خطأ','err');
+          });
+        });
+      };
+    }
+    if(backBtn){
+      backBtn.removeAttribute('onclick');
+      backBtn.onclick=function(){ closeCancelOrder(); restoreBatchCancelOv(); };
+    }
+    ov.removeAttribute('onclick');
+    ov.onclick=function(e){
+      if(e.target===ov){ closeCancelOrder(); restoreBatchCancelOv(); }
+    };
+    ov.classList.add('open');
+    setTimeout(()=>ta&&ta.focus(),80);
+    return;
   }
-  else showToast(d.error||'خطأ','err');
+  requireAdmin('حذف أصناف من الطلب يتطلب موافقة المدير',function(au,ap){
+    fetch(`/api/order/${ORDER_ID}/remove-items-batch/`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+      body:JSON.stringify({removals,admin_username:au,admin_password:ap}),
+    }).then(r=>r.json()).then(d=>{
+      if(d.success){
+        if(d.print_success===true) showToast('تم الحذف وإبلاغ المطبخ/البار دفعة واحدة ✓','suc');
+        else if(d.print_success===false) showToast('تم الحذف — تحقق من طباعة الإشعار','war',4200);
+        else showToast('تم تنفيذ الحذف ✓','suc');
+        location.reload();
+      }else showToast(d.error||'خطأ','err');
+    });
+  });
 }
 
 async function updateItemMetaApi(orderId, payload){
@@ -700,81 +1255,6 @@ async function updateItemMetaApi(orderId, payload){
     else showToast('تم تعديل البند ✓','suc');
     location.reload();
   }else showToast(d.error||'خطأ','err');
-}
-
-function removeItem(itemId, orderId, qty){
-  fetch(`/api/order/${orderId}/remove-item/`,{
-    method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
-    body:JSON.stringify({item_id:itemId,qty:1})
-  }).then(r=>r.json()).then(d=>{
-    if(d.will_cancel_order){
-      showLastItemCancelPrompt(itemId,orderId);
-    }else{
-      requireAdmin('حذف صنف من الطلب يتطلب موافقة المدير',function(au,ap){
-        fetch(`/api/order/${orderId}/remove-item/`,{
-          method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
-          body:JSON.stringify({item_id:itemId,qty:1,admin_username:au,admin_password:ap})
-        }).then(r=>r.json()).then(d2=>{
-          if(d2.success){
-            if(d2.print_success===true)showToast('تم حذف الصنف وإبلاغ المطبخ/البار ✓','suc');
-            else if(d2.print_success===false)showToast('تم حذف الصنف — تحقق من طباعة الإشعار','war',4200);
-            else showToast('تم حذف الصنف','suc');
-            location.reload();
-          }else showToast(d2.error||'خطأ','err');
-        });
-      });
-    }
-  });
-}
-function showLastItemCancelPrompt(itemId,orderId){
-  const ov=document.getElementById('cancelOrderOv');
-  if(!ov)return;
-  const titleEl=ov.querySelector('.itemcfg-hdr h3');
-  const hint=ov.querySelector('.itemcfg-body p');
-  const procBtn=ov.querySelector('.itemcfg-ftr .btn-dan');
-  const origTitle=titleEl?titleEl.innerHTML:'';
-  const origHint=hint?hint.innerHTML:'';
-  const origOnclick=procBtn?procBtn.getAttribute('onclick'):'';
-  if(titleEl)titleEl.innerHTML='<i class="fas fa-ban"></i> حذف آخر صنف — سيتم إلغاء الطلب';
-  if(hint)hint.innerHTML='هذا <strong>آخر صنف</strong> في الطلب — حذفه يعني <strong>إلغاء الطلب بالكامل</strong>.<br>اكتب سبب الإلغاء ثم أكّد بإذن المدير.';
-  const ta=document.getElementById('cancelOrderReason');
-  if(ta)ta.value='';
-  if(procBtn){
-    procBtn.removeAttribute('onclick');
-    procBtn.onclick=function(){
-      const reason=(document.getElementById('cancelOrderReason').value||'').trim();
-      if(reason.length<2){showToast('اكتب سبب الإلغاء','err');return;}
-      closeCancelOrder();
-      restoreCancelOverlay();
-      requireAdmin('إلغاء الطلب يتطلب موافقة المدير',function(au,ap){
-        fetch(`/api/order/${orderId}/remove-item/`,{
-          method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
-          body:JSON.stringify({item_id:itemId,qty:999,admin_username:au,admin_password:ap,cancellation_reason:reason})
-        }).then(r=>r.json()).then(d=>{
-          if(d.success&&d.order_cancelled){
-            if(d.print_success===true)showToast('تم إلغاء الطلب وإشعار المطبخ/البار ✓','suc');
-            else if(d.print_success===false)showToast('تم إلغاء الطلب — تحقق من الطباعة','war',4200);
-            else showToast('تم إلغاء الطلب','suc');
-            setTimeout(()=>location.href='{% url "cashier_dashboard" %}',900);
-          }else showToast(d.error||'خطأ','err');
-        });
-      });
-    };
-  }
-  ov.classList.add('open');
-  setTimeout(()=>ta&&ta.focus(),80);
-  function restoreCancelOverlay(){
-    if(titleEl)titleEl.innerHTML=origTitle;
-    if(hint)hint.innerHTML=origHint;
-    if(procBtn){procBtn.onclick=null;if(origOnclick)procBtn.setAttribute('onclick',origOnclick);}
-  }
-  const origClose=ov.getAttribute('onclick');
-  ov.onclick=function(e){if(e.target===ov){closeCancelOrder();restoreCancelOverlay();}};
-  const backBtn=ov.querySelector('.btn-out');
-  if(backBtn){
-    const origBack=backBtn.getAttribute('onclick');
-    backBtn.onclick=function(){closeCancelOrder();restoreCancelOverlay();};
-  }
 }
 
 async function completeOrder(orderId){
