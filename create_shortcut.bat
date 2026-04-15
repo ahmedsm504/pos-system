@@ -3,6 +3,7 @@ chcp 65001 >nul
 cd /d "%~dp0"
 
 echo Creating desktop shortcut...
+echo  ^(Opens POS in Chrome app window if installed; else Edge; else default browser.^)
 
 set "PROJECT=%~dp0"
 set "ICO=%PROJECT%cashier.ico"
@@ -40,7 +41,7 @@ copy "%LINK%" "%STARTUP_LINK%" >nul 2>&1
 
 echo.
 echo ================================
-echo Shortcut created on Desktop!
+echo Shortcut created on Desktop!  ^(double-click = server + app window^)
 echo File: %LINK%
 echo.
 echo Auto-start on boot: ENABLED
