@@ -2056,7 +2056,7 @@ def _open_drawer() -> bool:
         return False
 
     try:
-        url = getattr(settings, 'PRINT_SERVICE_URL', 'http://127.0.0.1:5000/print')
+        url = getattr(settings, 'PRINT_SERVICE_URL', 'http://127.0.0.1:5050/print')
         # بدّل /print بـ /drawer
         drawer_url = url.rsplit('/print', 1)[0] + '/drawer'
         r = http_requests.post(drawer_url, timeout=3)

@@ -1,4 +1,5 @@
 {% extends 'pos/admin/base.html' %}
+{% load static %}
 {% block title %}التقارير والأرباح{% endblock %}
 {% block page_icon %}<i class="fas fa-chart-pie"></i>{% endblock %}
 {% block page_title %}التقارير والأرباح{% endblock %}
@@ -491,7 +492,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
 <script>
 const raw={{daily_json|safe}};
 new Chart(document.getElementById('revChart'),{
