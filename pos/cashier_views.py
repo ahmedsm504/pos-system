@@ -269,11 +269,13 @@ def orders_list(request):
         completed=Count('id', filter=Q(status='completed')),
         cancelled=Count('id', filter=Q(status='cancelled')),
     )
+    waiters = Waiter.objects.filter(is_active=True).order_by('name')
     profile = get_profile(request.user)
     return render(request, 'pos/cashier/orders_list.html', {
         'orders':       orders,
         'order_stats':  order_stats,
         'status_stats': status_stats,
+        'waiters':      waiters,
         'profile':      profile,
     })
 

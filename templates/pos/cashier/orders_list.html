@@ -4,23 +4,196 @@
 {% block page_title %}طلبات الشيفت{% endblock %}
 
 {% block extra_css %}<style>
-.od-wrap{max-width:920px;margin:0 auto}
+.od-wrap{max-width:980px;margin:0 auto}
 .od-head{
-  display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;
-  margin-bottom:20px;
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:10px;
 }
-.od-filters{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
-.od-head-t h2{margin:0;font-size:1.35rem;font-weight:900;letter-spacing:-.02em;color:var(--text)}
-.od-head-t p{margin:6px 0 0;font-size:.82rem;color:var(--muted);font-weight:600}
-.od-filter{
-  display:flex;flex-wrap:wrap;gap:8px;padding:5px;
+.od-head-t h2{margin:0;font-size:1.12rem;font-weight:900;letter-spacing:-.02em;color:var(--text)}
+.od-head-t p{margin:3px 0 0;font-size:.74rem;color:var(--muted);font-weight:600}
+.od-head-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.od-chip{
+  height:42px;
+  border-radius:16px;
+  padding:0 14px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-family:inherit;
+  font-size:.8rem;
+  font-weight:900;
+  letter-spacing:-.01em;
+  white-space:nowrap;
+}
+.od-chip-ic{
+  width:24px;height:24px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:.76rem;flex-shrink:0;
+}
+.od-chip-txt{line-height:1}
+.od-report-btn{
+  border:1px solid rgba(201,162,39,.35);
+  color:#2f2508;
+  background:linear-gradient(135deg,var(--gold-soft),var(--gold));
+  box-shadow:0 10px 22px -14px rgba(201,162,39,.9),0 1px 0 rgba(255,255,255,.55) inset;
+  cursor:pointer;
+  transition:transform .2s var(--ease-out),filter .2s,box-shadow .2s;
+}
+.od-report-btn .od-chip-ic{
+  background:rgba(45,38,8,.12);
+  color:#2f2508;
+}
+.od-report-btn:hover{
+  filter:brightness(1.05);
+  transform:translateY(-1px);
+  box-shadow:0 14px 26px -14px rgba(201,162,39,.95),0 1px 0 rgba(255,255,255,.58) inset;
+}
+.od-stats-pill{
+  color:#1e293b;
   background:linear-gradient(180deg,#fff,#f8fafc);
-  border:1px solid var(--border);border-radius:999px;
-  box-shadow:0 2px 12px -4px rgba(15,23,42,.08),inset 0 1px 0 #fff;
+  border:1px solid var(--border);
+  box-shadow:0 6px 16px -14px rgba(15,23,42,.3),0 1px 0 rgba(255,255,255,.8) inset;
+}
+.od-stats-pill .od-chip-ic{
+  background:#eef2f7;
+  color:#475569;
+}
+
+.od-tools{
+  background:linear-gradient(180deg,#ffffff,#f8fafc);
+  border:1px solid var(--border);border-radius:14px;padding:9px 10px;margin-bottom:10px;
+  box-shadow:0 6px 22px -18px rgba(15,23,42,.18);
+}
+.od-tools-grid{
+  display:grid;grid-template-columns:minmax(190px,1.45fr) minmax(170px,1fr);gap:8px;margin-bottom:7px;
+}
+.od-search-wrap,.od-select-wrap{position:relative}
+.od-search-wrap i,.od-select-wrap i{
+  position:absolute;top:50%;transform:translateY(-50%);
+  color:#94a3b8;font-size:.74rem;pointer-events:none;
+}
+.od-search-wrap i{
+  inset-inline-end:10px;
+}
+.od-select-wrap i{
+  inset-inline-start:10px;
+  color:#64748b;
+}
+.od-select-wrap::after{
+  content:'\f078';
+  font-family:'Font Awesome 6 Free';
+  font-weight:900;
+  position:absolute;
+  inset-inline-end:10px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:.62rem;
+  color:#94a3b8;
+  pointer-events:none;
+}
+.od-search,.od-select{
+  width:100%;border:1.3px solid var(--border);background:#fff;border-radius:10px;
+  height:38px;
+  padding:0 10px;
+  font-family:inherit;font-size:.77rem;font-weight:700;color:var(--text);
+  transition:border-color .18s,box-shadow .18s;
+}
+.od-search{
+  padding-inline-end:30px;
+}
+.od-select{
+  padding-inline-start:30px;
+  padding-inline-end:28px;
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  cursor:pointer;
+}
+.od-waiter-picker{position:relative;z-index:4}
+.od-wp-trigger{
+  width:100%;display:flex;align-items:center;gap:8px;
+  height:38px;
+  padding:0 10px;border-radius:10px;border:1.3px solid var(--border);
+  background:linear-gradient(180deg,#fff 0%,#f8fafc 100%);
+  font-family:inherit;cursor:pointer;text-align:start;
+  transition:border-color .18s,box-shadow .18s;
+}
+.od-wp-trigger:hover{border-color:rgba(201,162,39,.4);box-shadow:0 4px 14px -10px rgba(15,23,42,.28)}
+.od-wp-trigger:focus{outline:none;border-color:rgba(201,162,39,.58);box-shadow:0 0 0 3px rgba(201,162,39,.16)}
+.od-wp-ic{
+  width:23px;height:23px;flex-shrink:0;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,#e0e7ff,#c7d2fe);color:#312e81;font-size:.7rem;
+}
+.od-wp-text{
+  flex:1;min-width:0;font-size:.77rem;font-weight:800;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.od-wp-chevron{font-size:.62rem;color:#94a3b8;transition:transform .2s var(--ease-out)}
+.od-waiter-picker.open .od-wp-chevron{transform:rotate(-180deg)}
+.od-wp-panel{
+  position:absolute;inset-inline:0;top:calc(100% + 6px);display:none;max-height:260px;
+  background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;
+  box-shadow:0 16px 42px -16px rgba(15,23,42,.3),0 2px 10px -8px rgba(15,23,42,.25);
+}
+.od-waiter-picker.open .od-wp-panel{display:flex;flex-direction:column}
+.od-wp-search{
+  display:flex;align-items:center;gap:8px;padding:9px 10px;border-bottom:1px solid #eef2f7;background:#fafbff;
+}
+.od-wp-search i{font-size:.74rem;color:#94a3b8}
+.od-wp-search input{
+  flex:1;border:none;background:transparent;font-family:inherit;font-size:.74rem;font-weight:700;color:var(--text);
+}
+.od-wp-search input:focus{outline:none}
+.od-wp-list{padding:4px;overflow:auto}
+.od-wp-row{
+  display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:9px;cursor:pointer;
+  font-size:.74rem;font-weight:700;color:var(--text2);
+}
+.od-wp-row:hover{background:#f8fafc}
+.od-wp-row input{margin:0;width:15px;height:15px;accent-color:#4f46e5}
+.od-wp-row:has(input:checked){
+  background:linear-gradient(90deg,#eef2ff,#faf5ff);
+  border:1px solid rgba(99,102,241,.16);
+}
+.od-wp-empty{
+  display:none;padding:14px 10px;text-align:center;color:var(--muted);font-size:.72rem;font-weight:700;
+}
+.od-wp-list.is-empty .od-wp-empty{display:block}
+.od-search:focus,.od-select:focus{
+  outline:none;border-color:rgba(201,162,39,.48);box-shadow:0 0 0 3px rgba(201,162,39,.15);
+}
+.od-report-picker{margin-top:4px}
+.od-report-picker .od-wp-trigger{
+  height:46px;border-radius:12px;padding:0 13px;
+}
+.od-report-picker .od-wp-ic{
+  width:26px;height:26px;border-radius:9px;
+}
+.od-report-picker .od-wp-panel{
+  max-height:280px;z-index:60;
+}
+.od-filters{
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+}
+.od-filter{
+  display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;padding:3px;
+  background:linear-gradient(180deg,#fff,#f8fafc);
+  border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 2px 10px -8px rgba(15,23,42,.12),inset 0 1px 0 #fff;
+}
+.od-filter-lbl{
+  font-size:.64rem;
+  font-weight:900;
+  color:#64748b;
+  background:#f1f5f9;
+  border:1px solid #e2e8f0;
+  border-radius:999px;
+  padding:6px 8px;
+  margin-inline-start:2px;
 }
 .od-tab{
-  border:none;cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:800;
-  padding:10px 16px;border-radius:999px;color:var(--text2);
+  border:none;cursor:pointer;font-family:inherit;font-size:.71rem;font-weight:800;
+  padding:6px 9px;border-radius:999px;color:var(--text2);
   background:transparent;transition:all .2s var(--ease-out);white-space:nowrap;
   display:inline-flex;align-items:center;gap:6px;
 }
@@ -30,8 +203,8 @@
   color:#2d2608;box-shadow:0 4px 14px -3px rgba(201,162,39,.45);
 }
 .od-tab .od-c{
-  min-width:1.35rem;height:22px;padding:0 7px;border-radius:999px;
-  font-size:.65rem;font-weight:900;display:inline-flex;align-items:center;justify-content:center;
+  min-width:1rem;height:16px;padding:0 5px;border-radius:999px;
+  font-size:.58rem;font-weight:900;display:inline-flex;align-items:center;justify-content:center;
   background:rgba(15,23,42,.08);color:var(--text2);
 }
 .od-tab.active .od-c{background:rgba(45,38,8,.12);color:#2d2608}
@@ -80,7 +253,53 @@
 .od-empty i{font-size:2.8rem;display:block;margin-bottom:14px;opacity:.22;color:var(--gold)}
 .od-empty p{font-weight:700;font-size:.95rem;color:var(--text2);margin-bottom:6px}
 .od-empty span{font-size:.8rem;display:block;margin-bottom:16px}
+
+.od-report-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.od-r-card{
+  border:1px solid var(--border);border-radius:12px;padding:9px 11px;
+  background:linear-gradient(180deg,#fff,#f8fafc);
+  min-height:74px;
+  display:flex;
+  flex-direction:row-reverse;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.od-r-card b{
+  display:block;font-size:1.12rem;font-family:'Outfit','Cairo',sans-serif;direction:ltr;
+  color:var(--text);line-height:1.1;flex-shrink:0;
+}
+.od-r-card span{
+  font-size:.8rem;font-weight:800;color:#64748b;line-height:1.3;
+}
+.od-r-card--pri{background:linear-gradient(135deg,#fefce8,#fef3c7);border-color:#fde68a}
+.od-r-card--suc{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#a7f3d0}
+.od-r-card--war{background:linear-gradient(135deg,#fff7ed,#ffedd5);border-color:#fdba74}
+.od-r-card--neu{background:linear-gradient(135deg,#f8fafc,#f1f5f9);border-color:#dbe4ef}
+.od-r-amounts{
+  margin-top:8px;border:1px solid var(--border);border-radius:12px;padding:8px 10px;background:#fff;
+}
+.od-r-row{
+  display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--border);
+  font-size:.78rem;
+}
+.od-r-row:last-child{border-bottom:none}
+.od-r-row strong{font-family:'Outfit','Cairo',sans-serif;direction:ltr;font-size:.9rem}
+.od-r-total{
+  margin-top:8px;border-radius:11px;padding:9px 11px;background:#0f172a;color:#fff;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.od-r-total strong{font-size:1.12rem;font-family:'Outfit','Cairo',sans-serif;direction:ltr}
+.od-r-note{
+  margin-top:7px;font-size:.72rem;color:var(--muted);font-weight:700;
+  display:flex;align-items:center;gap:6px;
+}
+
+@media(max-width:860px){
+  .od-tools-grid{grid-template-columns:1fr}
+}
 @media(max-width:720px){
+  .od-head-t p{display:none}
   .od-row{
     grid-template-columns:46px 1fr auto;
     grid-template-rows:auto auto auto;
@@ -91,8 +310,13 @@
   .od-st{grid-column:2;grid-row:3;align-self:center;margin:0 12px 10px;justify-self:start}
   .od-sum{grid-column:3;grid-row:2;align-self:center;padding:0 10px;font-size:.82rem}
   .od-act{grid-column:3;grid-row:1/4;align-self:stretch;border-inline-start:1px solid var(--border)}
-  .od-filter{width:100%;justify-content:center;border-radius:16px}
-  .od-tab{flex:1;justify-content:center;padding:9px 10px;font-size:.72rem}
+  .od-filters{width:100%}
+  .od-filter{justify-content:flex-start;border-radius:12px}
+  .od-tab{flex:0 0 auto;justify-content:center;padding:6px 9px;font-size:.69rem}
+  .od-head-tools{width:100%;justify-content:space-between}
+  .od-report-grid{grid-template-columns:1fr}
+  .od-wp-panel{max-height:220px}
+  .od-report-picker .od-wp-panel{max-height:220px}
 }
 </style>{% endblock %}
 
@@ -101,10 +325,60 @@
   <div class="od-head">
     <div class="od-head-t">
       <h2>طلبات الشيفت</h2>
-      <p>فلترة حسب الحالة (الكل/انتظار/مكتمل/ملغي) ونوع الطلب (الكل/داخلي/ديليفري)</p>
+      <p>سيرش برقم الترابيزة + فلترة بالويتر والحالة والنوع بشكل مباشر وسريع</p>
+    </div>
+    <div class="od-head-tools">
+      <span class="od-stats-pill od-chip" id="odVisibleCount">
+        <span class="od-chip-ic"><i class="fas fa-layer-group"></i></span>
+        <span class="od-chip-txt">المعروض: {{ status_stats.total }} طلب</span>
+      </span>
+      <button type="button" class="od-report-btn od-chip" id="odReportBtn">
+        <span class="od-chip-ic"><i class="fas fa-chart-column"></i></span>
+        <span class="od-chip-txt">التقارير</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="od-tools">
+    <div class="od-tools-grid">
+      <div class="od-search-wrap">
+        <i class="fas fa-magnifying-glass"></i>
+        <input id="odTableSearch" class="od-search" type="search" placeholder="ابحث برقم الطاولة... مثال: 12">
+      </div>
+      <div class="od-waiter-picker" id="odWaiterPicker">
+        <button type="button" class="od-wp-trigger" id="odWaiterTrigger" aria-haspopup="listbox" aria-expanded="false">
+          <span class="od-wp-ic"><i class="fas fa-user-tie"></i></span>
+          <span class="od-wp-text" id="odWaiterLabel">كل الويتريه</span>
+          <i class="fas fa-chevron-down od-wp-chevron"></i>
+        </button>
+        <div class="od-wp-panel" id="odWaiterPanel" role="listbox">
+          <div class="od-wp-search">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="search" id="odWaiterSearch" placeholder="بحث باسم الويتر..." autocomplete="off">
+          </div>
+          <div class="od-wp-list" id="odWaiterList">
+            <label class="od-wp-row" data-search="كل الويتريه all">
+              <input type="radio" name="odWaiterPick" value="all" checked>
+              <span>كل الويتريه</span>
+            </label>
+            {% for w in waiters %}
+            <label class="od-wp-row" data-search="{{ w.name|lower }} {{ w.name }}">
+              <input type="radio" name="odWaiterPick" value="{{ w.id }}">
+              <span>{{ w.name }}</span>
+            </label>
+            {% endfor %}
+            <label class="od-wp-row" data-search="بدون ويتر">
+              <input type="radio" name="odWaiterPick" value="none">
+              <span>بدون ويتر</span>
+            </label>
+            <div class="od-wp-empty">لا توجد نتائج مطابقة</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="od-filters">
       <div class="od-filter" role="tablist" aria-label="تصفية حسب الحالة">
+        <span class="od-filter-lbl">الحالة</span>
         <button type="button" class="od-tab active" data-status-filter="all" role="tab" aria-selected="true">
           الكل <span class="od-c">{{ status_stats.total }}</span>
         </button>
@@ -119,6 +393,7 @@
         </button>
       </div>
       <div class="od-filter" role="tablist" aria-label="تصفية حسب النوع">
+        <span class="od-filter-lbl">النوع</span>
         <button type="button" class="od-tab active" data-type-filter="all" role="tab" aria-selected="true">
           الكل <span class="od-c">{{ order_stats.total }}</span>
         </button>
@@ -135,7 +410,15 @@
   {% if orders %}
   <div class="od-list" id="odList">
     {% for o in orders %}
-    <div class="od-row" data-order-type="{{ o.order_type }}" data-status-group="{% if o.status == 'completed' %}completed{% elif o.status == 'open' or o.status == 'printed' %}waiting{% elif o.status == 'cancelled' %}cancelled{% else %}other{% endif %}" onclick="location.href='{% url 'cashier_order_detail' o.id %}'">
+    <div
+      class="od-row"
+      data-order-type="{{ o.order_type }}"
+      data-status-group="{% if o.status == 'completed' %}completed{% elif o.status == 'open' or o.status == 'printed' %}waiting{% elif o.status == 'cancelled' %}cancelled{% else %}other{% endif %}"
+      data-waiter-id="{{ o.waiter_id|default_if_none:'' }}"
+      data-table-label="{% if o.order_type == 'dine_in' %}{{ o.tables_label|default_if_none:'' }}{% endif %}"
+      data-total="{{ o.total|floatformat:2 }}"
+      onclick="location.href='{% url 'cashier_order_detail' o.id %}'"
+    >
       <div class="od-id"><span>#</span>{{ o.display_number }}</div>
       <div class="od-body">
         <div class="od-title">
@@ -148,6 +431,7 @@
         <div class="od-meta">
           <span><i class="fas fa-clock" style="opacity:.65"></i> {{ o.created_at|time12 }}</span>
           <span><i class="fas fa-box" style="opacity:.65"></i> {{ o.total_items }} صنف</span>
+          {% if o.waiter %}<span><i class="fas fa-user-tie" style="opacity:.65"></i> {{ o.waiter }}</span>{% endif %}
         </div>
       </div>
       {% if o.order_type == 'delivery' %}
@@ -170,8 +454,8 @@
   </div>
   <div class="od-empty" id="odEmptyFilter" style="display:none">
     <i class="fas fa-filter-circle-xmark"></i>
-    <p>مفيش طلبات بهذا النوع</p>
-    <span>جرّب تغيير فلتر الحالة أو النوع</span>
+    <p>مفيش طلبات مطابقة للفلاتر الحالية</p>
+    <span>غيّر البحث أو الحالة أو الويتر لعرض نتائج</span>
     <button type="button" class="btn btn-pri btn-sm" id="odResetFilters">عرض الكل</button>
   </div>
   {% else %}
@@ -183,63 +467,379 @@
   </div>
   {% endif %}
 </div>
+
+<div class="overlay" id="odReportModal">
+  <div class="modal" style="width:720px;max-width:96vw">
+    <div class="modal-hdr">
+      <h3><i class="fas fa-chart-column" style="color:var(--gold-dim)"></i> تقارير الويتريه</h3>
+      <button class="modal-close" type="button" id="odReportClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label for="odReportWaiterTrigger">اختيار الويتر</label>
+        <div class="od-waiter-picker od-report-picker" id="odReportWaiterPicker">
+          <button type="button" class="od-wp-trigger" id="odReportWaiterTrigger" aria-haspopup="listbox" aria-expanded="false">
+            <span class="od-wp-ic"><i class="fas fa-user-tie"></i></span>
+            <span class="od-wp-text" id="odReportWaiterLabel">{% if waiters %}{{ waiters.0.name }}{% else %}بدون ويتر{% endif %}</span>
+            <i class="fas fa-chevron-down od-wp-chevron"></i>
+          </button>
+          <div class="od-wp-panel" id="odReportWaiterPanel" role="listbox">
+            <div class="od-wp-search">
+              <i class="fas fa-magnifying-glass"></i>
+              <input type="search" id="odReportWaiterSearch" placeholder="بحث باسم الويتر..." autocomplete="off">
+            </div>
+            <div class="od-wp-list" id="odReportWaiterList">
+              {% for w in waiters %}
+              <label class="od-wp-row" data-search="{{ w.name|lower }} {{ w.name }}">
+                <input type="radio" name="odReportWaiterPick" value="{{ w.id }}" {% if forloop.first %}checked{% endif %}>
+                <span>{{ w.name }}</span>
+              </label>
+              {% endfor %}
+              <label class="od-wp-row" data-search="بدون ويتر">
+                <input type="radio" name="odReportWaiterPick" value="none" {% if not waiters %}checked{% endif %}>
+                <span>بدون ويتر</span>
+              </label>
+              <div class="od-wp-empty">لا توجد نتائج مطابقة</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="od-report-grid">
+        <div class="od-r-card od-r-card--pri"><b id="rTotalOrders">0</b><span>إجمالي الأوردرات</span></div>
+        <div class="od-r-card od-r-card--war"><b id="rWaitingOrders">0</b><span>عدد أوردرات الانتظار</span></div>
+        <div class="od-r-card od-r-card--suc"><b id="rCompletedOrders">0</b><span>عدد الأوردرات المكتملة</span></div>
+        <div class="od-r-card od-r-card--neu"><b id="rCancelledOrders">0</b><span>عدد الأوردرات الملغية</span></div>
+      </div>
+      <div class="od-r-amounts">
+        <div class="od-r-row"><span>قيمة الانتظار</span><strong id="rWaitingAmount">0.00 ج</strong></div>
+        <div class="od-r-row"><span>قيمة المكتمل</span><strong id="rCompletedAmount">0.00 ج</strong></div>
+        <div class="od-r-row"><span>قيمة الملغي</span><strong id="rCancelledAmount">0.00 ج</strong></div>
+        <div class="od-r-total"><span>الإجمالي الكلي</span><strong id="rTotalAmount">0.00 ج</strong></div>
+      </div>
+      <p class="od-r-note"><i class="fas fa-circle-info"></i> التقرير بيتحدّث تلقائيًا بمجرد اختيار أي ويتر.</p>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-pri" type="button" style="width:100%;justify-content:center" id="odReportDone">تم</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}<script>
 (function(){
   const list=document.getElementById('odList');
-  if(!list)return;
-  const rows=[...list.querySelectorAll('.od-row')];
   const emptyF=document.getElementById('odEmptyFilter');
   const statusTabs=[...document.querySelectorAll('.od-tab[data-status-filter]')];
   const typeTabs=[...document.querySelectorAll('.od-tab[data-type-filter]')];
   const resetBtn=document.getElementById('odResetFilters');
+  const tableSearch=document.getElementById('odTableSearch');
+  const waiterPicker=document.getElementById('odWaiterPicker');
+  const waiterTrigger=document.getElementById('odWaiterTrigger');
+  const waiterPanel=document.getElementById('odWaiterPanel');
+  const waiterSearch=document.getElementById('odWaiterSearch');
+  const waiterList=document.getElementById('odWaiterList');
+  const waiterLabel=document.getElementById('odWaiterLabel');
+  const visibleCount=document.getElementById('odVisibleCount');
+  const reportBtn=document.getElementById('odReportBtn');
+  const reportModal=document.getElementById('odReportModal');
+  const reportClose=document.getElementById('odReportClose');
+  const reportDone=document.getElementById('odReportDone');
+  const reportWaiterPicker=document.getElementById('odReportWaiterPicker');
+  const reportWaiterTrigger=document.getElementById('odReportWaiterTrigger');
+  const reportWaiterPanel=document.getElementById('odReportWaiterPanel');
+  const reportWaiterSearch=document.getElementById('odReportWaiterSearch');
+  const reportWaiterList=document.getElementById('odReportWaiterList');
+  const reportWaiterLabel=document.getElementById('odReportWaiterLabel');
+
+  const rows=list?[...list.querySelectorAll('.od-row')]:[];
   let statusFilter='all';
   let typeFilter='all';
-  function apply(){
-    let n=0;
-    rows.forEach(r=>{
-      const t=r.getAttribute('data-order-type');
-      const s=r.getAttribute('data-status-group');
+  let waiterValue='all';
+  let tableQuery='';
+
+  function normalizeDigits(v){
+    const map={'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+    return String(v||'').replace(/[٠-٩]/g,m=>map[m]||m).trim().toLowerCase();
+  }
+  function parseAmount(v){
+    const n=parseFloat(String(v||'0').replace(',', '.'));
+    return Number.isFinite(n)?n:0;
+  }
+  function money(v){ return `${parseAmount(v).toFixed(2)} ج`; }
+  function selectedWaiterRadio(){
+    return waiterList?waiterList.querySelector('input[name="odWaiterPick"]:checked'):null;
+  }
+  function updateWaiterSummary(){
+    const el=selectedWaiterRadio();
+    const row=el?el.closest('.od-wp-row'):null;
+    const label=row?row.querySelector('span'):null;
+    if(waiterLabel){
+      waiterLabel.textContent=label?label.textContent.trim():'كل الويتريه';
+    }
+  }
+  function closeWaiterPicker(){
+    if(waiterPicker) waiterPicker.classList.remove('open');
+    if(waiterTrigger) waiterTrigger.setAttribute('aria-expanded','false');
+  }
+  function openWaiterPicker(){
+    if(!waiterPicker) return;
+    waiterPicker.classList.add('open');
+    if(waiterTrigger) waiterTrigger.setAttribute('aria-expanded','true');
+    filterWaiterOptions();
+    setTimeout(()=>{
+      if(waiterSearch){ waiterSearch.focus(); try{waiterSearch.select();}catch(_){ /* noop */ } }
+    },30);
+  }
+  function filterWaiterOptions(){
+    if(!waiterList) return;
+    const q=normalizeDigits(waiterSearch?waiterSearch.value:'');
+    const rows=[...waiterList.querySelectorAll('.od-wp-row')];
+    let shown=0;
+    rows.forEach((row)=>{
+      const hay=normalizeDigits(row.getAttribute('data-search')||'');
+      const ok=!q||hay.includes(q);
+      row.style.display=ok?'':'none';
+      if(ok) shown+=1;
+    });
+    waiterList.classList.toggle('is-empty', shown===0);
+  }
+  function setWaiterFilter(v){
+    waiterValue=v||'all';
+    if(waiterList){
+      const target=waiterList.querySelector(`input[name="odWaiterPick"][value="${waiterValue}"]`);
+      if(target){ target.checked=true; }
+    }
+    updateWaiterSummary();
+    applyFilters();
+  }
+  function selectedReportWaiterRadio(){
+    return reportWaiterList?reportWaiterList.querySelector('input[name="odReportWaiterPick"]:checked'):null;
+  }
+  function getReportWaiterValue(){
+    const el=selectedReportWaiterRadio();
+    return el?(el.value||'none'):'none';
+  }
+  function updateReportWaiterSummary(){
+    const el=selectedReportWaiterRadio();
+    const row=el?el.closest('.od-wp-row'):null;
+    const label=row?row.querySelector('span'):null;
+    if(reportWaiterLabel){
+      reportWaiterLabel.textContent=label?label.textContent.trim():'بدون ويتر';
+    }
+  }
+  function filterReportWaiters(){
+    if(!reportWaiterList) return;
+    const q=normalizeDigits(reportWaiterSearch?reportWaiterSearch.value:'');
+    const rows=[...reportWaiterList.querySelectorAll('.od-wp-row')];
+    let shown=0;
+    rows.forEach((row)=>{
+      const hay=normalizeDigits(row.getAttribute('data-search')||'');
+      const ok=!q||hay.includes(q);
+      row.style.display=ok?'':'none';
+      if(ok) shown+=1;
+    });
+    reportWaiterList.classList.toggle('is-empty', shown===0);
+  }
+  function closeReportWaiterPicker(){
+    if(reportWaiterPicker) reportWaiterPicker.classList.remove('open');
+    if(reportWaiterTrigger) reportWaiterTrigger.setAttribute('aria-expanded','false');
+  }
+  function openReportWaiterPicker(){
+    if(!reportWaiterPicker) return;
+    reportWaiterPicker.classList.add('open');
+    if(reportWaiterTrigger) reportWaiterTrigger.setAttribute('aria-expanded','true');
+    filterReportWaiters();
+    setTimeout(()=>{
+      if(reportWaiterSearch){ reportWaiterSearch.focus(); try{reportWaiterSearch.select();}catch(_){ /* noop */ } }
+    },30);
+  }
+
+  function applyFilters(){
+    if(!list) return;
+    let count=0;
+    rows.forEach((r)=>{
+      const t=r.getAttribute('data-order-type')||'';
+      const s=r.getAttribute('data-status-group')||'';
+      const w=r.getAttribute('data-waiter-id')||'';
+      const tableLabel=normalizeDigits(r.getAttribute('data-table-label')||'');
       const typeOk=typeFilter==='all'||t===typeFilter;
       const statusOk=statusFilter==='all'||s===statusFilter;
-      const show=typeOk&&statusOk;
+      const waiterOk=waiterValue==='all'||(waiterValue==='none'?w==='':w===waiterValue);
+      const tableOk=!tableQuery||(tableLabel&&tableLabel.includes(tableQuery));
+      const show=typeOk&&statusOk&&waiterOk&&tableOk;
       r.style.display=show?'':'none';
-      if(show)n++;
+      if(show) count+=1;
     });
-    const filtered=statusFilter!=='all'||typeFilter!=='all';
-    if(emptyF)emptyF.style.display=(filtered&&n===0)?'block':'none';
-    list.style.display=n===0&&filtered?'none':'flex';
+    const filtered=statusFilter!=='all'||typeFilter!=='all'||waiterValue!=='all'||!!tableQuery;
+    if(emptyF) emptyF.style.display=(filtered&&count===0)?'block':'none';
+    list.style.display=(count===0&&filtered)?'none':'flex';
+    if(visibleCount){
+      const t=visibleCount.querySelector('.od-chip-txt');
+      if(t) t.textContent=`المعروض: ${count} طلب`;
+      else visibleCount.textContent=`المعروض: ${count} طلب`;
+    }
   }
-  statusTabs.forEach(tab=>{
+
+  function setActiveTab(group, clicked){
+    group.forEach((x)=>{
+      const on=x===clicked;
+      x.classList.toggle('active',on);
+      x.setAttribute('aria-selected',on?'true':'false');
+    });
+  }
+
+  statusTabs.forEach((tab)=>{
     tab.addEventListener('click',function(){
       statusFilter=this.getAttribute('data-status-filter')||'all';
-      statusTabs.forEach(x=>{
-        const on=x===this;
-        x.classList.toggle('active',on);
-        x.setAttribute('aria-selected',on?'true':'false');
-      });
-      apply();
+      setActiveTab(statusTabs,this);
+      applyFilters();
     });
   });
-  typeTabs.forEach(tab=>{
+  typeTabs.forEach((tab)=>{
     tab.addEventListener('click',function(){
       typeFilter=this.getAttribute('data-type-filter')||'all';
-      typeTabs.forEach(x=>{
-        const on=x===this;
-        x.classList.toggle('active',on);
-        x.setAttribute('aria-selected',on?'true':'false');
-      });
-      apply();
+      setActiveTab(typeTabs,this);
+      applyFilters();
     });
   });
-  if(resetBtn){
-    resetBtn.addEventListener('click',function(){
-      const sa=statusTabs.find(x=>x.getAttribute('data-status-filter')==='all');
-      const ta=typeTabs.find(x=>x.getAttribute('data-type-filter')==='all');
-      if(sa)sa.click();
-      if(ta)ta.click();
+  if(tableSearch){
+    tableSearch.addEventListener('input',function(){
+      tableQuery=normalizeDigits(this.value||'');
+      applyFilters();
     });
   }
+  if(waiterTrigger){
+    waiterTrigger.addEventListener('click',function(e){
+      e.stopPropagation();
+      if(waiterPicker&&waiterPicker.classList.contains('open')) closeWaiterPicker();
+      else openWaiterPicker();
+    });
+  }
+  if(waiterPanel){
+    waiterPanel.addEventListener('click',function(e){ e.stopPropagation(); });
+  }
+  if(waiterSearch){
+    waiterSearch.addEventListener('input',filterWaiterOptions);
+  }
+  if(waiterList){
+    waiterList.addEventListener('change',function(e){
+      const t=e.target;
+      if(t&&t.name==='odWaiterPick'){
+        setWaiterFilter(t.value||'all');
+        setTimeout(closeWaiterPicker,90);
+      }
+    });
+  }
+  if(resetBtn){
+    resetBtn.addEventListener('click',function(){
+      statusFilter='all'; typeFilter='all'; waiterValue='all'; tableQuery='';
+      const sa=statusTabs.find(x=>x.getAttribute('data-status-filter')==='all');
+      const ta=typeTabs.find(x=>x.getAttribute('data-type-filter')==='all');
+      if(sa) setActiveTab(statusTabs,sa);
+      if(ta) setActiveTab(typeTabs,ta);
+      if(waiterSearch) waiterSearch.value='';
+      if(waiterList){
+        const allWaiters=waiterList.querySelector('input[name="odWaiterPick"][value="all"]');
+        if(allWaiters) allWaiters.checked=true;
+      }
+      updateWaiterSummary();
+      filterWaiterOptions();
+      if(tableSearch) tableSearch.value='';
+      applyFilters();
+    });
+  }
+
+  function waiterRows(waiterId){
+    if(waiterId==='none'){
+      return rows.filter(r=>(r.getAttribute('data-waiter-id')||'')==='');
+    }
+    return rows.filter(r=>(r.getAttribute('data-waiter-id')||'')===waiterId);
+  }
+
+  function renderReport(waiterId){
+    const wr=waiterRows(waiterId);
+    let total=0, waiting=0, completed=0, cancelled=0;
+    let waitingAmount=0, completedAmount=0, cancelledAmount=0;
+    wr.forEach((r)=>{
+      const s=r.getAttribute('data-status-group')||'';
+      const amount=parseAmount(r.getAttribute('data-total'));
+      total+=1;
+      if(s==='waiting'){ waiting+=1; waitingAmount+=amount; return; }
+      if(s==='completed'){ completed+=1; completedAmount+=amount; return; }
+      if(s==='cancelled'){ cancelled+=1; cancelledAmount+=amount; return; }
+    });
+    document.getElementById('rTotalOrders').textContent=String(total);
+    document.getElementById('rWaitingOrders').textContent=String(waiting);
+    document.getElementById('rCompletedOrders').textContent=String(completed);
+    document.getElementById('rCancelledOrders').textContent=String(cancelled);
+    document.getElementById('rWaitingAmount').textContent=money(waitingAmount);
+    document.getElementById('rCompletedAmount').textContent=money(completedAmount);
+    document.getElementById('rCancelledAmount').textContent=money(cancelledAmount);
+    document.getElementById('rTotalAmount').textContent=money(waitingAmount+completedAmount+cancelledAmount);
+  }
+
+  function openReportModal(){
+    if(!reportModal || !reportWaiterList){ return; }
+    updateReportWaiterSummary();
+    filterReportWaiters();
+    renderReport(getReportWaiterValue());
+    reportModal.classList.add('open');
+  }
+  function closeReportModal(){
+    closeReportWaiterPicker();
+    if(reportModal) reportModal.classList.remove('open');
+  }
+
+  if(reportWaiterTrigger){
+    reportWaiterTrigger.addEventListener('click',function(e){
+      e.stopPropagation();
+      if(reportWaiterPicker&&reportWaiterPicker.classList.contains('open')) closeReportWaiterPicker();
+      else openReportWaiterPicker();
+    });
+  }
+  if(reportWaiterPanel){
+    reportWaiterPanel.addEventListener('click',function(e){ e.stopPropagation(); });
+  }
+  if(reportWaiterSearch){
+    reportWaiterSearch.addEventListener('input',filterReportWaiters);
+  }
+  if(reportWaiterList){
+    reportWaiterList.addEventListener('change',function(e){
+      const t=e.target;
+      if(t&&t.name==='odReportWaiterPick'){
+        updateReportWaiterSummary();
+        renderReport(t.value||'none');
+        setTimeout(closeReportWaiterPicker,90);
+      }
+    });
+  }
+  if(reportBtn){
+    reportBtn.addEventListener('click',function(){
+      requireAdmin('عرض التقارير يحتاج موافقة المدير', function(){
+        openReportModal();
+      });
+    });
+  }
+  if(reportClose) reportClose.addEventListener('click',closeReportModal);
+  if(reportDone) reportDone.addEventListener('click',closeReportModal);
+  if(reportModal){
+    reportModal.addEventListener('click',function(e){
+      if(e.target===reportModal) closeReportModal();
+    });
+  }
+  document.addEventListener('click',closeWaiterPicker);
+  document.addEventListener('click',closeReportWaiterPicker);
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){
+      closeWaiterPicker();
+      closeReportWaiterPicker();
+    }
+  });
+
+  updateWaiterSummary();
+  filterWaiterOptions();
+  updateReportWaiterSummary();
+  filterReportWaiters();
+  applyFilters();
 })();
 </script>{% endblock %}
