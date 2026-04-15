@@ -1023,21 +1023,87 @@ def remove_items_batch(request, order_id):
 @require_POST
 def complete_order(request, order_id):
     try:
-        order = get_object_or_404(Order, id=order_id)
+        order = get_object_or_404(Order, id=order_id, cashier=request.user)
         if order.status == 'completed':
             return JsonResponse({'success': False, 'error': 'الطلب مكتمل بالفعل'})
+        if order.status == 'cancelled':
+            return JsonResponse({'success': False, 'error': 'لا يمكن إكمال طلب ملغي'})
 
-        order.status       = 'completed'
+        order.status = 'completed'
         order.completed_at = timezone.now()
-        order.save()
-
+        order.save(update_fields=['status', 'completed_at'])
         _log_activity(order, 'completed', 'تم إنهاء الطلب وفتح الدرج', request.user)
-
         _open_drawer()
         return JsonResponse({'success': True})
     except Exception as e:
         log.error(f'complete_order: {e}')
         return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_POST
+def complete_orders_batch(request):
+    """إكمال عدة طلبات دفعة واحدة من شاشة طلبات الشيفت."""
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        data = {}
+
+    raw_ids = data.get('order_ids') or []
+    if not isinstance(raw_ids, list):
+        return JsonResponse({'success': False, 'error': 'صيغة الطلب غير صحيحة'})
+
+    order_ids = []
+    for raw in raw_ids:
+        try:
+            oid = int(raw)
+        except (TypeError, ValueError):
+            continue
+        if oid not in order_ids:
+            order_ids.append(oid)
+
+    if not order_ids:
+        return JsonResponse({'success': False, 'error': 'اختر طلبًا واحدًا على الأقل'})
+
+    # حماية إضافية: حد أقصى في الطلب الواحد.
+    if len(order_ids) > 120:
+        return JsonResponse({'success': False, 'error': 'عدد كبير جدًا من الطلبات دفعة واحدة'})
+
+    qs = Order.objects.filter(id__in=order_ids, cashier=request.user)
+    by_id = {o.id: o for o in qs}
+
+    completed_ids = []
+    failed = []
+    now = timezone.now()
+
+    with transaction.atomic():
+        for oid in order_ids:
+            order = by_id.get(oid)
+            if not order:
+                failed.append({'id': oid, 'error': 'الطلب غير موجود أو غير مصرح'})
+                continue
+            if order.status == 'completed':
+                failed.append({'id': oid, 'error': 'الطلب مكتمل بالفعل'})
+                continue
+            if order.status == 'cancelled':
+                failed.append({'id': oid, 'error': 'لا يمكن إكمال طلب ملغي'})
+                continue
+
+            order.status = 'completed'
+            order.completed_at = now
+            order.save(update_fields=['status', 'completed_at'])
+            _log_activity(order, 'completed', 'تم إنهاء الطلب (دفعة جماعية)', request.user)
+            completed_ids.append(oid)
+
+    if completed_ids:
+        _open_drawer()
+
+    return JsonResponse({
+        'success': bool(completed_ids),
+        'completed_ids': completed_ids,
+        'completed_count': len(completed_ids),
+        'failed': failed,
+    })
 
 
 # ══════════════════════════════════════════════════════════════════════════

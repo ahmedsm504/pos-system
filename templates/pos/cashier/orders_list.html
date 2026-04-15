@@ -12,6 +12,21 @@
 .od-head-t h2{margin:0;font-size:1.12rem;font-weight:900;letter-spacing:-.02em;color:var(--text)}
 .od-head-t p{margin:3px 0 0;font-size:.74rem;color:var(--muted);font-weight:600}
 .od-head-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.od-bulk-btn{
+  box-sizing:border-box;
+  min-height:42px;height:42px;padding:0 14px;border-radius:16px;border:1px solid var(--border);
+  background:linear-gradient(180deg,#fff,#f8fafc);color:var(--text2);font-family:inherit;
+  font-size:.8rem;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+  transition:all .18s var(--ease-out);
+}
+.od-bulk-btn:hover{border-color:rgba(201,162,39,.45);color:var(--gold-dim);transform:translateY(-1px)}
+.od-bulk-btn:disabled{opacity:.52;cursor:not-allowed;transform:none}
+.od-bulk-btn--suc{
+  border-color:rgba(16,185,129,.35);
+  background:linear-gradient(135deg,#ecfdf5,#d1fae5);
+  color:#065f46;
+}
+.od-bulk-btn--suc:hover{border-color:rgba(16,185,129,.55);color:#065f46}
 .od-chip{
   height:42px;
   border-radius:16px;
@@ -211,7 +226,7 @@
 
 .od-list{display:flex;flex-direction:column;gap:10px}
 .od-row{
-  display:grid;grid-template-columns:54px 1fr auto auto auto 44px;align-items:stretch;
+  display:grid;grid-template-columns:54px 1fr auto auto auto 124px;align-items:stretch;
   background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;
   cursor:pointer;transition:box-shadow .22s var(--ease-out),border-color .2s,transform .2s var(--ease-out);
   box-shadow:0 1px 3px rgba(15,23,42,.04),0 4px 20px -8px rgba(15,23,42,.08);
@@ -226,8 +241,15 @@
   border-inline-end:1px solid var(--border);font-weight:900;font-size:.88rem;color:var(--gold-dim);
 }
 .od-id span{font-size:.58rem;color:var(--muted);font-weight:800}
-.od-body{padding:13px 14px;min-width:0}
-.od-title{font-weight:800;font-size:.88rem;color:var(--text);margin-bottom:5px;line-height:1.35}
+.od-body{padding:12px 14px;min-width:0}
+.od-kpis{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:7px}
+.od-kpi{
+  display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;
+  font-size:.72rem;font-weight:800;border:1px solid transparent;white-space:nowrap;max-width:100%;
+}
+.od-kpi--tbl{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
+.od-kpi--wt{background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6}
+.od-kpi--del{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
 .od-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:.72rem;color:var(--muted);font-weight:600}
 .od-meta span{display:inline-flex;align-items:center;gap:5px}
 .od-type{
@@ -242,10 +264,20 @@
   font-family:'Outfit','Cairo',sans-serif;direction:ltr;text-align:left;
 }
 .od-act{
-  display:flex;align-items:center;justify-content:center;padding:0 10px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 12px;box-sizing:border-box;
   border-inline-start:1px solid var(--border);background:#fafbff;
+  flex-wrap:nowrap;min-width:0;
 }
-.od-act .btn{border-radius:10px}
+.od-act .btn{border-radius:10px;flex-shrink:0}
+.od-pick{
+  width:17px;height:17px;margin:0;accent-color:#10b981;cursor:pointer;flex-shrink:0;
+  align-self:center;
+}
+.od-complete-btn{
+  min-width:58px;justify-content:center;padding:6px 10px!important;font-size:.73rem!important;
+}
+.od-complete-btn[disabled]{opacity:.45;cursor:not-allowed}
 .od-empty{
   text-align:center;padding:56px 24px;color:var(--muted);border-radius:20px;
   border:2px dashed var(--border);background:linear-gradient(180deg,#fff,#f8fafc);
@@ -309,11 +341,14 @@
   .od-type{grid-column:2;grid-row:2;align-self:center;margin-inline-start:12px;margin-bottom:4px;justify-self:start}
   .od-st{grid-column:2;grid-row:3;align-self:center;margin:0 12px 10px;justify-self:start}
   .od-sum{grid-column:3;grid-row:2;align-self:center;padding:0 10px;font-size:.82rem}
-  .od-act{grid-column:3;grid-row:1/4;align-self:stretch;border-inline-start:1px solid var(--border)}
+  .od-act{
+    grid-column:3;grid-row:1/4;align-self:stretch;border-inline-start:1px solid var(--border);
+    flex-direction:column;gap:4px;padding:6px;
+  }
   .od-filters{width:100%}
   .od-filter{justify-content:flex-start;border-radius:12px}
   .od-tab{flex:0 0 auto;justify-content:center;padding:6px 9px;font-size:.69rem}
-  .od-head-tools{width:100%;justify-content:space-between}
+  .od-head-tools{width:100%;justify-content:flex-start}
   .od-report-grid{grid-template-columns:1fr}
   .od-wp-panel{max-height:220px}
   .od-report-picker .od-wp-panel{max-height:220px}
@@ -332,6 +367,12 @@
         <span class="od-chip-ic"><i class="fas fa-layer-group"></i></span>
         <span class="od-chip-txt">المعروض: {{ status_stats.total }} طلب</span>
       </span>
+      <button type="button" class="od-bulk-btn" id="odSelectAllBtn">
+        <i class="fas fa-check-double"></i> تحديد الكل
+      </button>
+      <button type="button" class="od-bulk-btn od-bulk-btn--suc" id="odBulkCompleteBtn" disabled>
+        <i class="fas fa-circle-check"></i> إكمال المحدد (0)
+      </button>
       <button type="button" class="od-report-btn od-chip" id="odReportBtn">
         <span class="od-chip-ic"><i class="fas fa-chart-column"></i></span>
         <span class="od-chip-txt">التقارير</span>
@@ -412,6 +453,8 @@
     {% for o in orders %}
     <div
       class="od-row"
+      data-order-id="{{ o.id }}"
+      data-can-complete="{% if o.status == 'open' or o.status == 'printed' %}1{% else %}0{% endif %}"
       data-order-type="{{ o.order_type }}"
       data-status-group="{% if o.status == 'completed' %}completed{% elif o.status == 'open' or o.status == 'printed' %}waiting{% elif o.status == 'cancelled' %}cancelled{% else %}other{% endif %}"
       data-waiter-id="{{ o.waiter_id|default_if_none:'' }}"
@@ -421,17 +464,18 @@
     >
       <div class="od-id"><span>#</span>{{ o.display_number }}</div>
       <div class="od-body">
-        <div class="od-title">
+        <div class="od-kpis">
           {% if o.order_type == 'delivery' %}
-            🛵 {{ o.customer_name|default:"ديليفري" }}
+          <span class="od-kpi od-kpi--del"><i class="fas fa-motorcycle" style="opacity:.85;font-size:.68rem"></i> {{ o.customer_name|default:"ديليفري" }}</span>
+          {% if o.waiter %}<span class="od-kpi od-kpi--wt"><i class="fas fa-user-tie" style="opacity:.85;font-size:.68rem"></i> {{ o.waiter }}</span>{% endif %}
           {% else %}
-            🪑 {{ o.tables_label }}{% if o.waiter %} · {{ o.waiter }}{% endif %}
+          <span class="od-kpi od-kpi--tbl"><i class="fas fa-chair" style="opacity:.85;font-size:.68rem"></i> طاولة {{ o.tables_label|default:"—" }}</span>
+          {% if o.waiter %}<span class="od-kpi od-kpi--wt"><i class="fas fa-user-tie" style="opacity:.85;font-size:.68rem"></i> {{ o.waiter }}</span>{% endif %}
           {% endif %}
         </div>
         <div class="od-meta">
           <span><i class="fas fa-clock" style="opacity:.65"></i> {{ o.created_at|time12 }}</span>
           <span><i class="fas fa-box" style="opacity:.65"></i> {{ o.total_items }} صنف</span>
-          {% if o.waiter %}<span><i class="fas fa-user-tie" style="opacity:.65"></i> {{ o.waiter }}</span>{% endif %}
         </div>
       </div>
       {% if o.order_type == 'delivery' %}
@@ -447,7 +491,15 @@
       </div>
       <div class="od-sum">{{ o.total|floatformat:2 }} ج</div>
       <div class="od-act" onclick="event.stopPropagation()">
-        <a href="{% url 'cashier_order_detail' o.id %}" class="btn btn-out btn-sm"><i class="fas fa-eye"></i></a>
+        {% if o.status == 'open' or o.status == 'printed' %}
+        <input type="checkbox" class="od-pick" title="تحديد الطلب" aria-label="تحديد الطلب">
+        <button type="button" class="btn btn-suc btn-sm od-complete-btn od-complete-one" data-order-id="{{ o.id }}" title="إكمال الطلب">
+          تم
+        </button>
+        {% else %}
+        <input type="checkbox" class="od-pick" disabled aria-label="لا يمكن تحديد هذا الطلب">
+        <button type="button" class="btn btn-suc btn-sm od-complete-btn" disabled>تم</button>
+        {% endif %}
       </div>
     </div>
     {% endfor %}
@@ -550,6 +602,9 @@
   const reportWaiterSearch=document.getElementById('odReportWaiterSearch');
   const reportWaiterList=document.getElementById('odReportWaiterList');
   const reportWaiterLabel=document.getElementById('odReportWaiterLabel');
+  const selectAllBtn=document.getElementById('odSelectAllBtn');
+  const bulkCompleteBtn=document.getElementById('odBulkCompleteBtn');
+  const oneCompleteBtns=[...document.querySelectorAll('.od-complete-one')];
 
   const rows=list?[...list.querySelectorAll('.od-row')]:[];
   let statusFilter='all';
@@ -653,6 +708,43 @@
       if(reportWaiterSearch){ reportWaiterSearch.focus(); try{reportWaiterSearch.select();}catch(_){ /* noop */ } }
     },30);
   }
+  function rowCheckbox(row){
+    return row?row.querySelector('.od-pick'):null;
+  }
+  function isRowCompletable(row){
+    return (row.getAttribute('data-can-complete')||'0')==='1';
+  }
+  function getCheckedRows(){
+    return rows.filter((row)=>{
+      const cb=rowCheckbox(row);
+      return cb && !cb.disabled && cb.checked;
+    });
+  }
+  function updateBulkUi(){
+    const checked=getCheckedRows().length;
+    if(bulkCompleteBtn){
+      bulkCompleteBtn.disabled=checked===0;
+      bulkCompleteBtn.innerHTML=`<i class="fas fa-circle-check"></i> إكمال المحدد (${checked})`;
+    }
+    if(selectAllBtn){
+      const visibleCompletable=rows.filter((row)=>isRowCompletable(row)&&row.style.display!=='none');
+      const allVisibleChecked=visibleCompletable.length>0&&visibleCompletable.every((row)=>{
+        const cb=rowCheckbox(row);
+        return cb && cb.checked;
+      });
+      selectAllBtn.innerHTML=allVisibleChecked
+        ? '<i class="fas fa-square-check"></i> إلغاء تحديد الكل'
+        : '<i class="fas fa-check-double"></i> تحديد الكل';
+    }
+  }
+  async function completeIds(ids){
+    const r=await fetch('/api/orders/complete-batch/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+      body:JSON.stringify({order_ids:ids}),
+    });
+    return r.json();
+  }
 
   function applyFilters(){
     if(!list) return;
@@ -668,6 +760,8 @@
       const tableOk=!tableQuery||(tableLabel&&tableLabel.includes(tableQuery));
       const show=typeOk&&statusOk&&waiterOk&&tableOk;
       r.style.display=show?'':'none';
+      const cb=rowCheckbox(r);
+      if(!show&&cb&&cb.checked){cb.checked=false;}
       if(show) count+=1;
     });
     const filtered=statusFilter!=='all'||typeFilter!=='all'||waiterValue!=='all'||!!tableQuery;
@@ -678,6 +772,7 @@
       if(t) t.textContent=`المعروض: ${count} طلب`;
       else visibleCount.textContent=`المعروض: ${count} طلب`;
     }
+    updateBulkUi();
   }
 
   function setActiveTab(group, clicked){
@@ -745,9 +840,90 @@
       updateWaiterSummary();
       filterWaiterOptions();
       if(tableSearch) tableSearch.value='';
+      rows.forEach((row)=>{
+        const cb=rowCheckbox(row);
+        if(cb) cb.checked=false;
+      });
       applyFilters();
     });
   }
+  rows.forEach((row)=>{
+    const cb=rowCheckbox(row);
+    if(cb&&!cb.disabled){
+      cb.addEventListener('change',updateBulkUi);
+    }
+  });
+  if(selectAllBtn){
+    selectAllBtn.addEventListener('click',function(){
+      const visibleCompletable=rows.filter((row)=>isRowCompletable(row)&&row.style.display!=='none');
+      if(!visibleCompletable.length){
+        showToast('لا توجد طلبات قابلة للإكمال في العرض الحالي','war');
+        return;
+      }
+      const allVisibleChecked=visibleCompletable.every((row)=>{
+        const cb=rowCheckbox(row);
+        return cb&&cb.checked;
+      });
+      visibleCompletable.forEach((row)=>{
+        const cb=rowCheckbox(row);
+        if(cb) cb.checked=!allVisibleChecked;
+      });
+      updateBulkUi();
+    });
+  }
+  if(bulkCompleteBtn){
+    bulkCompleteBtn.addEventListener('click',async function(){
+      const ids=getCheckedRows().map((row)=>parseInt(row.getAttribute('data-order-id')||'0',10)).filter(Boolean);
+      if(!ids.length){
+        showToast('حدد طلبًا واحدًا على الأقل', 'war');
+        return;
+      }
+      this.disabled=true;
+      const oldHtml=this.innerHTML;
+      this.innerHTML='<i class="fas fa-spinner fa-spin"></i> جاري الإكمال...';
+      try{
+        const d=await completeIds(ids);
+        if(d.success){
+          if(d.failed&&d.failed.length){
+            showToast(`تم إكمال ${d.completed_count} طلب، مع ${d.failed.length} لم يكتمل`, 'war', 4200);
+          }else{
+            showToast(`تم إكمال ${d.completed_count} طلب بنجاح`, 'suc');
+          }
+          setTimeout(()=>location.reload(),500);
+        }else{
+          showToast(d.error||'تعذّر إكمال الطلبات', 'err');
+        }
+      }catch(_){
+        showToast('خطأ في الاتصال', 'err');
+      }
+      this.innerHTML=oldHtml;
+      updateBulkUi();
+    });
+  }
+  oneCompleteBtns.forEach((btn)=>{
+    btn.addEventListener('click',async function(e){
+      e.stopPropagation();
+      const id=parseInt(this.getAttribute('data-order-id')||'0',10);
+      if(!id)return;
+      this.disabled=true;
+      const old=this.innerHTML;
+      this.innerHTML='<i class="fas fa-spinner fa-spin"></i>';
+      try{
+        const d=await completeIds([id]);
+        if(d.success&&d.completed_count>0){
+          showToast('تم إكمال الطلب ✓','suc');
+          setTimeout(()=>location.reload(),350);
+        }else{
+          const firstErr=(d.failed&&d.failed[0]&&d.failed[0].error)||d.error||'تعذر إكمال الطلب';
+          showToast(firstErr,'err');
+        }
+      }catch(_){
+        showToast('خطأ في الاتصال','err');
+      }
+      this.disabled=false;
+      this.innerHTML=old;
+    });
+  });
 
   function waiterRows(waiterId){
     if(waiterId==='none'){

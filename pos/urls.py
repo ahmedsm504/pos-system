@@ -89,6 +89,7 @@ urlpatterns = [
     path('api/order/<int:order_id>/remove-item/', cashier_views.remove_item, name='api_remove_item'),
     path('api/order/<int:order_id>/remove-items-batch/', cashier_views.remove_items_batch, name='api_remove_items_batch'),
     path('api/order/<int:order_id>/complete/',    cashier_views.complete_order, name='api_complete'),
+    path('api/orders/complete-batch/',            cashier_views.complete_orders_batch, name='api_complete_batch'),
     path('api/order/<int:order_id>/cancel/',      cashier_views.cancel_order,   name='api_cancel'),
     path('api/order/<int:order_id>/reprint/',     cashier_views.reprint_order,  name='api_reprint'),
     path('api/order/<int:order_id>/tables/',      cashier_views.update_order_tables, name='api_order_tables'),
