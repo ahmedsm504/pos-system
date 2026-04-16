@@ -789,6 +789,8 @@ def update_item_meta(request, order_id):
 def remove_item(request, order_id):
     try:
         order = get_object_or_404(Order, id=order_id)
+        if order.status in ('completed', 'cancelled'):
+            return JsonResponse({'success': False, 'error': 'لا يمكن تعديل أو حذف أصناف من طلب مكتمل أو ملغى — استخدم «إلغاء الطلب» من الإجراءات'})
         data  = json.loads(request.body)
         item  = get_object_or_404(
             OrderItem.objects.select_related('menu_item__category'),
@@ -1132,8 +1134,10 @@ def cancel_order(request, order_id):
         if order.status == 'cancelled':
             return JsonResponse({'success': False, 'error': 'الطلب ملغي بالفعل'})
 
-        if order.status == 'completed':
-            return JsonResponse({'success': False, 'error': 'لا يمكن الغاء طلب مكتمل'})
+        if order.status not in ('open', 'printed', 'completed'):
+            return JsonResponse({'success': False, 'error': 'لا يمكن إلغاء هذا الطلب في حالته الحالية'})
+
+        was_completed = order.status == 'completed'
 
         reason = (data.get('cancellation_reason') or '').strip()
         if len(reason) < 2:
@@ -1152,14 +1156,28 @@ def cancel_order(request, order_id):
         order.cancel_approved_by = admin_user
         order.cancellation_reason = reason[:2000]
 
-        order.status       = 'cancelled'
+        order.status = 'cancelled'
         order.cancelled_at = timezone.now()
         order.save()
 
-        _log_activity(order, 'cancelled', f'إلغاء بواسطة {admin_user.username}: {reason[:200]}', request.user)
+        if was_completed:
+            _log_activity(
+                order,
+                'cancelled',
+                f'إلغاء بعد إنهاء الطلب (تسجيل فقط — بدون إشعار مطبخ) بواسطة {admin_user.username}: {reason[:200]}',
+                request.user,
+            )
+        else:
+            _log_activity(
+                order,
+                'cancelled',
+                f'إلغاء بواسطة {admin_user.username}: {reason[:200]}',
+                request.user,
+            )
 
         print_success = None
-        if had_gone_to_stations:
+        # طلب مكتمل ثم إلغاء: لا نُرسل للمطبخ/البار (كان الطلب منتهياً أصلاً)
+        if not was_completed and had_gone_to_stations:
             order_print = prefetch_order_tables(
                 Order.objects.select_related('waiter', 'driver', 'cashier')
                 .prefetch_related('items__menu_item__category')
@@ -1172,6 +1190,8 @@ def cancel_order(request, order_id):
                 )
 
         out = {'success': True}
+        if was_completed:
+            out['printer_skipped'] = True
         if print_success is not None:
             out['print_success'] = print_success
         return JsonResponse(out)

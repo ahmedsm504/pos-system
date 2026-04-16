@@ -532,7 +532,7 @@
         <div class="od-waiter-picker od-report-picker" id="odReportWaiterPicker">
           <button type="button" class="od-wp-trigger" id="odReportWaiterTrigger" aria-haspopup="listbox" aria-expanded="false">
             <span class="od-wp-ic"><i class="fas fa-user-tie"></i></span>
-            <span class="od-wp-text" id="odReportWaiterLabel">{% if waiters %}{{ waiters.0.name }}{% else %}بدون ويتر{% endif %}</span>
+            <span class="od-wp-text" id="odReportWaiterLabel">برجاء الاختيار لإظهار التقارير</span>
             <i class="fas fa-chevron-down od-wp-chevron"></i>
           </button>
           <div class="od-wp-panel" id="odReportWaiterPanel" role="listbox">
@@ -541,16 +541,20 @@
               <input type="search" id="odReportWaiterSearch" placeholder="بحث باسم الويتر..." autocomplete="off">
             </div>
             <div class="od-wp-list" id="odReportWaiterList">
+              <label class="od-wp-row" data-search="برجاء اختيار تقارير">
+                <input type="radio" name="odReportWaiterPick" value="" checked>
+                <span>برجاء الاختيار لإظهار التقارير</span>
+              </label>
+              <label class="od-wp-row" data-search="بدون ويتر">
+                <input type="radio" name="odReportWaiterPick" value="none">
+                <span>بدون ويتر</span>
+              </label>
               {% for w in waiters %}
               <label class="od-wp-row" data-search="{{ w.name|lower }} {{ w.name }}">
-                <input type="radio" name="odReportWaiterPick" value="{{ w.id }}" {% if forloop.first %}checked{% endif %}>
+                <input type="radio" name="odReportWaiterPick" value="{{ w.id }}">
                 <span>{{ w.name }}</span>
               </label>
               {% endfor %}
-              <label class="od-wp-row" data-search="بدون ويتر">
-                <input type="radio" name="odReportWaiterPick" value="none" {% if not waiters %}checked{% endif %}>
-                <span>بدون ويتر</span>
-              </label>
               <div class="od-wp-empty">لا توجد نتائج مطابقة</div>
             </div>
           </div>
@@ -566,9 +570,9 @@
         <div class="od-r-row"><span>قيمة الانتظار</span><strong id="rWaitingAmount">0.00 ج</strong></div>
         <div class="od-r-row"><span>قيمة المكتمل</span><strong id="rCompletedAmount">0.00 ج</strong></div>
         <div class="od-r-row"><span>قيمة الملغي</span><strong id="rCancelledAmount">0.00 ج</strong></div>
-        <div class="od-r-total"><span>الإجمالي الكلي</span><strong id="rTotalAmount">0.00 ج</strong></div>
+        <div class="od-r-total"><span>الإجمالي الكلي <span style="font-size:.62rem;font-weight:700;opacity:.85">(انتظار + مكتمل — بدون ملغي)</span></span><strong id="rTotalAmount">0.00 ج</strong></div>
       </div>
-      <p class="od-r-note"><i class="fas fa-circle-info"></i> التقرير بيتحدّث تلقائيًا بمجرد اختيار أي ويتر.</p>
+      <p class="od-r-note" id="odReportHint"><i class="fas fa-circle-info"></i> اختر ويترًا أو «بدون ويتر» لعرض الأرقام. المبلغ الملغى يظهر منفصلًا ولا يُضاف للإجمالي الكلي.</p>
     </div>
     <div class="modal-ftr">
       <button class="btn btn-pri" type="button" style="width:100%;justify-content:center" id="odReportDone">تم</button>
@@ -672,14 +676,21 @@
   }
   function getReportWaiterValue(){
     const el=selectedReportWaiterRadio();
-    return el?(el.value||'none'):'none';
+    if(!el) return '';
+    const v=el.value;
+    if(v===null || v===undefined) return '';
+    return String(v);
   }
   function updateReportWaiterSummary(){
     const el=selectedReportWaiterRadio();
     const row=el?el.closest('.od-wp-row'):null;
     const label=row?row.querySelector('span'):null;
     if(reportWaiterLabel){
-      reportWaiterLabel.textContent=label?label.textContent.trim():'بدون ويتر';
+      if(el && el.value===''){
+        reportWaiterLabel.textContent='برجاء الاختيار لإظهار التقارير';
+      }else{
+        reportWaiterLabel.textContent=label?label.textContent.trim():'برجاء الاختيار لإظهار التقارير';
+      }
     }
   }
   function filterReportWaiters(){
@@ -933,6 +944,17 @@
   }
 
   function renderReport(waiterId){
+    if(waiterId===''){
+      document.getElementById('rTotalOrders').textContent='0';
+      document.getElementById('rWaitingOrders').textContent='0';
+      document.getElementById('rCompletedOrders').textContent='0';
+      document.getElementById('rCancelledOrders').textContent='0';
+      document.getElementById('rWaitingAmount').textContent=money(0);
+      document.getElementById('rCompletedAmount').textContent=money(0);
+      document.getElementById('rCancelledAmount').textContent=money(0);
+      document.getElementById('rTotalAmount').textContent=money(0);
+      return;
+    }
     const wr=waiterRows(waiterId);
     let total=0, waiting=0, completed=0, cancelled=0;
     let waitingAmount=0, completedAmount=0, cancelledAmount=0;
@@ -951,14 +973,17 @@
     document.getElementById('rWaitingAmount').textContent=money(waitingAmount);
     document.getElementById('rCompletedAmount').textContent=money(completedAmount);
     document.getElementById('rCancelledAmount').textContent=money(cancelledAmount);
-    document.getElementById('rTotalAmount').textContent=money(waitingAmount+completedAmount+cancelledAmount);
+    document.getElementById('rTotalAmount').textContent=money(waitingAmount+completedAmount);
   }
 
   function openReportModal(){
     if(!reportModal || !reportWaiterList){ return; }
+    const ph=[...reportWaiterList.querySelectorAll('input[name="odReportWaiterPick"]')].find(r=>r.value==='');
+    if(ph) ph.checked=true;
+    closeReportWaiterPicker();
     updateReportWaiterSummary();
     filterReportWaiters();
-    renderReport(getReportWaiterValue());
+    renderReport('');
     reportModal.classList.add('open');
   }
   function closeReportModal(){
@@ -984,7 +1009,8 @@
       const t=e.target;
       if(t&&t.name==='odReportWaiterPick'){
         updateReportWaiterSummary();
-        renderReport(t.value||'none');
+        const v=t.value===undefined||t.value===null?'':String(t.value);
+        renderReport(v);
         setTimeout(closeReportWaiterPicker,90);
       }
     });

@@ -558,7 +558,7 @@ tr.od-line-hidden{display:none!important}
         <button class="act-btn act-reprint" style="background:#fff8e6;color:#92400e;border:1.5px solid #c9a227" onclick="openInvoiceOverlay()">
           <i class="fas fa-file-invoice"></i> طباعة نسخة العميل
         </button>
-        {% if order.status in 'open,printed' %}
+        {% if order.status in 'open,printed,completed' %}
         <button class="act-btn act-cancel" onclick="cancelOrderReq()">
           <i class="fas fa-times-circle"></i> إلغاء الطلب
         </button>
@@ -620,7 +620,7 @@ tr.od-line-hidden{display:none!important}
   <div class="modal itemcfg-modal" onclick="event.stopPropagation()">
     <div class="itemcfg-hdr" style="background:linear-gradient(135deg,#fecaca,#fca5a5);border-bottom:1px solid rgba(0,0,0,.06)"><h3 style="margin:0;font-size:.95rem;font-weight:800;color:#450a0a"><i class="fas fa-ban"></i> إلغاء الطلب</h3></div>
     <div class="itemcfg-body">
-      <p style="font-size:.8rem;color:var(--muted);margin:0 0 10px;line-height:1.45">بعد <strong>تأكيد المدير</strong> يُلغى الطلب و<strong>لا يُحسب في المبيعات</strong>.</p>
+      <p id="cancelOrderHint" style="font-size:.8rem;color:var(--muted);margin:0 0 10px;line-height:1.45">بعد <strong>تأكيد المدير</strong> يُلغى الطلب و<strong>لا يُحسب في المبيعات</strong>.</p>
       <label style="font-size:.72rem;font-weight:800;color:var(--muted);display:block;margin-bottom:6px">سبب الإلغاء (إلزامي)</label>
       <textarea id="cancelOrderReason" class="itemcfg-ta" placeholder="مثال: طلب العميل — تعديل الطلب — خطأ…" style="min-height:88px"></textarea>
     </div>
@@ -714,6 +714,7 @@ tr.od-line-hidden{display:none!important}
 {% block extra_js %}<script>
 const MENU_OD=JSON.parse(document.getElementById('menu-catalog-data').textContent);
 const ORDER_ID={{ order.id }};
+const ORDER_STATUS='{{ order.status }}';
 const ORDER_LINE_META={
   {% for item in order.items.all %}{{ item.id }}:{qty:{{ item.quantity }},price:Number('{{ item.price }}'),name:{% if item.size_label %}"{{ item.menu_item.name|escapejs }} ({{ item.size_label|escapejs }})"{% else %}"{{ item.menu_item.name|escapejs }}"{% endif %}},{% endfor %}
 };
@@ -1278,6 +1279,14 @@ function closeCancelOrder(){
 function cancelOrderReq(){
   const ta=document.getElementById('cancelOrderReason');
   if(ta)ta.value='';
+  const hint=document.getElementById('cancelOrderHint');
+  if(hint){
+    if(typeof ORDER_STATUS!=='undefined'&&ORDER_STATUS==='completed'){
+      hint.innerHTML='الطلب <strong>مكتمل</strong>. بعد تأكيد المدير يُسجَّل كملغى في النظام مع السبب، <strong>بدون إشعار للمطبخ/البار</strong> (الطلب كان منتهياً).';
+    }else{
+      hint.innerHTML='بعد <strong>تأكيد المدير</strong> يُلغى الطلب و<strong>لا يُحسب في المبيعات</strong>. إن وُجدت طباعة سابقة يُبلَّغ المطبخ/البار بالإلغاء.';
+    }
+  }
   const ov=document.getElementById('cancelOrderOv');
   if(ov){ov.classList.add('open');setTimeout(()=>ta&&ta.focus(),80);}
 }
@@ -1289,9 +1298,10 @@ function proceedCancelOrder(){
     const r=await fetch(`/api/order/${ORDER_ID}/cancel/`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify({admin_username:au,admin_password:ap,cancellation_reason:reason})});
     const d=await r.json();
     if(d.success){
-      if(d.print_success===true)showToast('تم الإلغاء وإشعار المطبخ/البار ✓','suc');
+      if(d.printer_skipped===true)showToast('تم إلغاء الطلب وتسجيله (بدون إشعار للمطبخ/البار) ✓','suc');
+      else if(d.print_success===true)showToast('تم الإلغاء وإشعار المطبخ/البار ✓','suc');
       else if(d.print_success===false)showToast('تم الإلغاء — تحقق من الطباعة للمطبخ/البار','war',4200);
-      else showToast('تم إلغاء الطلب','err');
+      else showToast('تم إلغاء الطلب ✓','suc');
       setTimeout(()=>location.href='{% url "cashier_dashboard" %}',900);
     }
     else showToast(d.error||'خطأ','err');
