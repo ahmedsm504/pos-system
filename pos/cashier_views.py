@@ -252,6 +252,7 @@ def order_detail(request, order_id):
     if order.status in ('open', 'printed') and order.order_type == 'dine_in':
         busy = busy_table_ids_global(exclude_order_id=order.id)
     drivers = DeliveryDriver.objects.filter(is_active=True).order_by('name')
+    waiters = Waiter.objects.filter(is_active=True).order_by('name')
     activities = order.activities.select_related('user').order_by('created_at')
     return render(
         request,
@@ -265,6 +266,7 @@ def order_detail(request, order_id):
             'table_edit_busy_ids': busy,
             'table_edit_selected_ids': selected_tids,
             'drivers': drivers,
+            'waiters': waiters,
             'activities': activities,
         },
     )
@@ -587,6 +589,46 @@ def update_order_driver(request, order_id):
         return JsonResponse({'success': True, 'driver_label': label, 'driver_id': order.driver_id})
     except Exception as e:
         log.error(f'update_order_driver: {e}')
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_POST
+def update_order_waiter(request, order_id):
+    """تعيين أو إزالة ويتر للطلب الداخلي (كاشير على طلبه، أو مدير)."""
+    try:
+        order = get_object_or_404(Order, id=order_id)
+        if not request.user.is_staff and order.cashier_id != request.user.id:
+            return JsonResponse({'success': False, 'error': 'غير مصرح'}, status=403)
+        if order.status in ('completed', 'cancelled'):
+            return JsonResponse({'success': False, 'error': 'لا يمكن تعديل طلب منتهٍ أو ملغى'})
+        if order.order_type != 'dine_in':
+            return JsonResponse({'success': False, 'error': 'تعيين الويتر للطلبات الداخلية فقط'})
+
+        data = json.loads(request.body or '{}')
+        raw = data.get('waiter_id')
+        waiter_id = None
+        if raw not in (None, ''):
+            try:
+                waiter_id = int(raw)
+            except (TypeError, ValueError):
+                return JsonResponse({'success': False, 'error': 'معرّف الويتر غير صالح'})
+
+        if waiter_id:
+            wt = Waiter.objects.filter(id=waiter_id, is_active=True).first()
+            if not wt:
+                return JsonResponse({'success': False, 'error': 'الويتر غير متاح'})
+            order.waiter_id = waiter_id
+        else:
+            order.waiter_id = None
+
+        order.save(update_fields=['waiter_id'])
+        order.refresh_from_db()
+        label = str(order.waiter) if order.waiter else '— بدون ويتر —'
+        _log_activity(order, 'waiter_changed', f'تعيين الويتر: {label}', request.user)
+        return JsonResponse({'success': True, 'waiter_label': label, 'waiter_id': order.waiter_id})
+    except Exception as e:
+        log.error(f'update_order_waiter: {e}')
         return JsonResponse({'success': False, 'error': str(e)})
 
 
