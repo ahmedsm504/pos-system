@@ -298,6 +298,25 @@
 }
 .table-picker-row input.driver-rb{margin:0;width:17px;height:17px;accent-color:#ea580c;flex-shrink:0}
 .tp-row-main{flex:1;min-width:0;color:var(--text)}
+.table-picker-row .tp-row-side{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.tp-row-busy{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:999px;font-size:.62rem;font-weight:800;
+  background:#fff1f2;color:#9f1239;border:1px solid #fecdd3;
+}
+.tp-view-order-btn{
+  border:1px solid rgba(201,162,39,.45);
+  background:linear-gradient(180deg,#fff,#fef9eb);
+  color:#8a7020;
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:.64rem;
+  font-weight:800;
+  font-family:inherit;
+  cursor:pointer;
+  transition:all .15s var(--ease-out);
+}
+.tp-view-order-btn:hover{background:#fef3c7;color:#7c2d12;transform:translateY(-1px)}
 .table-picker-empty{padding:20px 14px;text-align:center;font-size:.74rem;color:var(--muted);font-weight:600;display:none}
 .table-picker-list.is-empty .table-picker-empty{display:block}
 @media(max-width:380px){.op-grid-2{grid-template-columns:1fr}}
@@ -631,9 +650,22 @@
                 <span class="tp-row-main">— بدون طاولة —</span>
               </label>
               {% for t in tables %}
-              <label class="table-picker-row" role="option" data-search="{{ t.number }} {{ t.name|default:'' }} {{ t }}">
-                <input type="checkbox" class="table-cb table-cb-real" value="{{ t.id }}">
-                <span class="tp-row-main">{{ t }}</span>
+              <label class="table-picker-row" role="option" data-search="{{ t.search }}">
+                <input type="checkbox" class="table-cb table-cb-real" value="{{ t.id }}" {% if t.is_busy %}disabled{% endif %}>
+                <span class="tp-row-main">{{ t.label }}</span>
+                {% if t.is_busy %}
+                <span class="tp-row-side">
+                  <span class="tp-row-busy">مشغولة</span>
+                  <button
+                    type="button"
+                    class="tp-view-order-btn"
+                    onclick="event.preventDefault();event.stopPropagation();location.href='{{ t.busy_order_url }}';"
+                    title="عرض الطلب {{ t.busy_order_label }}"
+                  >
+                    عرض الطلب {{ t.busy_order_label }}
+                  </button>
+                </span>
+                {% endif %}
               </label>
               {% endfor %}
             </div>

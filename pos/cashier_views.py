@@ -62,6 +62,7 @@ from .models import (
     Order,
     OrderActivity,
     OrderItem,
+    OrderTable,
     Shift,
     CashierProfile,
     InventoryEntry,
@@ -78,7 +79,6 @@ from .menu_helpers import (
     order_item_print_notes,
 )
 from .order_table_utils import (
-    available_tables_qs,
     busy_table_ids_global,
     parse_table_ids_payload,
     prefetch_order_tables,
@@ -175,7 +175,42 @@ def new_order(request):
         return redirect('cashier_dashboard')
     categories = _cashier_menu_queryset()
     catalog = menu_catalog_payload(categories)
-    tables = list(available_tables_qs(for_new_order=True).order_by('number'))
+
+    # اعرض كل الطاولات: المشغول يظهر disabled مع رابط مباشر للطلب المرتبط.
+    tables = list(Table.objects.filter(is_active=True).order_by('number'))
+    table_ids = [t.id for t in tables]
+    busy_links = (
+        OrderTable.objects.filter(
+            table_id__in=table_ids,
+            order__order_type='dine_in',
+            order__status__in=('open', 'printed'),
+        )
+        .select_related('order')
+        .order_by('-order_id')
+    )
+    busy_by_table = {}
+    for link in busy_links:
+        if link.table_id in busy_by_table:
+            continue
+        o = link.order
+        busy_by_table[link.table_id] = {
+            'order_id': o.id,
+            'order_url': reverse('cashier_order_detail', args=[o.id]),
+            'order_label': f'#{o.display_number}',
+        }
+
+    tables_ui = []
+    for t in tables:
+        info = busy_by_table.get(t.id)
+        tables_ui.append({
+            'id': t.id,
+            'label': str(t),
+            'search': f'{t.number} {getattr(t, "name", "") or ""} {t}',
+            'is_busy': bool(info),
+            'busy_order_id': info['order_id'] if info else None,
+            'busy_order_url': info['order_url'] if info else '',
+            'busy_order_label': info['order_label'] if info else '',
+        })
     waiters = Waiter.objects.filter(is_active=True)
     drivers = DeliveryDriver.objects.filter(is_active=True)
     return render(
@@ -184,7 +219,7 @@ def new_order(request):
         {
             'categories': categories,
             'menu_catalog': catalog,
-            'tables': tables,
+            'tables': tables_ui,
             'waiters': waiters,
             'drivers': drivers,
         },
@@ -1094,7 +1129,7 @@ def complete_orders_batch(request):
             order.status = 'completed'
             order.completed_at = now
             order.save(update_fields=['status', 'completed_at'])
-            _log_activity(order, 'completed', 'تم إنهاء الطلب (دفعة جماعية)', request.user)
+            _log_activity(order, 'completed', 'تم إنهاء الطلب', request.user)
             completed_ids.append(oid)
 
     # فتح الدرج مرة واحدة بعد إنهاء الدفعة كلها (وليس لكل طلب)
