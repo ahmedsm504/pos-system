@@ -826,13 +826,20 @@ def reports(request):
         driver_map[key]['revenue'] += _order_total(o)
     driver_stats = sorted(driver_map.values(), key=lambda x: x['revenue'], reverse=True)
 
+    # بدون ويتر = داخلي فقط بدون تعيين؛ الديليفري بدون ويتر لا يُدرَج هنا (يظهر في جدول الطيارين)
     waiter_map = defaultdict(lambda: {'name': '', 'count': 0, 'revenue': Decimal(0)})
     for o in orders_list:
-        key = o.waiter_id if o.waiter_id else -1
-        name = o.waiter.name if o.waiter else 'بدون ويتر'
-        waiter_map[key]['name'] = name
-        waiter_map[key]['count'] += 1
-        waiter_map[key]['revenue'] += _order_total(o)
+        rev = _order_total(o)
+        if o.waiter_id:
+            key = o.waiter_id
+            waiter_map[key]['name'] = o.waiter.name
+            waiter_map[key]['count'] += 1
+            waiter_map[key]['revenue'] += rev
+        elif o.order_type == 'dine_in':
+            key = -1
+            waiter_map[key]['name'] = 'بدون ويتر'
+            waiter_map[key]['count'] += 1
+            waiter_map[key]['revenue'] += rev
     waiter_stats = sorted(waiter_map.values(), key=lambda x: x['revenue'], reverse=True)
 
     expenses = InventoryEntry.objects.filter(date__range=[start, end])

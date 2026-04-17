@@ -1262,7 +1262,14 @@ async function completeOrder(orderId){
   if(!confirm('هتنهي الطلب وهيتفتح الدرج؟'))return;
   const r=await fetch(`/api/order/${orderId}/complete/`,{method:'POST',headers:{'X-CSRFToken':csrf()}});
   const d=await r.json();
-  if(d.success){showToast('✅ تم إنهاء الطلب وفتح الدرج','suc');setTimeout(()=>location.reload(),900);}
+  if(d.success){
+    if(d.drawer_opened===false){
+      showToast('تم إنهاء الطلب — لم يُفتح الدرج تلقائياً (تحقق من خدمة الطباعة)','war',4200);
+    }else{
+      showToast('✅ تم إنهاء الطلب وفتح الدرج','suc');
+    }
+    setTimeout(()=>location.reload(),900);
+  }
   else showToast(d.error||'خطأ','err');
 }
 

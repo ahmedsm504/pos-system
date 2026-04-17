@@ -408,9 +408,9 @@
               <span>{{ w.name }}</span>
             </label>
             {% endfor %}
-            <label class="od-wp-row" data-search="بدون ويتر">
+            <label class="od-wp-row" data-search="بدون ويتر داخلي">
               <input type="radio" name="odWaiterPick" value="none">
-              <span>بدون ويتر</span>
+              <span>بدون ويتر (داخلي فقط)</span>
             </label>
             <div class="od-wp-empty">لا توجد نتائج مطابقة</div>
           </div>
@@ -545,9 +545,9 @@
                 <input type="radio" name="odReportWaiterPick" value="" checked>
                 <span>برجاء الاختيار لإظهار التقارير</span>
               </label>
-              <label class="od-wp-row" data-search="بدون ويتر">
+              <label class="od-wp-row" data-search="بدون ويتر داخلي">
                 <input type="radio" name="odReportWaiterPick" value="none">
-                <span>بدون ويتر</span>
+                <span>بدون ويتر (داخلي فقط)</span>
               </label>
               {% for w in waiters %}
               <label class="od-wp-row" data-search="{{ w.name|lower }} {{ w.name }}">
@@ -572,7 +572,7 @@
         <div class="od-r-row"><span>قيمة الملغي</span><strong id="rCancelledAmount">0.00 ج</strong></div>
         <div class="od-r-total"><span>الإجمالي الكلي <span style="font-size:.62rem;font-weight:700;opacity:.85">(انتظار + مكتمل — بدون ملغي)</span></span><strong id="rTotalAmount">0.00 ج</strong></div>
       </div>
-      <p class="od-r-note" id="odReportHint"><i class="fas fa-circle-info"></i> اختر ويترًا أو «بدون ويتر» لعرض الأرقام. المبلغ الملغى يظهر منفصلًا ولا يُضاف للإجمالي الكلي.</p>
+      <p class="od-r-note" id="odReportHint"><i class="fas fa-circle-info"></i> «بدون ويتر» هنا للطلبات <strong>الداخلية</strong> فقط بدون تعيين ويتر (لا يشمل الديليفري). المبلغ الملغى يظهر منفصلًا ولا يُضاف للإجمالي الكلي.</p>
     </div>
     <div class="modal-ftr">
       <button class="btn btn-pri" type="button" style="width:100%;justify-content:center" id="odReportDone">تم</button>
@@ -767,7 +767,7 @@
       const tableLabel=normalizeDigits(r.getAttribute('data-table-label')||'');
       const typeOk=typeFilter==='all'||t===typeFilter;
       const statusOk=statusFilter==='all'||s===statusFilter;
-      const waiterOk=waiterValue==='all'||(waiterValue==='none'?w==='':w===waiterValue);
+      const waiterOk=waiterValue==='all'||(waiterValue==='none'?(w===''&&t==='dine_in'):w===waiterValue);
       const tableOk=!tableQuery||(tableLabel&&tableLabel.includes(tableQuery));
       const show=typeOk&&statusOk&&waiterOk&&tableOk;
       r.style.display=show?'':'none';
@@ -895,10 +895,13 @@
       try{
         const d=await completeIds(ids);
         if(d.success){
+          const n=d.completed_count||0;
+          const dr=d.drawer_opened!==false;
+          const drawerNote=dr?(n>1?' — فُتح الدرج مرة واحدة للدفعة':' — فُتح الدرج'):' — لم يُفتح الدرج (تحقق من الخدمة)';
           if(d.failed&&d.failed.length){
-            showToast(`تم إكمال ${d.completed_count} طلب، مع ${d.failed.length} لم يكتمل`, 'war', 4200);
+            showToast(`تم إكمال ${n} طلب${drawerNote}، مع ${d.failed.length} لم يكتمل`, 'war', 4200);
           }else{
-            showToast(`تم إكمال ${d.completed_count} طلب بنجاح`, 'suc');
+            showToast(`تم إكمال ${n} طلب بنجاح${drawerNote}`, dr?'suc':'war', dr?3200:4200);
           }
           setTimeout(()=>location.reload(),500);
         }else{
@@ -922,7 +925,11 @@
       try{
         const d=await completeIds([id]);
         if(d.success&&d.completed_count>0){
-          showToast('تم إكمال الطلب ✓','suc');
+          if(d.drawer_opened===false){
+            showToast('تم إكمال الطلب — لم يُفتح الدرج (تحقق من الخدمة)','war',4200);
+          }else{
+            showToast('تم إكمال الطلب وفتح الدرج ✓','suc');
+          }
           setTimeout(()=>location.reload(),350);
         }else{
           const firstErr=(d.failed&&d.failed[0]&&d.failed[0].error)||d.error||'تعذر إكمال الطلب';
@@ -938,7 +945,11 @@
 
   function waiterRows(waiterId){
     if(waiterId==='none'){
-      return rows.filter(r=>(r.getAttribute('data-waiter-id')||'')==='');
+      return rows.filter((r)=>{
+        const w=r.getAttribute('data-waiter-id')||'';
+        const ot=r.getAttribute('data-order-type')||'';
+        return w===''&&ot==='dine_in';
+      });
     }
     return rows.filter(r=>(r.getAttribute('data-waiter-id')||'')===waiterId);
   }

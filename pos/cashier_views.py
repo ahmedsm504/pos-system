@@ -1035,8 +1035,8 @@ def complete_order(request, order_id):
         order.completed_at = timezone.now()
         order.save(update_fields=['status', 'completed_at'])
         _log_activity(order, 'completed', 'تم إنهاء الطلب وفتح الدرج', request.user)
-        _open_drawer()
-        return JsonResponse({'success': True})
+        drawer_ok = _open_drawer()
+        return JsonResponse({'success': True, 'drawer_opened': drawer_ok})
     except Exception as e:
         log.error(f'complete_order: {e}')
         return JsonResponse({'success': False, 'error': str(e)})
@@ -1097,14 +1097,17 @@ def complete_orders_batch(request):
             _log_activity(order, 'completed', 'تم إنهاء الطلب (دفعة جماعية)', request.user)
             completed_ids.append(oid)
 
+    # فتح الدرج مرة واحدة بعد إنهاء الدفعة كلها (وليس لكل طلب)
+    drawer_opened = False
     if completed_ids:
-        _open_drawer()
+        drawer_opened = bool(_open_drawer())
 
     return JsonResponse({
         'success': bool(completed_ids),
         'completed_ids': completed_ids,
         'completed_count': len(completed_ids),
         'failed': failed,
+        'drawer_opened': drawer_opened,
     })
 
 
