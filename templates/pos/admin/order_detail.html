@@ -236,7 +236,7 @@
       </div>
       {% endif %}
       <div style="text-align:center;margin-bottom:12px">
-        <button onclick="openInvoiceOverlay()" style="background:#000;color:#fff;border:none;padding:10px 20px;border-radius:10px;font-size:.84rem;font-weight:800;cursor:pointer;font-family:inherit">
+        <button type="button" onclick="openInvoiceOverlay()" style="background:#000;color:#fff;border:none;padding:10px 20px;border-radius:10px;font-size:.84rem;font-weight:800;cursor:pointer;font-family:inherit">
           <i class="fas fa-file-invoice"></i> طباعة نسخة العميل
         </button>
       </div>
@@ -292,7 +292,7 @@
   <div class="invoice-modal" onclick="event.stopPropagation()">
     <div class="invoice-modal-hdr">
       <h3><i class="fas fa-file-invoice"></i> نسخة العميل — طلب #{{ order.display_number }}</h3>
-      <button class="invoice-modal-close" onclick="closeInvoiceOverlay()">&times;</button>
+      <button type="button" class="invoice-modal-close" onclick="closeInvoiceOverlay()" aria-label="إغلاق">&times;</button>
     </div>
     <div class="invoice-modal-body">
       <div class="inv-page" id="invoicePrintArea">
@@ -361,8 +361,8 @@
       </div>
     </div>
     <div class="invoice-modal-ftr">
-      <button class="inv-btn-close" onclick="closeInvoiceOverlay()"><i class="fas fa-times"></i> إغلاق</button>
-      <button class="inv-btn-print" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة</button>
+      <button type="button" class="inv-btn-close" onclick="closeInvoiceOverlay()"><i class="fas fa-times"></i> إغلاق</button>
+      <button type="button" class="inv-btn-print" onclick="printInvoice()"><i class="fas fa-print"></i> طباعة</button>
     </div>
   </div>
 </div>
@@ -630,51 +630,75 @@ async function admSaveOrderDriver(){
 function openInvoiceOverlay(){document.getElementById('invoiceOverlay').classList.add('open');}
 function closeInvoiceOverlay(){document.getElementById('invoiceOverlay').classList.remove('open');}
 function printInvoice(){
-  var content=document.getElementById('invoicePrintArea').innerHTML;
-  var w=window.open('','_blank','width=400,height=600');
-  w.document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>فاتورة</title>');
-  w.document.write('<link rel="stylesheet" href="{% static "vendor/fonts/cairo-outfit.css" %}">');
-  w.document.write('<style>');
-  w.document.write('@page{size:72mm auto;margin:0}');
-  w.document.write('*{margin:0;padding:0;box-sizing:border-box}');
-  w.document.write('html,body{width:72mm;font-family:Cairo,sans-serif;color:#000;background:#fff;margin:0;padding:0}');
-  w.document.write('.inv-page{width:72mm;background:#fff;padding:0 0 8px;color:#000}');
-  w.document.write('.inv-page *{color:#000}');
-  w.document.write('.inv-hdr{padding:14px 10px 8px;text-align:center}');
-  w.document.write('.inv-hdr img{width:4cm;height:auto;margin-bottom:4px}');
-  w.document.write('.inv-hdr-brand{font-size:1rem;font-weight:900}');
-  w.document.write('.inv-hdr-sub{font-size:.75rem;font-weight:800;letter-spacing:.06em;line-height:1.5}');
-  w.document.write('.inv-sep{border:none;border-top:1px dashed #000;margin:6px 8px}');
-  w.document.write('.inv-sep-solid{border:none;border-top:1.5px solid #000;margin:6px 8px}');
-  w.document.write('.inv-meta{padding:4px 10px}');
-  w.document.write('.inv-mr{display:flex;justify-content:space-between;font-size:.7rem;line-height:1.6}');
-  w.document.write('.inv-mr strong{font-weight:800}');
-  w.document.write('.inv-dlv{margin:4px 10px;padding:6px 8px;border:1px solid #000;border-radius:4px;font-size:.68rem}');
-  w.document.write('.inv-dlv div{line-height:1.5}');
-  w.document.write('.inv-items{padding:4px 8px}');
-  w.document.write('.inv-items-ttl{font-size:.68rem;font-weight:800;text-align:center;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid #000}');
-  w.document.write('.inv-t{width:100%;border-collapse:collapse}');
-  w.document.write('.inv-t th{text-align:right;font-size:.6rem;font-weight:800;padding:3px 2px;border-bottom:1px solid #000}');
-  w.document.write('.inv-t td{padding:4px 2px;font-size:.68rem;border-bottom:1px dotted #999;vertical-align:top}');
-  w.document.write('.inv-t tr:last-child td{border-bottom:none}');
-  w.document.write('.inv-iname{font-weight:700;font-size:.68rem}');
-  w.document.write('.inv-idet{font-size:.58rem;margin-top:1px;line-height:1.25}');
-  w.document.write('.inv-iqty{text-align:center;font-weight:800;font-size:.68rem}');
-  w.document.write('.inv-iprice{font-size:.68rem;font-weight:800;text-align:left}');
-  w.document.write('.inv-itotal{font-weight:800;font-size:.68rem;text-align:left}');
-  w.document.write('.inv-notes-box{margin:4px 10px;padding:4px 6px;border:1px solid #000;border-radius:3px;font-size:.64rem}');
-  w.document.write('.inv-total-row{margin:6px 8px 2px;padding:8px 10px;border-top:2px solid #000;border-bottom:2px solid #000;display:flex;justify-content:space-between;align-items:center}');
-  w.document.write('.inv-total-lbl{font-size:.78rem;font-weight:800}');
-  w.document.write('.inv-total-val{font-size:1.1rem;font-weight:900}');
-  w.document.write('.inv-ftr{text-align:center;padding:8px 10px 2px}');
-  w.document.write('.inv-phones{display:flex;justify-content:center;gap:12px;margin-bottom:4px;font-size:.7rem;font-weight:800;direction:ltr}');
-  w.document.write('.inv-thx{font-size:.72rem;font-weight:900;margin-bottom:2px}');
-  w.document.write('.inv-tag{font-size:.7rem;font-weight:800}');
-  w.document.write('</style></head><body>');
-  w.document.write('<div class="inv-page">'+content+'</div>');
-  w.document.write('</body></html>');
-  w.document.close();
-  w.onload=function(){w.focus();w.print();w.onafterprint=function(){w.close();};};
+  var area=document.getElementById('invoicePrintArea');
+  if(!area){showToast('تعذر تحميل الفاتورة','war');return;}
+  var content=area.innerHTML;
+  var iframe=document.getElementById('invoicePrintFrame');
+  if(!iframe){
+    iframe=document.createElement('iframe');
+    iframe.id='invoicePrintFrame';
+    iframe.title='طباعة الفاتورة';
+    iframe.setAttribute('aria-hidden','true');
+    iframe.style.cssText='position:fixed;left:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none';
+    document.body.appendChild(iframe);
+  }
+  var doc=iframe.contentWindow.document;
+  doc.open();
+  doc.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>فاتورة</title>');
+  doc.write('<link rel="stylesheet" href="{% static "vendor/fonts/cairo-outfit.css" %}">');
+  doc.write('<style>');
+  doc.write('@page{size:72mm auto;margin:0}');
+  doc.write('*{margin:0;padding:0;box-sizing:border-box}');
+  doc.write('html,body{width:72mm;font-family:Cairo,sans-serif;color:#000;background:#fff;margin:0;padding:0}');
+  doc.write('.inv-page{width:72mm;background:#fff;padding:0 0 8px;color:#000}');
+  doc.write('.inv-page *{color:#000}');
+  doc.write('.inv-hdr{padding:14px 10px 8px;text-align:center}');
+  doc.write('.inv-hdr img{width:4cm;height:auto;margin-bottom:4px}');
+  doc.write('.inv-hdr-brand{font-size:1rem;font-weight:900}');
+  doc.write('.inv-hdr-sub{font-size:.75rem;font-weight:800;letter-spacing:.06em;line-height:1.5}');
+  doc.write('.inv-sep{border:none;border-top:1px dashed #000;margin:6px 8px}');
+  doc.write('.inv-sep-solid{border:none;border-top:1.5px solid #000;margin:6px 8px}');
+  doc.write('.inv-meta{padding:4px 10px}');
+  doc.write('.inv-mr{display:flex;justify-content:space-between;font-size:.7rem;line-height:1.6}');
+  doc.write('.inv-mr strong{font-weight:800}');
+  doc.write('.inv-dlv{margin:4px 10px;padding:6px 8px;border:1px solid #000;border-radius:4px;font-size:.68rem}');
+  doc.write('.inv-dlv div{line-height:1.5}');
+  doc.write('.inv-items{padding:4px 8px}');
+  doc.write('.inv-items-ttl{font-size:.68rem;font-weight:800;text-align:center;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid #000}');
+  doc.write('.inv-t{width:100%;border-collapse:collapse}');
+  doc.write('.inv-t th{text-align:right;font-size:.6rem;font-weight:800;padding:3px 2px;border-bottom:1px solid #000}');
+  doc.write('.inv-t td{padding:4px 2px;font-size:.68rem;border-bottom:1px dotted #999;vertical-align:top}');
+  doc.write('.inv-t tr:last-child td{border-bottom:none}');
+  doc.write('.inv-iname{font-weight:700;font-size:.68rem}');
+  doc.write('.inv-idet{font-size:.58rem;margin-top:1px;line-height:1.25}');
+  doc.write('.inv-iqty{text-align:center;font-weight:800;font-size:.68rem}');
+  doc.write('.inv-iprice{font-size:.68rem;font-weight:800;text-align:left}');
+  doc.write('.inv-itotal{font-weight:800;font-size:.68rem;text-align:left}');
+  doc.write('.inv-notes-box{margin:4px 10px;padding:4px 6px;border:1px solid #000;border-radius:3px;font-size:.64rem}');
+  doc.write('.inv-total-row{margin:6px 8px 2px;padding:8px 10px;border-top:2px solid #000;border-bottom:2px solid #000;display:flex;justify-content:space-between;align-items:center}');
+  doc.write('.inv-total-lbl{font-size:.78rem;font-weight:800}');
+  doc.write('.inv-total-val{font-size:1.1rem;font-weight:900}');
+  doc.write('.inv-ftr{text-align:center;padding:8px 10px 2px}');
+  doc.write('.inv-phones{display:flex;justify-content:center;gap:12px;margin-bottom:4px;font-size:.7rem;font-weight:800;direction:ltr}');
+  doc.write('.inv-thx{font-size:.72rem;font-weight:900;margin-bottom:2px}');
+  doc.write('.inv-tag{font-size:.7rem;font-weight:800}');
+  doc.write('</style></head><body>');
+  doc.write('<div class="inv-page">'+content+'</div>');
+  doc.write('</body></html>');
+  doc.close();
+  var win=iframe.contentWindow;
+  var ran=false;
+  function run(){
+    if(ran)return;
+    ran=true;
+    try{
+      win.focus();
+      win.print();
+    }catch(e){}
+  }
+  if(doc.readyState==='complete')setTimeout(run,0);
+  else win.onload=function(){setTimeout(run,0);};
+  setTimeout(function(){if(!ran)run();},500);
 }
 </script>
 {% endblock %}
