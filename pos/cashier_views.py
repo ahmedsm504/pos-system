@@ -1785,6 +1785,15 @@ def _append_order_notes_for_station_ticket(lines, order):
     })
 
 
+def _append_waiter_line_on_station_ticket(lines, order):
+    """اسم الويتر على تذكرة المطبخ/البار (طلب داخلي دائماً؛ ديليفري إن وُجد ويتر)."""
+    if order.order_type == 'dine_in':
+        label = str(order.waiter) if order.waiter else '—'
+        lines.append({'text': f'الويتر: {label}', 'align': 'center', 'bold': True})
+    elif getattr(order, 'waiter_id', None):
+        lines.append({'text': f'الويتر: {order.waiter}', 'align': 'center', 'bold': True})
+
+
 def _build_main_lines(order, *, show_status=False):
     items      = order.items.select_related('menu_item__category').all()
     now_date   = timezone.localtime(order.created_at).strftime('%Y-%m-%d')
@@ -1912,6 +1921,8 @@ def _build_section_lines_for_items(order, cat_type, items, action_label=''):
     elif order.order_type == 'delivery' and order.customer_name:
         lines.append({'text': f'العميل: {order.customer_name}', 'align': 'center', 'bold': True})
 
+    _append_waiter_line_on_station_ticket(lines, order)
+
     _append_order_notes_for_station_ticket(lines, order)
 
     lines.append({'divider': True, 'divider_style': 'double'})
@@ -2011,6 +2022,8 @@ def _build_remove_item_station_lines(order, cat_type, removed_infos, remaining_i
         lines.append({'text': f'الطاولة: {order.tables_label()}', 'align': 'center', 'bold': True})
     elif order.order_type == 'delivery' and order.customer_name:
         lines.append({'text': f'العميل: {order.customer_name}', 'align': 'center', 'bold': True})
+
+    _append_waiter_line_on_station_ticket(lines, order)
 
     _append_order_notes_for_station_ticket(lines, order)
 
