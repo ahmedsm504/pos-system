@@ -36,6 +36,7 @@ from .models import (
     CategoryAddon,
     DrinkOptionPreset,
     MenuItem,
+    MenuItemCashierPreset,
     MenuItemSize,
     Table,
     Waiter,
@@ -174,6 +175,17 @@ def _save_item_sizes(item, request):
         MenuItemSize.objects.create(menu_item=item, name=name, price=p, order=i)
 
 
+def _save_item_cashier_presets(item, request):
+    item.cashier_presets.all().delete()
+    for i, lab in enumerate(request.POST.getlist('cashier_preset_label')):
+        lab = (lab or '').strip()
+        if not lab:
+            continue
+        MenuItemCashierPreset.objects.create(
+            menu_item=item, label=lab[:120], order=i, is_active=True,
+        )
+
+
 def menu_list(request):
     categories = list(
         Category.objects.order_by('order', 'name').prefetch_related(
@@ -272,6 +284,7 @@ def item_add(request):
             description=request.POST.get('description', ''),
         )
         _save_item_sizes(item, request)
+        _save_item_cashier_presets(item, request)
         messages.success(request, 'تم إضافة المنتج')
         return redirect('admin_menu')
     return render(
@@ -281,13 +294,23 @@ def item_add(request):
             'title': 'إضافة منتج',
             'category_groups': _item_form_category_groups(),
             'existing_sizes': [],
+            'existing_cashier_presets': [],
         },
     )
 
 
 @admin_required
 def item_edit(request, pk):
-    item = get_object_or_404(MenuItem.objects.prefetch_related('sizes'), pk=pk)
+    item = get_object_or_404(
+        MenuItem.objects.prefetch_related(
+            'sizes',
+            Prefetch(
+                'cashier_presets',
+                queryset=MenuItemCashierPreset.objects.order_by('order', 'id'),
+            ),
+        ),
+        pk=pk,
+    )
     if request.method == 'POST':
         item.category_id  = request.POST['category']
         item.name         = request.POST['name']
@@ -297,6 +320,7 @@ def item_edit(request, pk):
         item.is_available = 'is_available' in request.POST
         item.save()
         _save_item_sizes(item, request)
+        _save_item_cashier_presets(item, request)
         messages.success(request, 'تم تعديل المنتج')
         return redirect('admin_menu')
     return render(
@@ -307,6 +331,7 @@ def item_edit(request, pk):
             'obj': item,
             'category_groups': _item_form_category_groups(),
             'existing_sizes': list(item.sizes.all().order_by('order', 'id')),
+            'existing_cashier_presets': list(item.cashier_presets.all()),
         },
     )
 

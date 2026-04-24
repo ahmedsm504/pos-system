@@ -223,6 +223,7 @@ body{font-family:'Cairo','Segoe UI',Tahoma,sans-serif;background:var(--bg);color
 {% block extra_css %}{% endblock %}
 </head>
 <body>
+<form class="csrf-ajax-bridge" style="display:none" aria-hidden="true">{% csrf_token %}</form>
 
 <aside class="sb">
   <div class="sb-logo">
@@ -338,7 +339,13 @@ function showToast(msg,type='suc',dur=3200){
   t.className='show '+type;
   clearTimeout(t._t);t._t=setTimeout(()=>t.className='',dur);
 }
-function csrf(){const v=document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');return v?v.pop():''}
+function csrf(){
+  const inp=document.querySelector('input[name=csrfmiddlewaretoken]');
+  if(inp&&inp.value)return inp.value;
+  const m=document.cookie.match(/(?:^|;\s*)csrftoken=([^;]*)/);
+  if(!m||!m[1])return '';
+  try{return decodeURIComponent(m[1].trim());}catch(_){return m[1].trim();}
+}
 
 // Admin Modal
 let _adminCallback=null;

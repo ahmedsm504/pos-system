@@ -200,6 +200,7 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--t
 {% block extra_css %}{% endblock %}
 </head>
 <body>
+<form class="csrf-ajax-bridge" style="display:none" aria-hidden="true">{% csrf_token %}</form>
 
 <aside class="sidebar">
   <div class="sb-logo">
@@ -292,10 +293,13 @@ function showToast(msg,type='success',duration=3000){
   t._timer=setTimeout(()=>t.className='',duration);
 }
 
-// CSRF
+// CSRF (Django 5: الهيدر لازم طول 32 أو 64 — الحقل المخفي أوضح من document.cookie)
 function csrf(){
-  const v=document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');
-  return v?v.pop():'';
+  const inp=document.querySelector('input[name=csrfmiddlewaretoken]');
+  if(inp&&inp.value)return inp.value;
+  const m=document.cookie.match(/(?:^|;\s*)csrftoken=([^;]*)/);
+  if(!m||!m[1])return '';
+  try{return decodeURIComponent(m[1].trim());}catch(_){return m[1].trim();}
 }
 
 // Open Drawer

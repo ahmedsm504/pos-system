@@ -176,6 +176,8 @@ body{font-family:'Cairo','Segoe UI',Tahoma,sans-serif;background:var(--bg);color
 {% block extra_css %}{% endblock %}
 </head>
 <body>
+{# رمز CSRF للـ fetch: Django يقبل فقط طول 32 أو 64 — القراءة من الحقل أضمن من document.cookie #}
+<form class="csrf-ajax-bridge" style="display:none" aria-hidden="true">{% csrf_token %}</form>
 <aside class="sb">
   <div class="sb-logo">
     <img class="sb-brand-img" src="{% static 'img/logo.png' %}" width="350" height="140" alt="">
@@ -242,7 +244,13 @@ function showToast(msg,type='suc',dur=3200){
   t.innerHTML=`<i class="fas ${type==='suc'?'fa-check-circle':type==='war'?'fa-exclamation-triangle':'fa-times-circle'}"></i> ${msg}`;
   t.className='show '+type;clearTimeout(t._t);t._t=setTimeout(()=>t.className='',dur);
 }
-function csrf(){const v=document.cookie.match('(^|;)\s*csrftoken\s*=\s*([^;]+)');return v?v.pop():''}
+function csrf(){
+  const inp=document.querySelector('input[name=csrfmiddlewaretoken]');
+  if(inp&&inp.value)return inp.value;
+  const m=document.cookie.match(/(?:^|;\s*)csrftoken=([^;]*)/);
+  if(!m||!m[1])return '';
+  try{return decodeURIComponent(m[1].trim());}catch(_){return m[1].trim();}
+}
 
 let _adminCb=null;
 function requireAdmin(desc,callback){

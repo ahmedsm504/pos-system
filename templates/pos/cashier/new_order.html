@@ -1250,10 +1250,11 @@ function unitPriceClient(cat,item,sizeId,addonIds){
 
 function mergeKeyLine(l){
   const aids=[...(l.addon_ids||[])].slice().sort((a,b)=>a-b).join(',');
+  const cps=[...(l.cashier_preset_ids||[])].slice().sort((a,b)=>a-b).join(',');
   const sid=l.size_id||0;
   const dd=(l.drink_detail||'').trim();
   const n=(l.notes||'').trim();
-  return `${l.id}|${sid}|${aids}|${dd}|${n}`;
+  return `${l.id}|${sid}|${aids}|${cps}|${dd}|${n}`;
 }
 
 let itemCfgCtx=null;
@@ -1284,6 +1285,14 @@ function openItemCfg(btn,cat,item){
     });
     html+='</div><textarea class="itemcfg-ta" id="icDrinkCustom" placeholder="نص حر (مثال: سبايسي، بدون سكر…)" rows="2"></textarea></div>';
   }
+  const cps=(item.cashier_presets||[]).filter(p=>p&&p.id!=null);
+  if(cps.length){
+    html+='<div class="itemcfg-sec"><h4>خيارات سريعة</h4><p class="itemcfg-hint" style="margin:0 0 8px;font-size:.78rem;color:var(--muted)">من الإدارة لهذا الصنف — تُطبع للمطبخ/البار</p><div class="itemcfg-add">';
+    cps.forEach(p=>{
+      html+=`<label><input type="checkbox" name="ic_cp" value="${p.id}"> ${escHtml(p.label)}</label>`;
+    });
+    html+='</div></div>';
+  }
   body.innerHTML=html||'<p style="color:var(--muted)">لا خيارات إضافية — اضغط أضف للطلب</p>';
   const ov=document.getElementById('itemCfgOverlay');
   ov.style.display='flex';
@@ -1305,6 +1314,7 @@ function confirmItemCfg(){
   if(szEl)sizeId=parseInt(szEl.value,10);
   const addonIds=[...document.querySelectorAll('#itemCfgBody input[name="ic_ad"]:checked')].map(x=>parseInt(x.value,10));
   const presetIds=[...document.querySelectorAll('#itemCfgBody input[name="ic_dp"]:checked')].map(x=>parseInt(x.value,10));
+  const cashierPresetIds=[...document.querySelectorAll('#itemCfgBody input[name="ic_cp"]:checked')].map(x=>parseInt(x.value,10));
   const dcEl=document.getElementById('icDrinkCustom');
   const drinkCustom=dcEl?dcEl.value:'';
   const drinkDetail=buildDrinkDetail(cat,presetIds,drinkCustom);
@@ -1322,6 +1332,7 @@ function confirmItemCfg(){
     drink_preset_ids:presetIds,
     drink_custom:drinkCustom,
     drink_detail:drinkDetail,
+    cashier_preset_ids:cashierPresetIds,
   };
   const k=mergeKeyLine(line);
   const merge=cartLines.find(l=>mergeKeyLine(l)===k&&!String(l.notes||'').trim());
@@ -1411,14 +1422,15 @@ function addItem(btn){
   const needSize=cat.enable_sizes&&(item.sizes||[]).length>0;
   const needAddons=cat.enable_addons&&(cat.addons||[]).length>0;
   const needDrink=cat.enable_drink_options&&cat.category_type==='drink';
-  if(needSize||needAddons||needDrink){
+  const needCashier=(item.cashier_presets||[]).length>0;
+  if(needSize||needAddons||needDrink||needCashier){
     openItemCfg(btn,cat,item);
     return;
   }
   const price=parseFloat(btn.dataset.price);
   const name=btn.dataset.name;
   const catType=btn.dataset.menuKind;
-  const line={lineKey:lineKey(),id,name,price,qty:1,notes:'',catType,size_id:null,addon_ids:[],drink_preset_ids:[],drink_custom:'',drink_detail:''};
+  const line={lineKey:lineKey(),id,name,price,qty:1,notes:'',catType,size_id:null,addon_ids:[],drink_preset_ids:[],drink_custom:'',drink_detail:'',cashier_preset_ids:[]};
   const merge=cartLines.find(l=>mergeKeyLine(l)===mergeKeyLine(line)&&!String(l.notes||'').trim());
   if(merge)merge.qty++;
   else cartLines.push(line);
@@ -1482,6 +1494,14 @@ function renderCart(){
       });
       if(bits.length)extra+=(extra?' · ':'')+bits.join(' · ');
     }
+    if((line.cashier_preset_ids||[]).length&&hit){
+      const cbits=[];
+      (line.cashier_preset_ids||[]).forEach(pid=>{
+        const p=(hit.item.cashier_presets||[]).find(x=>Number(x.id)===Number(pid));
+        if(p)cbits.push('◇ '+p.label);
+      });
+      if(cbits.length)extra+=(extra?' · ':'')+cbits.join(' · ');
+    }
     const extraHtml=extra?`<div class="ci-sub" style="font-size:.68rem;color:var(--pri-d);font-weight:600;line-height:1.35">${extra}</div>`:'';
     let sizeBit='';
     if(line.size_id&&hit){
@@ -1521,6 +1541,7 @@ function payloadItems(){
     addon_ids:l.addon_ids||[],
     drink_preset_ids:l.drink_preset_ids||[],
     drink_custom:l.drink_custom||'',
+    cashier_preset_ids:l.cashier_preset_ids||[],
   }));
 }
 

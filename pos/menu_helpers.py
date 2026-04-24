@@ -4,7 +4,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any, Dict, Tuple
 
-from .models import CategoryAddon, DrinkOptionPreset, MenuItem, MenuItemSize, OrderItem
+from .models import CategoryAddon, DrinkOptionPreset, MenuItem, MenuItemCashierPreset, MenuItemSize, OrderItem
 
 
 def menu_catalog_payload(categories_qs):
@@ -42,6 +42,10 @@ def menu_catalog_payload(categories_qs):
                 'display_from': min_p,
                 'sizes': sizes,
                 'description': (it.description or '')[:300],
+                'cashier_presets': [
+                    {'id': p.id, 'label': p.label}
+                    for p in it.cashier_presets.filter(is_active=True).order_by('order', 'id')
+                ],
             })
         out['categories'].append(c)
     return out
@@ -54,7 +58,8 @@ def _dec(x) -> Decimal:
 def compute_order_item_unit_price(menu_item: MenuItem, item_data: dict) -> Tuple[Decimal, Dict[str, Any]]:
     """
     يحسب سعر الوحدة والبيانات الإضافية للحفظ.
-    item_data: size_id (opt), addon_ids (list), drink_preset_ids (opt), drink_custom (str), notes (str)
+    item_data: size_id (opt), addon_ids (list), drink_preset_ids (opt), drink_custom (str),
+               cashier_preset_ids (list), notes (str)
     يرجع (unit_price, meta_dict للـ OrderItem: size_label, drink_detail, extras_json)
     """
     cat = menu_item.category
@@ -103,6 +108,28 @@ def compute_order_item_unit_price(menu_item: MenuItem, item_data: dict) -> Tuple
 
     unit_price = base + addon_total
 
+    cp_ids_raw = item_data.get('cashier_preset_ids') or []
+    if not isinstance(cp_ids_raw, list):
+        cp_ids_raw = []
+    cashier_presets_meta = []
+    if cp_ids_raw:
+        valid_cp = {
+            p.id: p
+            for p in MenuItemCashierPreset.objects.filter(
+                menu_item=menu_item,
+                is_active=True,
+                pk__in=[int(x) for x in cp_ids_raw if str(x).isdigit()],
+            ).order_by('order', 'id')
+        }
+        for raw_id in cp_ids_raw:
+            try:
+                pk = int(raw_id)
+            except (TypeError, ValueError):
+                continue
+            pr = valid_cp.get(pk)
+            if pr:
+                cashier_presets_meta.append({'id': pr.id, 'label': pr.label})
+
     drink_parts = []
     if cat.enable_drink_options and cat.category_type == 'drink':
         preset_ids = item_data.get('drink_preset_ids') or []
@@ -122,7 +149,7 @@ def compute_order_item_unit_price(menu_item: MenuItem, item_data: dict) -> Tuple
     meta = {
         'size_label': size_label,
         'drink_detail': drink_detail,
-        'extras_json': {'addons': addons_meta},
+        'extras_json': {'addons': addons_meta, 'cashier_presets': cashier_presets_meta},
         'selected_size': selected_size,
     }
     return unit_price, meta
@@ -138,10 +165,13 @@ def merge_key_from_payload(menu_item: MenuItem, item_data: dict, meta: dict) -> 
     aids.sort()
     sz = meta.get('selected_size')
     sz_id = sz.id if sz else 0
+    ex = meta.get('extras_json') or {}
+    cps = sorted(x.get('id') for x in ex.get('cashier_presets', []) if x.get('id') is not None)
     return (
         menu_item.id,
         sz_id,
         tuple(aids),
+        tuple(cps),
         (meta.get('drink_detail') or '').strip(),
         (item_data.get('notes') or '').strip(),
     )
@@ -150,11 +180,13 @@ def merge_key_from_payload(menu_item: MenuItem, item_data: dict, meta: dict) -> 
 def merge_key_from_oi(oi: OrderItem) -> tuple:
     ex = oi.extras_json or {}
     aids = sorted(a.get('id') for a in ex.get('addons', []) if a.get('id') is not None)
+    cps = sorted(x.get('id') for x in ex.get('cashier_presets', []) if x.get('id') is not None)
     sz_id = oi.selected_size_id or 0
     return (
         oi.menu_item_id,
         sz_id,
         tuple(aids),
+        tuple(cps),
         (oi.drink_detail or '').strip(),
         (oi.notes or '').strip(),
     )
@@ -181,6 +213,10 @@ def order_item_print_notes(oi, *, show_addon_prices=True) -> str:
     if drink:
         parts.append(drink)
     ex = getattr(oi, 'extras_json', None) or {}
+    for cp in ex.get('cashier_presets', []):
+        lbl = (cp.get('label') or '').strip()
+        if lbl:
+            parts.append(lbl)
     for a in ex.get('addons', []):
         if show_addon_prices:
             parts.append(f'+ {a.get("name", "")} ({a.get("price", "0")} ج)')

@@ -120,6 +120,9 @@
             {% if item.extras_json and item.extras_json.addons %}
             <div class="admin-od-extra" style="color:var(--muted)">{% for a in item.extras_json.addons %}+ {{ a.name|default:"—" }}{% if a.price %} <span style="opacity:.85">({{ a.price }} ج)</span>{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
             {% endif %}
+            {% if item.extras_json.cashier_presets %}
+            <div class="admin-od-extra" style="color:var(--pri-d);font-weight:600">{% for cp in item.extras_json.cashier_presets %}◇ {{ cp.label|default:"—" }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
+            {% endif %}
             {% if item.notes %}<div class="admin-od-note"><i class="fas fa-comment-dots" style="opacity:.5;margin-inline-end:4px"></i>{{ item.notes }}</div>{% endif %}
           </td>
           <td>
@@ -337,6 +340,7 @@
                   <div class="inv-iname">{% if item.size_label %}{{ item.menu_item.name }} ({{ item.size_label }}){% else %}{{ item.menu_item.name }}{% endif %}</div>
                   {% if item.drink_detail %}<div class="inv-idet">{{ item.drink_detail }}</div>{% endif %}
                   {% if item.extras_json and item.extras_json.addons %}<div class="inv-idet">{% for a in item.extras_json.addons %}+ {{ a.name|default:"—" }}{% if a.price %} ({{ a.price }} ج){% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
+                  {% if item.extras_json.cashier_presets %}<div class="inv-idet">{% for cp in item.extras_json.cashier_presets %}◇ {{ cp.label|default:"—" }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
                   {% if item.notes %}<div class="inv-idet">{{ item.notes }}</div>{% endif %}
                 </td>
                 <td class="inv-iqty">{{ item.quantity }}</td>

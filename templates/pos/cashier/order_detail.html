@@ -359,6 +359,9 @@ tr.od-line-hidden{display:none!important}
             {% if item.extras_json.addons %}
             <div class="od-item-extra" style="color:var(--muted)">{% for a in item.extras_json.addons %}+ {{ a.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
             {% endif %}
+            {% if item.extras_json.cashier_presets %}
+            <div class="od-item-extra" style="color:var(--pri-d);font-weight:600">{% for cp in item.extras_json.cashier_presets %}◇ {{ cp.label }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
+            {% endif %}
             {% if item.notes %}<div class="od-line-note" style="font-size:.73rem;color:var(--muted)">{{ item.notes }}</div>{% endif %}
           </td>
           <td><span class="od-line-qty" style="background:#f1f5f9;padding:3px 10px;border-radius:6px;font-weight:800">{{ item.quantity }}</span></td>
@@ -375,7 +378,8 @@ tr.od-line-hidden{display:none!important}
                 {{ item.selected_size_id|default:'null' }},
                 '{{ item.notes|escapejs }}',
                 '{% if item.extras_json and item.extras_json.addons %}{% for a in item.extras_json.addons %}{% if a.id %}{{ a.id }}{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}{% endif %}',
-                '{{ item.drink_detail|escapejs }}'
+                '{{ item.drink_detail|escapejs }}',
+                '{% if item.extras_json.cashier_presets %}{% for cp in item.extras_json.cashier_presets %}{% if cp.id %}{{ cp.id }}{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}{% endif %}'
               )"
               title="تعديل البند"
             >
@@ -724,6 +728,7 @@ tr.od-line-hidden{display:none!important}
                   <div class="inv-iname">{% if item.size_label %}{{ item.menu_item.name }} ({{ item.size_label }}){% else %}{{ item.menu_item.name }}{% endif %}</div>
                   {% if item.drink_detail %}<div class="inv-idet">{{ item.drink_detail }}</div>{% endif %}
                   {% if item.extras_json and item.extras_json.addons %}<div class="inv-idet">{% for a in item.extras_json.addons %}+ {{ a.name|default:"—" }}{% if a.price %} ({{ a.price }} ج){% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
+                  {% if item.extras_json.cashier_presets %}<div class="inv-idet">{% for cp in item.extras_json.cashier_presets %}◇ {{ cp.label|default:"—" }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
                   {% if item.notes %}<div class="inv-idet">{{ item.notes }}</div>{% endif %}
                 </td>
                 <td class="inv-iqty">{{ item.quantity }}</td>
@@ -800,7 +805,8 @@ function startAddItem(menuItemId, orderId){
   const needSize=cat.enable_sizes&&(item.sizes||[]).length>0;
   const needAddons=cat.enable_addons&&(cat.addons||[]).length>0;
   const needDrink=cat.enable_drink_options&&cat.category_type==='drink';
-  if(!needSize&&!needAddons&&!needDrink){
+  const needCashier=(item.cashier_presets||[]).length>0;
+  if(!needSize&&!needAddons&&!needDrink&&!needCashier){
     pushPendingAdd({
       menu_item_id:menuItemId,
       quantity:1,
@@ -809,10 +815,11 @@ function startAddItem(menuItemId, orderId){
       addon_ids:[],
       drink_preset_ids:[],
       drink_custom:'',
+      cashier_preset_ids:[],
     });
     return;
   }
-  odCfg={mode:'add',orderId,pendingAddEditKey:null,cat,item,orderItemId:null,init:{sizeId:null,addonIds:[],notes:'',drinkCustom:'',drinkPresetIds:[]}};
+  odCfg={mode:'add',orderId,pendingAddEditKey:null,cat,item,orderItemId:null,init:{sizeId:null,addonIds:[],notes:'',drinkCustom:'',drinkPresetIds:[],cashierPresetIds:[]}};
   document.getElementById('odCfgTitle').innerHTML='<i class="fas fa-circle-plus"></i> إضافة على الطلب — '+escOd(item.name);
   renderOdCfg();
 }
@@ -836,16 +843,18 @@ function startEditPendingAdd(key){
       notes:p.notes||'',
       drinkCustom:p.drink_custom||'',
       drinkPresetIds:(p.drink_preset_ids||[]).map(x=>Number(x)),
+      cashierPresetIds:(p.cashier_preset_ids||[]).map(x=>Number(x)),
     }
   };
   document.getElementById('odCfgTitle').innerHTML='<i class="fas fa-pen"></i> تعديل بند معلّق — '+escOd(item.name);
   renderOdCfg();
 }
 
-function startEditItem(orderItemId, menuItemId, selectedSizeId, notes, addonsCsv, drinkDetail){
+function startEditItem(orderItemId, menuItemId, selectedSizeId, notes, addonsCsv, drinkDetail, cashierCsv){
   const hit=findOdEntry(menuItemId);
   if(!hit){showToast('الصنف غير متاح للتعديل','err');return;}
   const addonIds=(addonsCsv||'').split(',').map(x=>parseInt(x,10)).filter(x=>!isNaN(x));
+  const cashierPresetIds=(cashierCsv||'').split(',').map(x=>parseInt(x,10)).filter(x=>!isNaN(x));
   odCfg={
     mode:'edit',
     orderId:ORDER_ID,
@@ -857,6 +866,8 @@ function startEditItem(orderItemId, menuItemId, selectedSizeId, notes, addonsCsv
       addonIds,
       notes:notes||'',
       drinkCustom:drinkDetail||'',
+      drinkPresetIds:[],
+      cashierPresetIds,
     }
   };
   document.getElementById('odCfgTitle').innerHTML='<i class="fas fa-pen"></i> تعديل بند في الطلب — '+escOd(hit.item.name);
@@ -881,6 +892,16 @@ function renderOdCfg(){
     (cat.addons||[]).forEach(a=>{
       const on = (init.addonIds||[]).includes(Number(a.id));
       html+=`<label><input type="checkbox" name="od_ad" value="${a.id}" ${on?'checked':''}> ${escOd(a.name)} <strong style="color:var(--pri-d)">+${Number(a.price).toFixed(2)} ج</strong></label>`;
+    });
+    html+='</div></div>';
+  }
+  const cps=(item.cashier_presets||[]).filter(p=>p&&p.id!=null);
+  if(cps.length){
+    const cpOn=(init.cashierPresetIds||[]).map(Number);
+    html+='<div class="itemcfg-sec"><h4>خيارات سريعة</h4><p class="itemcfg-hint" style="margin:0 0 8px;font-size:.78rem;color:var(--muted)">اختيارات يحددها المدير لهذا الصنف — تظهر للمطبخ/البار مع الطلب</p><div class="itemcfg-add">';
+    cps.forEach(p=>{
+      const on=cpOn.includes(Number(p.id));
+      html+=`<label><input type="checkbox" name="od_cp" value="${p.id}" ${on?'checked':''}> ${escOd(p.label)}</label>`;
     });
     html+='</div></div>';
   }
@@ -922,6 +943,7 @@ function confirmOdCfg(){
   if(szEl)sizeId=parseInt(szEl.value,10);
   const addonIds=[...document.querySelectorAll('#odCfgBody input[name="od_ad"]:checked')].map(x=>parseInt(x.value,10));
   const presetIds=[...document.querySelectorAll('#odCfgBody input[name="od_dp"]:checked')].map(x=>parseInt(x.value,10));
+  const cashierPresetIds=[...document.querySelectorAll('#odCfgBody input[name="od_cp"]:checked')].map(x=>parseInt(x.value,10));
   const dc=document.getElementById('odDrinkCustom');
   const noteEl=document.getElementById('odItemNote');
   const payload={
@@ -930,6 +952,7 @@ function confirmOdCfg(){
     addon_ids:addonIds,
     drink_preset_ids:presetIds,
     drink_custom:dc?dc.value:'',
+    cashier_preset_ids:cashierPresetIds,
   };
   if(mode==='edit'){
     updateItemMetaApi(orderId,{order_item_id:orderItemId,...payload});
@@ -949,6 +972,7 @@ function confirmOdCfg(){
         addon_ids:addonIds,
         drink_preset_ids:presetIds,
         drink_custom:payload.drink_custom||'',
+        cashier_preset_ids:cashierPresetIds,
       };
     }
     closeOdCfg();
@@ -998,6 +1022,19 @@ function pendingAddDrinkText(payload){
   const cat=hit.cat;
   if(!cat.enable_drink_options||cat.category_type!=='drink')return '';
   return buildDrinkOd(cat,payload.drink_preset_ids,payload.drink_custom)||'';
+}
+
+function pendingAddCashierPresetsText(payload){
+  const hit=findOdEntry(payload.menu_item_id);
+  if(!hit)return '';
+  const item=hit.item;
+  const ids=payload.cashier_preset_ids||[];
+  if(!ids.length)return '';
+  const names=ids.map(id=>{
+    const p=(item.cashier_presets||[]).find(x=>Number(x.id)===Number(id));
+    return p?p.label:null;
+  }).filter(Boolean);
+  return names.length?names.join(' · '):'';
 }
 
 function pendingAddCommentLine(payload){
@@ -1062,6 +1099,9 @@ function renderOdPendingAdds(){
       '<div class="od-cart-sec-row od-cart-drink-row od-pend-drink-wrap-'+key+'" style="display:none">'+
       '<span class="od-cart-sec-label">المشروب</span>'+
       '<span class="od-cart-sec-text od-pend-drink-'+key+'"></span></div>'+
+      '<div class="od-cart-sec-row od-pend-cashier-wrap-'+key+'" style="display:none">'+
+      '<span class="od-cart-sec-label">خيارات سريعة</span>'+
+      '<span class="od-cart-sec-text od-pend-cashier-'+key+'"></span></div>'+
       '<div class="od-cart-sec-row od-cart-comment-row od-pend-comment-wrap-'+key+'" style="display:none">'+
       '<span class="od-cart-sec-label">تعليق</span>'+
       '<span class="od-cart-sec-text od-cart-comment-text od-pend-comment-'+key+'"></span></div>'+
@@ -1081,6 +1121,8 @@ function renderOdPendingAdds(){
     const addTxt=ul.querySelector('.od-pend-addons-'+key);
     const drinkWrap=ul.querySelector('.od-pend-drink-wrap-'+key);
     const drinkTxt=ul.querySelector('.od-pend-drink-'+key);
+    const cashWrap=ul.querySelector('.od-pend-cashier-wrap-'+key);
+    const cashTxt=ul.querySelector('.od-pend-cashier-'+key);
     const comWrap=ul.querySelector('.od-pend-comment-wrap-'+key);
     const comTxt=ul.querySelector('.od-pend-comment-'+key);
     if(mainEl) mainEl.textContent=pendingAddMainLine(payload);
@@ -1094,6 +1136,11 @@ function renderOdPendingAdds(){
     if(drinkWrap&&drinkTxt){
       if(dt){ drinkTxt.textContent=dt; drinkWrap.style.display='flex'; }
       else{ drinkWrap.style.display='none'; drinkTxt.textContent=''; }
+    }
+    const cpt=pendingAddCashierPresetsText(payload);
+    if(cashWrap&&cashTxt){
+      if(cpt){ cashTxt.textContent=cpt; cashWrap.style.display='flex'; }
+      else{ cashWrap.style.display='none'; cashTxt.textContent=''; }
     }
     if(comWrap&&comTxt){
       const c=pendingAddCommentLine(payload);

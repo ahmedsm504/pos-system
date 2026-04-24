@@ -277,6 +277,9 @@ body{
               {% for a in item.extras_json.addons %}+ {{ a.name|default:"—" }}{% if a.price %} ({{ a.price }} ج){% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
             </div>
             {% endif %}
+            {% if item.extras_json.cashier_presets %}
+            <div class="inv-item-detail">{% for cp in item.extras_json.cashier_presets %}◇ {{ cp.label|default:"—" }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>
+            {% endif %}
             {% if item.notes %}
             <div class="inv-item-detail">{{ item.notes }}</div>
             {% endif %}

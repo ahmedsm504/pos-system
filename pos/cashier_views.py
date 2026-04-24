@@ -54,6 +54,7 @@ from .shift_helpers import (
 from .models import (
     Category,
     MenuItem,
+    MenuItemCashierPreset,
     MenuItemSize,
     Table,
     Waiter,
@@ -160,6 +161,10 @@ def _cashier_menu_queryset():
                 .order_by('order', 'name')
                 .prefetch_related(
                     Prefetch('sizes', queryset=MenuItemSize.objects.order_by('order', 'id')),
+                    Prefetch(
+                        'cashier_presets',
+                        queryset=MenuItemCashierPreset.objects.filter(is_active=True).order_by('order', 'id'),
+                    ),
                 ),
             ),
         )
@@ -350,6 +355,9 @@ def preview_order(request):
                 line_parts.append(meta['drink_detail'])
             for a in (meta.get('extras_json') or {}).get('addons', []):
                 line_parts.append(f'+ {a.get("name", "")}')
+            for cp in (meta.get('extras_json') or {}).get('cashier_presets', []):
+                if cp.get('label'):
+                    line_parts.append('◇ ' + cp['label'])
             if note:
                 line_parts.append(note)
             line_note = ' · '.join(line_parts)
@@ -654,6 +662,7 @@ def add_item(request, order_id):
             'addon_ids': data.get('addon_ids') or [],
             'drink_preset_ids': data.get('drink_preset_ids') or [],
             'drink_custom': data.get('drink_custom') or '',
+            'cashier_preset_ids': data.get('cashier_preset_ids') or [],
             'notes': note,
         }
         try:
@@ -742,6 +751,7 @@ def add_items_batch(request, order_id):
                     'addon_ids': entry.get('addon_ids') or [],
                     'drink_preset_ids': entry.get('drink_preset_ids') or [],
                     'drink_custom': entry.get('drink_custom') or '',
+                    'cashier_preset_ids': entry.get('cashier_preset_ids') or [],
                     'notes': note,
                 }
                 try:
@@ -829,6 +839,7 @@ def update_item_meta(request, order_id):
             'addon_ids': data.get('addon_ids') or [],
             'drink_preset_ids': data.get('drink_preset_ids') or [],
             'drink_custom': data.get('drink_custom') or '',
+            'cashier_preset_ids': data.get('cashier_preset_ids') or [],
             'notes': note,
         }
         try:

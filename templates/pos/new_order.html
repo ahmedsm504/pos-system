@@ -507,9 +507,4 @@ async function confirmPrint(){
   btn.disabled=false;
   btn.innerHTML='<i class="fas fa-print"></i> تأكيد وطباعة';
 }
-
-function csrf(){
-  const v=document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');
-  return v?v.pop():'';
-}
 </script>{% endblock %}

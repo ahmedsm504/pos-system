@@ -213,11 +213,6 @@
 {% endblock %}
 
 {% block extra_js %}<script>
-function csrf() {
-  const v = document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');
-  return v ? v.pop() : '';
-}
-
 // إعادة الطباعة
 document.getElementById('btnReprint').addEventListener('click', async () => {
   const btn        = document.getElementById('btnReprint');

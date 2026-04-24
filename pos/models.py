@@ -80,6 +80,22 @@ class MenuItemSize(models.Model):
     def __str__(self): return f'{self.menu_item.name} — {self.name}'
 
 
+class MenuItemCashierPreset(models.Model):
+    """خيارات نصية يعرّفها المدير لصنف معيّن؛ الكاشير يختار منها (مع التعليق الحر) وتُطبع للمطبخ/البار والفواتير."""
+    menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE, related_name='cashier_presets', verbose_name='الصنف')
+    label = models.CharField(max_length=120, verbose_name='نص يظهر للكاشير')
+    order = models.PositiveIntegerField(default=0, verbose_name='الترتيب')
+    is_active = models.BooleanField(default=True, verbose_name='نشط')
+
+    class Meta:
+        verbose_name = 'تعليق مساعد للصنف'
+        verbose_name_plural = 'تعليقات مساعدة للصنف'
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f'{self.menu_item.name}: {self.label}'
+
+
 class Waiter(models.Model):
     name      = models.CharField(max_length=100, verbose_name='الاسم')
     phone     = models.CharField(max_length=20, blank=True, verbose_name='الهاتف')

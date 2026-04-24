@@ -244,6 +244,20 @@
         </div>
 
         <div class="form-section">
+          <div class="form-section-h"><i class="fas fa-list-check"></i> تعليقات مساعدة للكاشير <span class="if-hint" style="font-weight:600;margin-inline-start:auto">اختياري — لكل صنف</span></div>
+          <p class="if-hint" style="margin:-6px 0 14px;line-height:1.5">عناوين جاهزة (مثل: بدون رغوة، حليب لوز، سكر دايت). يظهر للكاشير عند اختيار الصنف ويُطبَع مع الطلب للمطبخ/البار والفاتورة. يمكن الجمع مع «تعليق على البند» الحر.</p>
+          <div id="cashierPresetList" style="display:flex;flex-direction:column;gap:8px">
+            {% for p in existing_cashier_presets %}
+            <div class="if-fg" style="margin:0">
+              <label>نص الخيار</label>
+              <input name="cashier_preset_label" type="text" value="{{ p.label }}" placeholder="مثال: بدون رغوة" maxlength="120">
+            </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="btn btn-out btn-sm" style="margin-top:10px" id="addCashierPresetRowBtn"><i class="fas fa-plus"></i> سطر خيار</button>
+        </div>
+
+        <div class="form-section">
           <div class="form-section-h"><i class="fas fa-align-right"></i> الوصف <span class="if-hint" style="font-weight:600;margin-inline-start:auto">اختياري</span></div>
           <div class="if-fg">
             <textarea id="itemDesc" name="description" aria-label="وصف المنتج" placeholder="مكوّنات، حجم، مذكرة للمطبخ…">{{ obj.description|default:'' }}</textarea>
@@ -268,7 +282,7 @@
       </div>
       <div class="tip-card">
         <strong><i class="fas fa-lightbulb"></i> نصيحة</strong>
-        فعّل الأحجام والإضافات من شاشة تعديل التصنيف؛ هنا تضيف أحجام هذا الصنف فقط. الإضافات والعناوين الجاهزة للمشروب تُعرَّف مرة واحدة على مستوى التصنيف.
+        فعّل الأحجام والإضافات من شاشة تعديل التصنيف؛ هنا تضيف أحجام هذا الصنف و«تعليقات مساعدة» خاصة به فقط. عناوين المشروب العامة تُعرَّف على مستوى التصنيف.
       </div>
     </aside>
   </div>
@@ -286,6 +300,8 @@
   const sizesSection=document.getElementById('sizesSection');
   const sizeList=document.getElementById('sizeList');
   const addSizeBtn=document.getElementById('addSizeRowBtn');
+  const presetList=document.getElementById('cashierPresetList');
+  const addPresetBtn=document.getElementById('addCashierPresetRowBtn');
   const pvN=document.getElementById('previewName');
   const pvP=document.getElementById('previewPrice');
   function toAsciiNumberString(str){
@@ -325,6 +341,15 @@
     sizeList&&sizeList.querySelectorAll('input').forEach(function(i){i.disabled=!on;});
     if(on&&sizeList&&!sizeList.children.length)addSizeRow();
   }
+  function addCashierPresetRow(){
+    if(!presetList)return;
+    const wrap=document.createElement('div');
+    wrap.className='if-fg';
+    wrap.style.margin='0';
+    wrap.innerHTML='<label>نص الخيار</label><input name="cashier_preset_label" type="text" placeholder="مثال: بدون رغوة" maxlength="120">';
+    presetList.appendChild(wrap);
+  }
+  addPresetBtn&&addPresetBtn.addEventListener('click',addCashierPresetRow);
   addSizeBtn&&addSizeBtn.addEventListener('click',addSizeRow);
   catSel&&catSel.addEventListener('change',toggleSizesSection);
   let priceFieldTouched=false;

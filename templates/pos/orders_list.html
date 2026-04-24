@@ -216,8 +216,6 @@
 {% endblock %}
 
 {% block extra_js %}<script>
-function csrf(){const v=document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');return v?v.pop():'';}
-
 document.getElementById('applyBtn').addEventListener('click',()=>{
   const s=document.getElementById('srch').value;
   const d=document.getElementById('dp').value;
